@@ -1,0 +1,99 @@
+import type { ChronicleEntry, GameState, Genre, ResultLine, Skill, Stats } from './types';
+import { clamp } from './rng';
+
+export const age = (s: GameState) => s.time - s.player.birthYear;
+export const ageInt = (s: GameState) => Math.floor(age(s));
+export const year = (s: GameState) => Math.floor(s.time);
+export const half = (s: GameState) => (s.time - Math.floor(s.time) >= 0.5 ? '하반기' : '상반기');
+
+export type Stage = 'prenatal' | 'baby' | 'elem' | 'middle' | 'high' | 'twenties' | 'thirties' | 'middleage' | 'senior';
+
+export function stageOf(a: number): Stage {
+  if (a < 0) return 'prenatal';
+  if (a < 7) return 'baby';
+  if (a < 13) return 'elem';
+  if (a < 16) return 'middle';
+  if (a < 19) return 'high';
+  if (a < 30) return 'twenties';
+  if (a < 40) return 'thirties';
+  if (a < 65) return 'middleage';
+  return 'senior';
+}
+
+export const STAGE_LABEL: Record<Stage, string> = {
+  prenatal: '태교',
+  baby: '영유아',
+  elem: '초등학생',
+  middle: '중학생',
+  high: '고등학생',
+  twenties: '20대',
+  thirties: '30대',
+  middleage: '중년',
+  senior: '노년',
+};
+
+/** 나이에 따라 시간 흐름이 다르다 (기획서 3장) */
+export function stepSize(a: number): number {
+  if (a < 0) return 0.5;
+  if (a < 3) return 3;
+  if (a < 7) return 2;
+  if (a < 13) return 1;
+  if (a < 40) return 0.5;
+  if (a < 65) return 1;
+  return 2;
+}
+
+export function actionSlots(s: GameState): number {
+  const a = age(s);
+  if (a < 7) return 0;
+  if (a < 13) return 1;
+  if (s.player.military === 'serving') return 1;
+  if (a >= 65) return 1;
+  return 2;
+}
+
+export function addStat(s: GameState, k: keyof Stats, d: number) {
+  s.player.stats[k] = clamp(s.player.stats[k] + d);
+}
+
+export function addSkill(s: GameState, k: Skill, d: number) {
+  // 높을수록 오르기 어렵다 (수확 체감)
+  const cur = s.player.skills[k];
+  const eff = d > 0 ? d * (1 - cur / 125) : d;
+  s.player.skills[k] = clamp(cur + eff);
+}
+
+export function addGenre(s: GameState, g: Genre, d: number) {
+  s.player.genre[g] = clamp(s.player.genre[g] + d);
+}
+
+export function favoriteGenre(s: GameState): Genre {
+  return (Object.entries(s.player.genre) as [Genre, number][]).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+export function chron(s: GameState, text: string, kind: ChronicleEntry['kind'] = 'life', npcId?: string) {
+  s.chronicle.push({ age: Math.max(0, ageInt(s)), year: year(s), text, kind, npcId });
+}
+
+export function say(s: GameState, text: string, tone: ResultLine['tone'] = 'neutral') {
+  s.lastResults.push({ text, tone });
+}
+
+export function mainSkill(s: GameState): number {
+  const inst = s.player.mainInst;
+  return inst ? s.player.skills[inst] : Math.max(s.player.skills.vocal, s.player.skills.guitar);
+}
+
+export const flag = (s: GameState, k: string) => s.flags[k];
+export const setFlag = (s: GameState, k: string, v: number | boolean | string = true) => {
+  s.flags[k] = v;
+};
+
+/** 생활비(반기) — 20세 이후. 부모님 집이면 크게 줄어든다. [가정] */
+export function livingCost(s: GameState, priceIdx: number): number {
+  const a = age(s);
+  if (a < 20) return 0;
+  const atHome = s.flags.independent !== true;
+  const base = atHome ? 1_800_000 : 7_200_000;
+  return Math.round(base * priceIdx);
+}

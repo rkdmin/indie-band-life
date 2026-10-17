@@ -1,0 +1,14 @@
+{
+  "name": "인디밴드 키우기",
+  "short_name": "인디밴드",
+  "description": "태교부터 마지막 무대까지, 음악으로 기록되는 한 사람의 인생 시뮬레이션",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0f1a",
+  "theme_color": "#0e0f1a",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "indie-band-life",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "인디밴드 키우기 — 태교부터 마지막 무대까지, 음악으로 기록되는 한 사람의 인생 시뮬레이션",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "balance": "vitest run tests/balance.test.ts --reporter=verbose",
+    "verify": "npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}
