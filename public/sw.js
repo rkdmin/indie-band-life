@@ -1,4 +1,4 @@
-// 오프라인 플레이용 단순 캐시 (stale-while-revalidate). 게임 데이터는 전부 클라이언트에 있다.
+// 오프라인 플레이용 캐시. 페이지는 네트워크 우선, 나머지 정적 파일은 stale-while-revalidate. 게임 데이터는 전부 클라이언트에 있다.
 const CACHE = 'ibl-v2';
 
 self.addEventListener('install', (e) => {
@@ -18,7 +18,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
-          caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
+          const copy = res.clone();
+          if (res.ok) caches.open(CACHE).then((c) => c.put(e.request, copy));
           return res;
         })
         .catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html'))),
