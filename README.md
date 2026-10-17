@@ -5,6 +5,8 @@
 
 “밴드부 친구랑 만든 첫 곡이 20년 뒤 역주행했습니다.”
 
+**▶ 바로 플레이: https://rkdmin.github.io/indie-band-life/** (설치 없이 PC·휴대폰 브라우저에서)
+
 ## 어떻게 플레이하나
 
 1. **태어나기** — 어디서, 어떤 집에서 태어날지는 고를 수 없다. 출생 신고서에 그해 실제 출생아 수와 기대수명이 찍힌다.
@@ -45,8 +47,6 @@ cd indie-band-life
 npm install
 npm run dev        # 브라우저에서 http://localhost:5180
 ```
-
-비공개 저장소라 clone 할 때 GitHub 로그인이 필요하다 (Git Credential Manager 나 `gh auth login`).
 
 빌드된 버전만 띄우려면 (Node 만 있으면 된다):
 
