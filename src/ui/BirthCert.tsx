@@ -23,10 +23,16 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
     <div className="cert-wrap">
       <div className="cert" role="document">
         <div className="cert-head">
-          <span>출생 신고</span>
+          <span>SIDE A · 탄생</span>
           <span className="mono">No. IBL-{y}-{String(s.seed).slice(0, 7)}</span>
         </div>
         <div className="cert-body">
+          <div className="tape" aria-hidden>
+            <div className="tape-label">{p.name} — 첫 번째 트랙</div>
+            <div className="tape-window"><span className="reel" /><span className="reel" /></div>
+            <div className="tape-side">SIDE A</div>
+            <div className="tape-time">{y} · {lifeExpectancy(y)}Y</div>
+          </div>
           <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
             <div className="portrait" style={{ width: 70, height: 84 }}>
               <Portrait person={{ look: p.look, gender: p.gender, age: 0, mood: 80 }} />

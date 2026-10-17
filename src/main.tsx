@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { initBackButton, isNative } from './platform';
 import './styles.css';
+import './theme.css';
 
 initBackButton();
 

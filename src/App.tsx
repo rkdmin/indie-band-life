@@ -97,7 +97,7 @@ export function App() {
     <Title
       meta={meta}
       canContinue={!!game}
-      continueLabel={game ? (game.phase === 'ending' ? `${game.player.name}의 부고 보기` : `${game.player.name} · ${Math.max(0, Math.floor(game.time - game.player.birthYear))}세`) : ''}
+      continueLabel={game ? (game.phase === 'ending' ? `${game.player.name}의 라이너 노트 보기` : `${game.player.name} · ${Math.max(0, Math.floor(game.time - game.player.birthYear))}세`) : ''}
       onContinue={() => setScreen('life')}
       onBorn={born}
       onCollection={() => setScreen('collection')}

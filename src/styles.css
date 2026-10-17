@@ -97,7 +97,8 @@ canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; display
 
 /* ───────── 타이틀 ───────── */
 .title-page { max-width: 1080px; margin: 0 auto; padding: 22px 18px 60px; }
-.title-top { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11px; color: var(--sub); letter-spacing: 0.06em; }
+.title-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--sub); letter-spacing: 0.06em; }
+.title-top .linkbtn { white-space: nowrap; }
 .title-grid { display: grid; gap: 28px; margin-top: 18px; }
 @media (min-width: 900px) { .title-grid { grid-template-columns: 1.05fr 1fr; align-items: start; } }
 .logo { font-family: var(--serif); font-weight: 800; font-size: clamp(56px, 13vw, 104px); line-height: 0.98; letter-spacing: -0.04em; margin: 8px 0 18px; }
@@ -451,3 +452,63 @@ canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; display
 .real-last { font-size: 12.5px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
 .facts { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; font-size: 12.5px; }
 .facts .src { margin: 0 4px 0 0; }
+
+/* ───────── 휴대폰 ───────── */
+.speed-m, .mobile-only { display: none; }
+@media (max-width: 899px) {
+  .desk-only, .speed, .brand { display: none !important; }
+  .tabs .mobile-only { display: block; }
+  .life { padding: 0 10px calc(74px + env(safe-area-inset-bottom)); }
+  .topbar { margin: 0 -10px; padding: calc(6px + env(safe-area-inset-top)) 10px 0; }
+  .topbar-row { flex-wrap: nowrap; align-items: center; gap: 8px; }
+  .agebig { font-size: 32px; }
+  .agebig small { font-size: 15px; }
+  .datebar { font-size: 11px; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .speed-m { display: flex; gap: 4px; flex: none; }
+  .speed-m button { min-width: 38px; height: 38px; padding: 0 7px; border: 1px solid var(--ink); border-radius: 4px; background: var(--card); font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .speed-m button.on { background: var(--ink); color: var(--paper); }
+  .yearprog { margin-top: 6px; }
+  /* 핵심(장면·상태·기록)을 먼저, 자세한 카드는 아래로 */
+  .life-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .life-left, .life-right { display: contents; }
+  .stage { order: 1; box-shadow: 3px 3px 0 var(--ink); }
+  .status-strip { order: 2; display: grid; gap: 6px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+  .feed { order: 3; }
+  .feed-list { max-height: 46vh; }
+  .plan-wrap { order: 4; }
+  .reality-wrap { order: 5; }
+  .idcard-wrap { order: 6; }
+  .tabs { order: 7; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; gap: 0; flex-wrap: nowrap; background: var(--paper); border-top: 1px solid var(--ink); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+  .tabs button { box-shadow: none; border: 0; background: transparent; min-height: 46px; min-width: 0; font-size: 13.5px; border-radius: 0; }
+  .tabs button + button { border-left: 1px solid var(--line); }
+  .ss-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .ss { font-size: 11px; color: var(--sub); }
+  .ss b { font-family: var(--mono); color: var(--ink); font-weight: 600; }
+  .ss.warn b { color: var(--bad); }
+  .ss .bar { height: 4px; margin-top: 2px; }
+  .ss-money { display: flex; justify-content: space-between; font-family: var(--serif); font-weight: 800; font-size: 15px; }
+  .ss-money .neg { color: var(--bad); }
+  .entry { grid-template-columns: 40px 1fr; padding: 7px 12px; }
+  .entry .what { font-size: 14px; }
+  .feed-head { padding: 10px 12px 6px; }
+  .modal-back { place-items: end center; padding: 0; }
+  .fork { max-width: none; max-height: 88vh; border-radius: 10px 10px 0 0; box-shadow: 0 -4px 0 var(--ink); border-bottom: 0; padding-bottom: env(safe-area-inset-bottom); }
+  .fork h2 { font-size: 23px; }
+  .choice { padding: 13px 12px; min-height: 48px; }
+  .sheet { max-height: 92vh; }
+  .dice-screen { justify-content: flex-start; padding-top: calc(16px + env(safe-area-inset-top)); gap: 6px; }
+  .dice-table { height: 40vh; }
+  .dc-shield { width: 76px; height: 80px; }
+  .dc-shield b { font-size: 32px; }
+  .cine-text { margin-top: -3vh; padding: 0 16px calc(32px + env(safe-area-inset-bottom)); }
+  .cine-title { font-size: clamp(34px, 11vw, 52px); }
+  .cine-sub { font-size: 15px; }
+  .cine-frame canvas.pixel { max-height: 52vh; }
+  .title-top { font-size: 10px; }
+  .title-grid { display: flex; flex-direction: column; }
+  .obit-top { grid-template-columns: 64px 1fr auto; }
+  .obit-top .portrait { width: 64px; height: 78px; }
+  .obit-name { font-size: 26px; }
+  .rank { font-size: 48px; }
+  .bio { font-size: 15.5px; }
+}

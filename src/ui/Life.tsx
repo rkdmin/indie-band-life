@@ -19,6 +19,8 @@ import { playBgm, sfx } from '../audio/player';
 import { Cinematic } from './Cinematic';
 import { OddsBar } from './Odds';
 import { DiceScreen } from './Dice';
+import { AchievementToast, Coach, GoalsCard, StatPops, feedIcon, useAchievementToasts, useStatPops } from './Juice';
+import { relationLabel } from '../sim/npc';
 import { Sheet } from './Sheet';
 import { BandSheet, ChronicleSheet, PeopleSheet, RecordsSheet } from './Sheets';
 import { Settings } from './Settings';
@@ -89,7 +91,23 @@ interface Props {
 export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
   const [speed, setSpeed] = useState<Speed>(1);
   const [skipping, setSkipping] = useState(false);
+  const lastSpeed = useRef<Speed>(1);
   const [tab, setTab] = useState<Tab>(null);
+  const [coach, setCoach] = useState(() => {
+    try {
+      return localStorage.getItem('ibl.coach') !== '1';
+    } catch {
+      return false;
+    }
+  });
+  const closeCoach = () => {
+    setCoach(false);
+    try {
+      localStorage.setItem('ibl.coach', '1');
+    } catch {
+      /* 무시 */
+    }
+  };
   const [clock, setClock] = useState(() => s.time);
   const clockRef = useRef(s.time);
   const stRef = useRef(s);
@@ -107,7 +125,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
 
   // 겹쳐 있는 화면이 있으면 시간은 멈춘다
   const cineDue = s.cine.length > 0 && s.cine[0].at <= clock + 1e-6;
-  const overlay = !!tab || s.phase === 'event' || cineDue;
+  const overlay = !!tab || s.phase === 'event' || cineDue || coach;
   const paused = speed === 0 && !skipping;
 
   // ── 시계 루프 ──
@@ -203,6 +221,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
   }, [ev?.id, ev?.result, s.autoDecide]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useBackButton(() => setTab(null), !!tab);
+  const pops = useStatPops(s);
+  const ach = useAchievementToasts(s);
 
   // ── 화면 계산 ──
   const sceneId = sceneFor(s);
@@ -242,11 +262,27 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
               ▸▸ 다음 결정
             </button>
           </div>
+          {/* 휴대폰: 한 줄짜리 큰 버튼 */}
+          <div className="speed-m" role="group" aria-label="시간 조절">
+            <button className={paused ? 'on' : ''} onClick={() => { if (paused) setSpeed(lastSpeed.current); else { lastSpeed.current = speed || 1; setSpeed(0); setSkipping(false); } sfx('tap'); }} aria-label={paused ? '재생' : '일시정지'}>
+              {paused ? '▶' : '❚❚'}
+            </button>
+            <button onClick={() => { const order: Speed[] = [1, 2, 4, 8]; const nx = order[(order.indexOf(speed === 0 ? lastSpeed.current : speed) + 1) % order.length]; setSpeed(nx); lastSpeed.current = nx; setSkipping(false); sfx('tap'); }} aria-label="배속 바꾸기">
+              {speed === 0 ? lastSpeed.current : speed}×
+            </button>
+            <button className={skipping ? 'on' : ''} onClick={() => { setSkipping(true); if (speed === 0) setSpeed(lastSpeed.current); }} aria-label="다음 결정까지 빨리 감기">
+              ▸▸
+            </button>
+            <button className={s.autoDecide ? 'on' : ''} onClick={() => commit(setAutoDecide(stRef.current, !s.autoDecide))} aria-label="자동 결정">
+              자동
+            </button>
+            <button onClick={() => setTab('settings')} aria-label="설정">⚙</button>
+          </div>
         </div>
         <div className="yearprog" aria-hidden>
           <i style={{ width: `${yearFrac * 100}%` }} />
         </div>
-        <div className="toolrow">
+        <div className="toolrow desk-only">
           <button className={`tool ${s.autoDecide ? 'on' : ''}`} onClick={() => commit(setAutoDecide(stRef.current, !s.autoDecide))}>
             {s.autoDecide ? '✓ 자동 결정 중' : '자동 결정'}
           </button>
@@ -256,10 +292,12 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
 
       <div className="life-grid">
         <div className="life-left">
-          <IdCard s={s} clock={clock} />
-          <PlanCard s={s} onEdit={() => setTab('plan')} onChange={commit} />
-          {a >= 15 && <RealityCard s={s} clock={clock} />}
+          <div className="idcard-wrap"><IdCard s={s} clock={clock} /></div>
+          {a >= 6 && <div className="goals-wrap"><GoalsCard s={s} /></div>}
+          <div className="plan-wrap"><PlanCard s={s} onEdit={() => setTab('plan')} onChange={commit} /></div>
+          {a >= 15 && <div className="reality-wrap"><RealityCard s={s} clock={clock} /></div>}
           <nav className="tabs" aria-label="기록">
+            <button className="mobile-only" onClick={() => setTab('plan')}>계획</button>
             <button onClick={() => setTab('people')}>사람<span className="n">{Object.keys(s.npcs).length}</span></button>
             <button onClick={() => setTab('band')}>밴드</button>
             <button onClick={() => setTab('records')}>음반<span className="n">{s.songs.length}</span></button>
@@ -274,12 +312,14 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
               <span className="dim">{REGIONS.find((r) => r.id === s.player.region)?.label}</span>
             </div>
           </div>
+          <div className="pops-anchor"><StatPops pops={pops} /></div>
+          <StatusStrip s={s} />
           <Feed entries={visible} birthYear={s.player.birthYear} paused={paused} />
         </div>
       </div>
 
-      {ev && !ev.big && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
-      {ev && ev.big && (
+      {!coach && ev && !ev.big && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
+      {!coach && ev && ev.big && (
         <Cinematic
           key={`${ev.id}-${ev.at}`}
           scene={ev.scene}
@@ -292,7 +332,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           <EventChoices s={s} onChoose={onChoose} onNext={onProceed} dark />
         </Cinematic>
       )}
-      {ev?.pending && (
+      {!coach && ev?.pending && (
         <DiceScreen
           key={`${ev.id}-${ev.pending.rerolled ? 'r' : 'f'}`}
           pending={ev.pending}
@@ -302,7 +342,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           onAccept={() => commit(resolveRoll(stRef.current))}
         />
       )}
-      {!ev && cine && (
+      {!coach && !ev && cine && (
         <Cinematic
           key={`${cine.kind}-${cine.at}-${cine.title}`}
           scene={cine.scene}
@@ -318,6 +358,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
         />
       )}
 
+      {coach && <Coach onDone={closeCoach} />}
+      {ach && !ev && <AchievementToast id={ach.id} />}
       {tab === 'plan' && (
         <PlanSheet
           s={s}
@@ -359,8 +401,8 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
   return (
     <div className="card idcard">
       <div className="idcard-head">
-        <span>MUSICIAN · 신분증</span>
-        <span>{Math.floor(clock)}</span>
+        <span>BACKSTAGE PASS</span>
+        <span>ARTIST · {Math.floor(clock)}</span>
       </div>
       <div className="idcard-body">
         <div className="portrait">
@@ -498,11 +540,12 @@ function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear:
       <div className="feed-list">
         {rows.map((r, i) =>
           'head' in r ? (
-            <div key={`h${r.head}${i}`} className="entry yearhead"><span>{r.head}</span></div>
+            <div key={`h${r.head}`} className="entry yearhead"><span>{r.head}</span></div>
           ) : (
-            <div key={`${r.t}-${i}-${r.text.slice(0, 8)}`} className={`entry ${r.tone} ${r.kind ?? ''}`}>
+            <div key={`${r.t}-${r.kind ?? ''}-${r.text}-${r.deltas ?? ''}`} className={`entry ${r.tone} ${r.kind ?? ''}`}>
               <span className="when">{Math.min(12, Math.floor((r.t - Math.floor(r.t)) * 12) + 1)}월</span>
               <span className="what">
+                <span className="ico" aria-hidden>{feedIcon(r)}</span>
                 {r.text}
                 {r.deltas && <span className="deltas">{r.deltas}</span>}
               </span>
@@ -580,6 +623,7 @@ function Fork({ s, onChoose, onNext, onAuto }: { s: GameState; onChoose: (i: num
           <span>{a}세 · {Math.floor(ev.at)}년 {m}월</span>
         </div>
         <div className="fork-body">
+          <WhoBar s={s} />
           <h2>{ev.title}</h2>
           <div className="text">{ev.text}</div>
           <EventChoices s={s} onChoose={onChoose} onNext={onNext} />
@@ -634,6 +678,63 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// ───────────────────────── 휴대폰용 한 줄 상태 ─────────────────────────
+function StatusStrip({ s }: { s: GameState }) {
+  const st = s.player.stats;
+  const items: [string, number, string, boolean][] = [
+    ['건강', st.health, 'var(--green)', st.health < 35],
+    ['행복', st.happiness, 'var(--gold)', st.happiness < 30],
+    ['스트레스', st.stress, 'var(--bad)', st.stress > 75],
+    ['컨디션', st.energy, 'var(--blue)', st.energy < 25],
+  ];
+  return (
+    <div className="status-strip mobile-only">
+      <div className="ss-bars">
+        {items.map(([l, v, c, warn]) => (
+          <div key={l} className={`ss ${warn ? 'warn' : ''}`}>
+            <span>
+              {l} <b>{Math.round(v)}</b>
+            </span>
+            <div className="bar">
+              <i style={{ width: `${v}%`, background: c }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="ss-money">
+        <span className={s.player.money < 0 ? 'neg' : ''}>{won(s.player.money)}</span>
+        <span>
+          팬 {count(s.player.fans)}
+          {s.player.globalFans > 0 ? ` · ✈${count(s.player.globalFans)}` : ''}
+        </span>
+        <span style={{ color: 'var(--gold)' }}>{'✦'.repeat(s.player.inspiration)}</span>
+      </div>
+    </div>
+  );
+}
+
+/** 사건에 얽힌 사람들 — 대화 상대의 얼굴을 보여 준다 */
+function WhoBar({ s }: { s: GameState }) {
+  const ev = s.active!;
+  const ppl = [...new Set(Object.values(ev.bind))].map((id) => s.npcs[id]).filter(Boolean).slice(0, 3);
+  if (!ppl.length) return null;
+  return (
+    <div className="who">
+      {ppl.map((n) => (
+        <div key={n.id} className="who-p">
+          <div className="who-face">
+            <Portrait person={{ look: n.look, gender: n.gender, age: Math.max(0, s.time - n.birthYear), mood: 50 + n.affinity / 2 }} />
+          </div>
+          <div>
+            <b>{n.name}</b>
+            <span>{relationLabel(n)} · 친밀도 {Math.round(n.affinity)}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

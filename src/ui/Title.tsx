@@ -98,6 +98,9 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
             오늘 대한민국에서 약 {perDay.toLocaleString()}명의 아기가 태어납니다. 그중 한 명이 되어 첫 기타부터 마지막 무대까지 살아 봅니다.
             어디서, 어떤 집에서 태어날지는 고를 수 없습니다. 당신이 그랬던 것처럼.
           </p>
+          <div className="hero-frame mobile-only" style={{ margin: '4px 0 18px' }}>
+            <PixelScene id="festival" people={people} crowd={0.9} night seed={7} label="페스티벌 무대" />
+          </div>
           <div className="counters">
             <div className="counter">
               <b>{since.toFixed(2)}</b>
@@ -149,10 +152,10 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
         </div>
 
         <div>
-          <div className="hero-frame">
+          <div className="hero-frame desk-only">
             <PixelScene id="festival" people={people} crowd={0.9} night seed={7} label="페스티벌 무대" />
           </div>
-          <div className="hero-cap">FIG.1 — 어느 밴드의 여름 페스티벌. 모든 인물은 가상입니다.</div>
+          <div className="hero-cap desk-only">FIG.1 — 어느 밴드의 여름 페스티벌. 모든 인물은 가상입니다.</div>
           <div style={{ marginTop: 22 }}>
             <div className="section-title">
               <h3>지난 인생들</h3>

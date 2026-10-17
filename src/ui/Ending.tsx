@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { GameState } from '../sim/types';
 import { Cover } from '../art/Cover';
-import { Portrait } from '../art/Portrait';
 import { drawPerson } from '../art/pixel';
 import { ENDINGS } from '../sim/endings';
 import { biography } from '../sim/bio';
-import { GENRE_INFO } from '../sim/data/world';
+import { GENRE_INFO, INST_LABEL } from '../sim/data/world';
 import { count } from '../sim/korean';
 import { playSong, sfx, stopBgm, stopSong } from '../audio/player';
 import { ChronicleSheet, SongRow } from './Sheets';
@@ -30,6 +29,27 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
   const bandName = s.band?.name ?? s.pastBands[s.pastBands.length - 1]?.name ?? null;
   const genre = s.band?.genre ?? s.pastBands[0]?.genre ?? null;
   const bio = useMemo(() => biography(s), [s]);
+  const tracks = useMemo(() => {
+    const seen = new Set<string>();
+    let singleSeen = 0;
+    return s.chronicle
+      .filter((c) => c.kind === 'big' || c.kind === 'band' || (c.kind === 'music' && !/^싱글/.test(c.text)) || (c.kind === 'music' && !(singleSeen++)))
+      .filter((c) => (seen.has(c.text) ? false : (seen.add(c.text), true)))
+      .slice(0, 14);
+  }, [s.chronicle]);
+  const credits = useMemo(() => {
+    const ids = new Set<string>([...s.pastBands, ...(s.band ? [s.band] : [])].flatMap((b) => b.memberIds));
+    const ppl = Object.values(s.npcs)
+      .filter((n) => n.role !== 'parent' && (ids.has(n.id) || n.affinity >= 45 || n.role === 'partner'))
+      .sort((a, b) => Number(ids.has(b.id)) - Number(ids.has(a.id)) || b.affinity - a.affinity)
+      .slice(0, 8);
+    return ppl.map((n) => ({
+      id: n.id,
+      name: n.name,
+      role: ids.has(n.id) ? INST_LABEL[n.inst] : n.role === 'partner' ? '사랑' : '친구',
+      how: `${n.metAge}살, ${n.metAt}`,
+    }));
+  }, [s]);
   const highlights = useMemo(() => s.chronicle.filter((c) => c.kind === 'big' || c.kind === 'band').slice(-8), [s.chronicle]);
 
   useEffect(() => {
@@ -66,40 +86,66 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
   return (
     <div className="obit-wrap">
       {toast && <div className="toast">{toast}</div>}
-      <article className="obit">
-        <header className="obit-head">
-          <span className="paper">인디 음악 신문 · 부고</span>
-          <span className="mono">{Math.floor(s.time)}년 · 제{String(s.seed).slice(0, 4)}호</span>
+      <article className="liner">
+        <header className="liner-head">
+          <span>LINER NOTES</span>
+          <span>{s.player.birthYear}–{s.player.birthYear + deathAge}</span>
         </header>
-        <div className="obit-body">
-          <div className="obit-top">
-            <div className="portrait">
-              <Portrait person={{ look: s.player.look, gender: s.player.gender, age: deathAge, mood: 70 }} bg="#ddd5c4" />
-            </div>
-            <div>
-              <div className="obit-name">{s.player.name}</div>
-              <div className="obit-years">
-                {s.player.birthYear} – {s.player.birthYear + deathAge} · 향년 {deathAge}세
-                {genre ? ` · ${GENRE_INFO[genre].label}` : ''}
-              </div>
-            </div>
-            <div className="rank" aria-label={`랭크 ${e.rank}`}>{e.rank}</div>
+        <div className="liner-top">
+          <div className="liner-cover">
+            <Cover seed={s.seed} genre={genre ?? 'indierock'} title={e.title.replace(/^\S+ /, '')} artist={s.player.name} size={140} />
+            <div className="liner-sticker" aria-label={`랭크 ${e.rank}`}>{e.rank}</div>
           </div>
           <div>
-            <h1 className="ending-title">{e.title.replace(/^\S+ /, '')}</h1>
-            <div className="ending-sub">{e.subtitle}</div>
+            <div className="liner-artist">{s.player.name}{bandName ? ` · 〈${bandName}〉` : ''}</div>
+            <h1 className="liner-album">{e.title.replace(/^\S+ /, '')}</h1>
+            <div className="liner-sub">{e.subtitle}</div>
+            <div className="liner-years">
+              {s.player.birthYear} – {s.player.birthYear + deathAge} · {deathAge}세{genre ? ` · ${GENRE_INFO[genre].label}` : ''}
+            </div>
           </div>
-          <p className="bio">{bio}</p>
-          <div className="epitaph">“{e.text.split('\n')[0]}”</div>
+        </div>
+        <section className="liner-sec">
+          <h4>TRACKLIST — 이 인생의 장면들</h4>
+          <ol className="tracklist">
+            {tracks.map((t, i) => (
+              <li key={i}>
+                <span>{t.text}</span>
+                <span className="age">{t.age}세</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+        {credits.length > 0 && (
+          <section className="liner-sec">
+            <h4>CREDITS — 함께한 사람들</h4>
+            <div className="credits">
+              {credits.map((c) => (
+                <div key={c.id}>
+                  <b>{c.role}</b>
+                  <span>
+                    {c.name} <span className="dim">· {c.how}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        <section className="liner-sec">
+          <h4>NOTES</h4>
+          <p className="liner-notes">{bio}</p>
+          <p className="liner-notes" style={{ color: 'var(--red-ink)', marginTop: 6 }}>“{e.text.split('\n')[0]}”</p>
+        </section>
+        <section className="liner-sec">
           <div className="numbers">
             <div><b>{count(s.peakFans)}</b><span>최고 팬</span></div>
             <div><b>{s.albums.length}</b><span>음반</span></div>
             <div><b>{(s.flags.gigs as number) || 0}</b><span>공연</span></div>
             <div><b>{s.songs.length}</b><span>쓴 곡</span></div>
             <div><b>{Object.keys(s.npcs).length}</b><span>인연</span></div>
-            <div><b>{s.chronicle.length}</b><span>기억</span></div>
+            <div><b>{s.player.globalFans ? count(s.player.globalFans) : s.chronicle.length}</b><span>{s.player.globalFans ? '해외 팬' : '기억'}</span></div>
           </div>
-        </div>
+        </section>
       </article>
 
       {best && (
@@ -124,7 +170,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
         </div>
       )}
 
-      <button className="btn primary block" onClick={share}>부고 카드 공유하기</button>
+      <button className="btn primary block" onClick={share}>라이너 노트 카드 공유하기</button>
       <button className="btn block" onClick={() => { sfx('tap'); onNewLife(); }}>다음 인생으로 태어나기</button>
       <button className="btn ghost block" onClick={onQuit}>처음 화면으로</button>
       <div className="dim" style={{ textAlign: 'center' }}>엔딩 도감 {Object.keys(meta.endings).length}/{ENDINGS.length}</div>
@@ -165,7 +211,7 @@ async function renderShareCard(s: GameState, bio: string, bandName: string | nul
   g.strokeRect(40, 40, W - 80, H - 80);
   g.fillStyle = '#1c1a16';
   g.font = `800 40px ${serif}`;
-  g.fillText('인디 음악 신문 · 부고', 80, 110);
+  g.fillText('LINER NOTES · 인디밴드 키우기', 80, 110);
   g.font = `400 24px ${mono}`;
   g.fillStyle = '#6f685b';
   g.fillText(`${Math.floor(s.time)} · #인디밴드키우기`, W - 380, 110);
@@ -191,14 +237,14 @@ async function renderShareCard(s: GameState, bio: string, bandName: string | nul
   g.fillStyle = '#6f685b';
   g.fillText(`${s.player.birthYear} – ${s.player.birthYear + deathAge} · 향년 ${deathAge}세`, 312, 330);
   if (bandName) g.fillText(`〈${bandName}〉`, 312, 375);
-  g.fillStyle = '#d8401c';
+  g.fillStyle = '#f0378f';
   g.font = `800 160px ${serif}`;
   g.fillText(e.rank, W - 210, 360);
 
   g.fillStyle = '#1c1a16';
   g.font = `800 72px ${serif}`;
   g.fillText(e.title.replace(/^\S+ /, ''), 80, 530);
-  g.fillStyle = '#b33214';
+  g.fillStyle = '#c8186e';
   g.font = `700 34px ${sans}`;
   g.fillText(e.subtitle, 80, 585);
 
