@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">인디밴드 키우기</string>
+    <string name="title_activity_main">인디밴드 키우기</string>
+    <string name="package_name">app.indieband.life</string>
+    <string name="custom_url_scheme">app.indieband.life</string>
+</resources>

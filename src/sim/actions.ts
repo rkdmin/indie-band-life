@@ -50,11 +50,20 @@ export function venuesFor(c: Ctx): (Venue & { locked: string | null })[] {
 
 export function playGig(c: Ctx, v: Venue, fest = false) {
   const era = eraOf(c.s.time);
-  const score = gigScore(c) + c.rng.normal(0, 10);
+  const base = gigScore(c);
   const gi = GENRE_INFO[c.band?.genre ?? favoriteGenre(c.s)];
   const draw = fest ? v.capacity : Math.min(v.capacity, Math.round((c.p.fans * 0.08 + 15) * era.gigMul * (0.7 + c.rng.next() * 0.6)));
   const fill = draw / v.capacity;
-  const grade = score >= 62 ? 'great' : score >= 42 ? 'good' : 'bad';
+  // 무대 판정 (d20): 공연장이 클수록 난이도가 높다. 보정치는 밴드 연주력·무대 경험·팀워크·컨디션
+  const DC: Record<string, number> = { openmic: 8, club_group: 11, club_solo: 13, hall: 15, local_fest: 14, big_fest: 17, arena: 18 };
+  const dc = DC[v.id] ?? 12;
+  const chem = c.band?.chemistry ?? 50;
+  const mod = c.m(bandSkill(c)) + Math.floor(c.m(c.p.skills.stage) / 2) + (chem >= 70 ? 2 : chem < 40 ? -2 : 0) + (c.p.stats.energy < 30 ? -2 : 0);
+  const nat = c.rng.int(1, 20);
+  const total = nat + mod;
+  const grade = nat === 20 || total >= dc + 5 ? 'great' : nat !== 1 && total >= dc ? 'good' : 'bad';
+  c.lines.push({ text: `🎲 무대 판정 d20(${nat})${mod >= 0 ? '+' : ''}${mod} = ${total} vs 난이도 ${dc} → ${nat === 20 ? '대성공(자연 20)' : nat === 1 ? '대실패(자연 1)' : grade === 'great' ? '대성공' : grade === 'good' ? '성공' : '실패'}`, tone: grade === 'bad' ? 'bad' : 'good', delta: true });
+  void base;
   c.scene(v.scene);
   c.s.flags.lastGigAudience = draw;
   c.s.flags.lastGigGrade = grade;
@@ -68,6 +77,10 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   const fanGain = Math.round(draw * conv * gi.loyalty);
   if (grade === 'great') {
     c.line(`${v.label} — 관객 ${draw.toLocaleString()}명이 떼창했다!`, 'big');
+    if (fest || v.capacity >= 700 || !c.flag('firstGreatGig')) {
+      c.set('firstGreatGig');
+      c.s.cine.push({ kind: 'gig', scene: v.scene, kicker: `${c.year} · ${c.ageInt}세`, title: v.label, sub: `관객 ${draw.toLocaleString()}명이 함께 노래했다.`, at: c.s.time });
+    }
     c.stat('happiness', 10);
     if (fest || draw >= 150) c.rep(fest ? 3 : 1);
     if (c.band && (!c.band.bestGig || draw > ((c.s.flags.bestGigDraw as number) || 0))) {
@@ -124,7 +137,8 @@ export const ACTIONS: ActionDef[] = [
       const i = (inst as Inst) || 'keys';
       c.skill(i, 7 + c.rng.next() * 3);
       c.setInst(i);
-      if (c.p.income !== 'high') c.money(-c.krw(180000) * 2, '학원비');
+      // 학원비는 부모님이 낸다 — 형편이 빠듯하면 집안 분위기가 무거워진다
+      if (c.p.income === 'mid' && c.roll(0.3)) c.line('학원비 고지서를 보는 엄마의 한숨을 들었다.', 'neutral');
       c.stat('stress', 3);
       c.inc(`lesson_${i}`);
     },
@@ -455,6 +469,7 @@ export function formBand(c: Ctx, name?: string, genre?: Genre) {
   band.chemistry = clamp(40 + c.members.reduce((a, m) => a + m.affinity, 0) / Math.max(1, c.members.length) / 3);
   c.chron(`밴드 〈${band.name}〉 결성 (${GENRE_INFO[g].label})`, 'band');
   c.line(`밴드 〈${band.name}〉 결성!`, 'big');
+  c.s.cine.push({ kind: 'band', scene: 'studio', kicker: `${c.year} · ${c.ageInt}세 · ${GENRE_INFO[g].label}`, title: `〈${band.name}〉`, sub: c.members.length ? `${c.members.map((m) => given(m.name)).join(', ')}와 함께 밴드를 시작했다.` : '혼자서 시작하는 밴드. 이름부터 정했다.', at: c.s.time });
   if (c.members.length === 0) c.line('아직 멤버가 없다. 멤버 모집을 해 보자.', 'neutral');
   return band;
 }

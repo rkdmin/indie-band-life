@@ -47,10 +47,10 @@ export const CAREER: EventDef[] = [
       { label: (c) => `${c.n('m')}의 방식대로 해 본다`, run: (c) => { c.genre(c.npc('m').genre, 5); c.rel('m', 6, '네 방식대로 해 본 날'); chem(c, 3); return '어색했던 코드가 세 번째 반복에서 갑자기 맞물렸다. 둘 다 말없이 웃었다.'; } },
       {
         label: '둘 다 섞은 버전을 밤새 만들어 온다',
-        hint: (c) => c.pct(c.chance(0.45, (c.p.skills.compose - 40) / 15)),
+        odds: (c) => c.fromP(c.chance(0.45, (c.p.skills.compose - 40) / 15), '작곡 판정'),
         run: (c) => {
           c.stat('energy', -8);
-          if (c.roll(c.chance(0.45, (c.p.skills.compose - 40) / 15))) {
+          if (c.check(c.choicesOdds!)) {
             c.skill('compose', 4); chem(c, 6); c.rel('m', 8, '밤새 섞어 만든 브릿지');
             return '새벽 다섯 시에 보낸 데모. 아침 아홉 시에 답장이 왔다. “이거다.”';
           }
@@ -153,9 +153,9 @@ export const CAREER: EventDef[] = [
       },
       {
         label: '붙잡는다',
-        hint: (c) => c.pct(c.chance(0.35, c.npc('m').affinity / 40)),
+        odds: (c) => c.fromP(c.chance(0.35, c.npc('m').affinity / 40), '설득 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.35, c.npc('m').affinity / 40))) {
+          if (c.check(c.choicesOdds!)) {
             c.rel('m', 6, '붙잡아 준 밤'); chem(c, 4);
             return '“…주말만이라도 할게.” 그날 막차는 놓쳤고, 둘이서 첫차까지 걸었다.';
           }
@@ -206,9 +206,9 @@ export const CAREER: EventDef[] = [
       { label: '서운한 마음을 솔직히 말한다', run: (c) => { c.rel('m', -4); chem(c, 2); c.stat('stress', 4); return '그는 결국 제안을 거절했다. 고마운데, 마음 한쪽이 무거웠다.'; } },
       {
         label: '그 곡들, 밴드로 같이 하자고 한다',
-        hint: (c) => c.pct(c.chance(0.5, (c.band!.chemistry - 50) / 20)),
+        odds: (c) => c.fromP(c.chance(0.5, (c.band!.chemistry - 50) / 20), '팀워크 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.5, (c.band!.chemistry - 50) / 20))) { chem(c, 6); c.skill('compose', 2); c.rel('m', 5); return '그의 곡에 우리 소리를 입혔다. 그 곡이 이번 앨범 타이틀이 됐다.'; }
+          if (c.check(c.choicesOdds!)) { chem(c, 6); c.skill('compose', 2); c.rel('m', 5); return '그의 곡에 우리 소리를 입혔다. 그 곡이 이번 앨범 타이틀이 됐다.'; }
           c.rel('m', -6); chem(c, -5);
           return '“그건 내 얘기야. 밴드 곡이 아니라.” 그 말에 아무도 대답하지 못했다.';
         },
@@ -232,9 +232,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '경찰에 신고하고 SNS에 사진을 올린다',
-        hint: (c) => c.pct(c.chance(0.3, c.p.fans / 5000)),
+        odds: (c) => c.fromP(c.chance(0.3, c.p.fans / 5000), '인지도 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.3, c.p.fans / 5000))) { fanBump(c, 0.04, 40); c.stat('happiness', 8); return '공유가 수천 번. 사흘 뒤 중고 거래 사이트에서 팬이 찾아냈다. 케이스 안 스티커가 증거였다.'; }
+          if (c.check(c.choicesOdds!)) { fanBump(c, 0.04, 40); c.stat('happiness', 8); return '공유가 수천 번. 사흘 뒤 중고 거래 사이트에서 팬이 찾아냈다. 케이스 안 스티커가 증거였다.'; }
           c.stat('happiness', -8); c.money(-c.krw(800_000), '새 악기');
           return '돌아오지 않았다. 대신 낯선 사람들의 위로 댓글이 잔뜩 달렸다.';
         },
@@ -251,9 +251,9 @@ export const CAREER: EventDef[] = [
       { label: '옆 밴드에 앰프를 빌려 달라고 한다', run: (c) => { c.meet('x', { metAt: '앰프 빌려준 옆 밴드', career: 'musician', affinity: 25, skill: c.rng.int(30, 60) }); c.rel('x', 6, '앰프를 빌려준 날'); c.rep(1); return '“우리도 지난달에 그랬어요.” 뒤풀이에서 그 밴드랑 술값을 반씩 냈다.'; } },
       {
         label: '앰프 없이 언플러그드로 간다',
-        hint: (c) => c.pct(c.chance(0.5, (c.p.skills.stage - 40) / 15)),
+        odds: (c) => c.fromP(c.chance(0.5, (c.p.skills.stage - 40) / 15), '무대 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.5, (c.p.skills.stage - 40) / 15))) { c.skill('stage', 4); fanBump(c, 0.03, 30); c.rep(2); return '“앰프 고장 났어요. 그냥 할게요.” 객석이 조용해지더니, 마지막 후렴에서 다 같이 불렀다.'; }
+          if (c.check(c.choicesOdds!)) { c.skill('stage', 4); fanBump(c, 0.03, 30); c.rep(2); return '“앰프 고장 났어요. 그냥 할게요.” 객석이 조용해지더니, 마지막 후렴에서 다 같이 불렀다.'; }
           c.stat('stress', 6); c.skill('stage', 2);
           return '맨 뒷줄까지 소리가 닿지 않았다. 그래도 맨 앞 다섯 명은 끝까지 들어 줬다.';
         },
@@ -268,10 +268,11 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '변호사와 상의해 이름을 지킨다',
-        hint: (c) => `${c.pct(c.chance(0.55, c.band!.formedYear < c.year - 2 ? 0.6 : 0))} · 비용 ${won(c.krw(2_000_000))}`,
+        hint: (c) => `비용 ${won(c.krw(2_000_000))}`,
+        odds: (c) => c.dc(11, '증거 판정', [['오래 써 온 이름', c.band!.formedYear < c.year - 2 ? 3 : 0]], '가정', '먼저, 오래 써 온 쪽이 유리하다'),
         run: (c) => {
           c.money(-c.krw(2_000_000), '법률 상담');
-          if (c.roll(c.chance(0.55, c.band!.formedYear < c.year - 2 ? 0.6 : 0))) { c.rep(3); c.chron('밴드 이름을 지켜 냈다', 'band'); return '공연 기록과 포스터가 증거가 됐다. 먼저 쓴 사람이 우리라는 게 인정됐다.'; }
+          if (c.check(c.choicesOdds!)) { c.rep(3); c.chron('밴드 이름을 지켜 냈다', 'band'); return '공연 기록과 포스터가 증거가 됐다. 먼저 쓴 사람이 우리라는 게 인정됐다.'; }
           c.stat('stress', 8); c.band!.name = `${c.band!.name} 밴드`; c.fans(-(c.p.fans * 0.03));
           return '결국 이름 뒤에 한 단어를 붙이는 걸로 합의했다. 어색하지만, 우리는 우리다.';
         },
@@ -323,9 +324,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '솔직하게, 망한 이야기까지 다 한다',
-        hint: (c) => c.pct(c.chance(0.6, (c.p.rep - 30) / 25)),
+        odds: (c) => c.fromP(c.chance(0.6, (c.p.rep - 30) / 25), '평판 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.6, (c.p.rep - 30) / 25))) { c.rep(5); fanBump(c, 0.03, 40); c.rel('j', 8, '솔직했던 인터뷰'); return '제목은 “망해 본 사람들의 노래”. 그 기사가 생각보다 멀리 퍼졌다.'; }
+          if (c.check(c.choicesOdds!)) { c.rep(5); fanBump(c, 0.03, 40); c.rel('j', 8, '솔직했던 인터뷰'); return '제목은 “망해 본 사람들의 노래”. 그 기사가 생각보다 멀리 퍼졌다.'; }
           c.rep(-2); c.rel('j', 3);
           return '헤드라인에 실수로 한 말이 박혔다. 단톡방에서 한참 놀림받았다.';
         },
@@ -341,9 +342,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '반박 글을 쓴다',
-        hint: (c) => c.pct(c.chance(0.35, (c.p.rep - 40) / 20)),
+        odds: (c) => c.fromP(c.chance(0.35, (c.p.rep - 40) / 20), '평판 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.35, (c.p.rep - 40) / 20))) { c.rep(3); fanBump(c, 0.02, 20); return '정중하고 날카로운 글이었다. 평론가가 짧게 답했다. “좋은 반론입니다. 다음 음반 기대하겠습니다.”'; }
+          if (c.check(c.choicesOdds!)) { c.rep(3); fanBump(c, 0.02, 20); return '정중하고 날카로운 글이었다. 평론가가 짧게 답했다. “좋은 반론입니다. 다음 음반 기대하겠습니다.”'; }
           c.rep(-4); c.stat('stress', 6);
           return '감정이 묻어난 글은 캡처되어 돌았다. 지우고 싶었지만 이미 늦었다.';
         },
@@ -373,9 +374,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '작업 과정과 데모 파일을 공개한다',
-        hint: (c) => c.pct(c.chance(0.55, (c.p.skills.compose - 45) / 15)),
+        odds: (c) => c.fromP(c.chance(0.55, (c.p.skills.compose - 45) / 15), '작곡 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.55, (c.p.skills.compose - 45) / 15))) { c.rep(4); fanBump(c, 0.02, 30); return '날짜가 찍힌 음성 메모 열두 개. 흔한 진행이라는 음악가들의 해설이 이어졌고, 의혹은 정리됐다.'; }
+          if (c.check(c.choicesOdds!)) { c.rep(4); fanBump(c, 0.02, 30); return '날짜가 찍힌 음성 메모 열두 개. 흔한 진행이라는 음악가들의 해설이 이어졌고, 의혹은 정리됐다.'; }
           c.rep(-3); c.stat('stress', 8);
           return '설명은 했지만, 한번 붙은 꼬리표는 잘 떨어지지 않았다.';
         },
@@ -391,10 +392,10 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '밤새 사업계획서를 쓴다',
-        hint: (c) => c.pct(c.chance(0.3, (c.p.rep - 25) / 20, (c.p.skills.compose - 45) / 20)),
+        odds: (c) => c.fromP(c.chance(0.3, (c.p.rep - 25) / 20, (c.p.skills.compose - 45) / 20), '작곡 판정'),
         run: (c) => {
           c.stat('energy', -8);
-          if (c.roll(c.chance(0.3, (c.p.rep - 25) / 20, (c.p.skills.compose - 45) / 20))) {
+          if (c.check(c.choicesOdds!)) {
             c.money(c.krw(5_000_000) / share(c), '지원금'); c.stat('happiness', 8); c.chron('음반 제작 지원사업에 선정됐다', 'music');
             return '선정 메일 제목을 세 번 다시 읽었다. 정산 서류가 앨범보다 두꺼울 거라는 건 아직 몰랐다.';
           }
@@ -414,9 +415,9 @@ export const CAREER: EventDef[] = [
       { label: '요청대로 맞춰 쓴다', run: (c) => { c.money(c.krw(3_000_000), 'OST 작곡료'); fanBump(c, 0.08, 150); c.skill('compose', 3); c.theme('breakup'); return '방송 다음 날, 드라마 클립 댓글에 우리 이름이 처음 등장했다.'; } },
       {
         label: '서랍 속 우리 곡을 내민다',
-        hint: (c) => c.pct(c.chance(0.4, (c.p.skills.compose - 50) / 15)),
+        odds: (c) => c.fromP(c.chance(0.4, (c.p.skills.compose - 50) / 15), '작곡 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.4, (c.p.skills.compose - 50) / 15))) { c.money(c.krw(2_500_000), 'OST 사용료'); fanBump(c, 0.1, 200); c.rep(3); return '음악감독이 말했다. “이거 그대로 갑시다.” 몇 년 묵힌 곡이 드디어 세상에 나갔다.'; }
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(2_500_000), 'OST 사용료'); fanBump(c, 0.1, 200); c.rep(3); return '음악감독이 말했다. “이거 그대로 갑시다.” 몇 년 묵힌 곡이 드디어 세상에 나갔다.'; }
           c.stat('happiness', -4);
           return '“분위기가 좀 달라서요.” 정중한 거절. 서랍은 다시 닫혔다.';
         },
@@ -432,9 +433,9 @@ export const CAREER: EventDef[] = [
       { label: '한다. 월세는 소중하니까', run: (c) => { c.money(c.krw(2_000_000), '광고 음악'); c.skill('compose', 2); c.stat('stress', 5); if (genreIs(c, 'punk')) c.rep(-3); return '수정 요청 열한 번. 최종본은 1차 시안이었다. 광고 일이란 그런 거다.'; } },
       {
         label: '우리 스타일대로만 하겠다고 조건을 건다',
-        hint: (c) => c.pct(c.chance(0.35, (c.p.rep - 40) / 20)),
+        odds: (c) => c.fromP(c.chance(0.35, (c.p.rep - 40) / 20), '평판 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.35, (c.p.rep - 40) / 20))) { c.money(c.krw(2_500_000), '광고 음악'); c.rep(3); fanBump(c, 0.04, 80); return '“오히려 좋네요.” 광고가 나가자 “이 노래 뭐예요?” 댓글이 줄줄이 달렸다.'; }
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(2_500_000), '광고 음악'); c.rep(3); fanBump(c, 0.04, 80); return '“오히려 좋네요.” 광고가 나가자 “이 노래 뭐예요?” 댓글이 줄줄이 달렸다.'; }
           c.stat('happiness', -2);
           return '답장이 오지 않았다. 대행사는 다른 팀을 골랐다.';
         },
@@ -463,9 +464,9 @@ export const CAREER: EventDef[] = [
       },
       {
         label: '항공권은 팬 펀딩으로',
-        hint: (c) => c.pct(c.chance(0.4, (c.p.fans - 3000) / 4000)),
+        odds: (c) => c.fromP(c.chance(0.4, (c.p.fans - 3000) / 4000), '인지도 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.4, (c.p.fans - 3000) / 4000))) { c.skill('stage', 4); c.rep(4); fanBump(c, 0.07, 150); chem(c, 4); c.chron(`팬들이 보내 준 해외 무대 — ${c.vars.where}`, 'big'); return '목표 금액 112% 달성. 후원자 이름을 전부 적은 현수막을 무대 뒤에 걸었다.'; }
+          if (c.check(c.choicesOdds!)) { c.skill('stage', 4); c.rep(4); fanBump(c, 0.07, 150); chem(c, 4); c.chron(`팬들이 보내 준 해외 무대 — ${c.vars.where}`, 'big'); return '목표 금액 112% 달성. 후원자 이름을 전부 적은 현수막을 무대 뒤에 걸었다.'; }
           c.stat('happiness', -6);
           return '펀딩은 68%에서 멈췄다. 후원금은 전액 환불됐고, 미안하다는 글을 길게 썼다.';
         },
@@ -480,9 +481,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '각 잡고 찍는다',
-        hint: (c) => c.pct(c.chance(0.12, c.year >= 2022 ? 0.8 : 0, genreIs(c, 'indiepop') ? 0.7 : 0, (c.p.skills.stage - 50) / 20)),
+        odds: (c) => c.fromP(c.chance(0.12, c.year >= 2022 ? 0.8 : 0, genreIs(c, 'indiepop') ? 0.7 : 0, (c.p.skills.stage - 50) / 20), '무대 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.12, c.year >= 2022 ? 0.8 : 0, genreIs(c, 'indiepop') ? 0.7 : 0, (c.p.skills.stage - 50) / 20))) {
+          if (c.check(c.choicesOdds!)) {
             fanBump(c, 0.25, 1500); c.stat('happiness', 10); c.chron('숏폼 챌린지 영상이 터졌다', 'music');
             return '자고 일어나니 조회수 280만. 모르는 나라 사람들이 우리 후렴을 립싱크하고 있었다.';
           }
@@ -501,9 +502,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '라이브로 승부한다',
-        hint: (c) => c.pct(c.chance(0.55, (c.mainSkill - 45) / 15)),
+        odds: (c) => c.fromP(c.chance(0.55, (c.mainSkill - 45) / 15), '연주 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.55, (c.mainSkill - 45) / 15))) { fanBump(c, 0.05, 120); c.rep(2); c.skill('stage', 2); return '노래가 끝나고 3초 동안 DJ가 말을 안 했다. “…아, 죄송해요. 듣고 있었어요.”'; }
+          if (c.check(c.choicesOdds!)) { fanBump(c, 0.05, 120); c.rep(2); c.skill('stage', 2); return '노래가 끝나고 3초 동안 DJ가 말을 안 했다. “…아, 죄송해요. 듣고 있었어요.”'; }
           c.stat('stress', 4); c.skill('stage', 2);
           return '음 이탈 한 번. 새벽이라 다들 졸고 있었길 바란다.';
         },
@@ -519,9 +520,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '대표곡을 4분 안에 압축한다',
-        hint: (c) => c.pct(c.chance(0.55, ((c.band?.chemistry ?? 50) - 50) / 20, (c.p.skills.stage - 50) / 20)),
+        odds: (c) => c.fromP(c.chance(0.55, ((c.band?.chemistry ?? 50) - 50) / 20, (c.p.skills.stage - 50) / 20), '무대 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.55, ((c.band?.chemistry ?? 50) - 50) / 20, (c.p.skills.stage - 50) / 20))) {
+          if (c.check(c.choicesOdds!)) {
             fanBump(c, 0.12, 500); c.rep(5); chem(c, 4); c.chron('TV 음악 프로그램에 출연했다', 'music');
             return '방송 다음 날 음원 순위가 조금, 아주 조금 움직였다. 고향 동네 슈퍼에 사인이 걸렸다.';
           }
@@ -541,10 +542,10 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '출연한다',
-        hint: (c) => c.pct(c.chance(0.35, (c.mainSkill - 55) / 12, ((c.band?.chemistry ?? 50) - 50) / 25)),
+        odds: (c) => c.fromP(c.chance(0.35, (c.mainSkill - 55) / 12, ((c.band?.chemistry ?? 50) - 50) / 25), '팀워크 판정'),
         run: (c) => {
           c.stat('stress', 10); chem(c, -6);
-          if (c.roll(c.chance(0.35, (c.mainSkill - 55) / 12, ((c.band?.chemistry ?? 50) - 50) / 25))) {
+          if (c.check(c.choicesOdds!)) {
             fanBump(c, 0.4, 3000); c.rep(4); c.chron('밴드 서바이벌 결승 진출', 'big');
             return '결승 무대. 생방송 문자 투표 화면 위로 우리 이름이 올라갔다. 편집이 만든 “악역 멤버”는 지금도 억울해한다.';
           }
@@ -563,10 +564,10 @@ export const CAREER: EventDef[] = [
       { label: '마지막 공연에 선다', run: (c) => { c.skill('stage', 3); c.stat('happiness', 6); c.theme('loss'); fanBump(c, 0.02, 30); c.chron('첫 무대였던 클럽의 마지막 밤에 공연했다', 'music'); return '앙코르가 끝나고 사장님이 조명을 하나씩 껐다. 마지막 불이 꺼질 때까지 아무도 나가지 않았다.'; } },
       {
         label: '모금 공연을 기획한다',
-        hint: (c) => c.pct(c.chance(0.25, (c.p.rep - 40) / 15, c.p.fans / 20000)),
+        odds: (c) => c.fromP(c.chance(0.25, (c.p.rep - 40) / 15, c.p.fans / 20000), '평판 판정'),
         run: (c) => {
           c.money(-c.krw(300_000), '기획비'); c.theme('loss');
-          if (c.roll(c.chance(0.25, (c.p.rep - 40) / 15, c.p.fans / 20000))) { c.rep(6); c.chron('모금 공연으로 클럽을 1년 더 살렸다', 'big'); return '열두 팀이 무료로 섰다. 1년. 딱 1년을 더 벌었다. 그걸로 충분했다.'; }
+          if (c.check(c.choicesOdds!)) { c.rep(6); c.chron('모금 공연으로 클럽을 1년 더 살렸다', 'big'); return '열두 팀이 무료로 섰다. 1년. 딱 1년을 더 벌었다. 그걸로 충분했다.'; }
           c.rep(3);
           return '모인 돈으로는 부족했다. 그래도 그날 밤만큼은 클럽이 꽉 찼다.';
         },
@@ -611,10 +612,11 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '티셔츠 200장을 찍는다',
-        hint: (c) => `${c.pct(c.chance(0.4, (c.p.fans - 2000) / 3000))} · 제작비 ${won(c.krw(1_600_000))}`,
+        hint: (c) => `제작비 ${won(c.krw(1_600_000))}`,
+        odds: (c) => c.dc(13, '인지도 판정', [['팬 규모', Math.max(-3, Math.min(6, Math.floor((c.p.fans - 2000) / 1500)))]], '가정', '팬 2천 명이면 반반'),
         run: (c) => {
           c.money(-c.krw(1_600_000), '제작비');
-          if (c.roll(c.chance(0.4, (c.p.fans - 2000) / 3000))) { c.money(c.krw(4_000_000), '굿즈 판매'); fanBump(c, 0.02, 20); return '완판. 택배 포장하느라 일주일 동안 손가락에 박스 테이프 자국이 남았다.'; }
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(4_000_000), '굿즈 판매'); fanBump(c, 0.02, 20); return '완판. 택배 포장하느라 일주일 동안 손가락에 박스 테이프 자국이 남았다.'; }
           c.money(c.krw(800_000), '굿즈 판매');
           return '반쯤 팔렸다. 남은 티셔츠는 이제 멤버들의 잠옷이 됐다.';
         },
@@ -630,18 +632,18 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '목표를 소박하게',
-        hint: (c) => c.pct(c.chance(0.7, (c.p.fans - 1500) / 2000)),
+        odds: (c) => c.fromP(c.chance(0.7, (c.p.fans - 1500) / 2000), '인지도 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.7, (c.p.fans - 1500) / 2000))) { c.money(c.krw(3_000_000), '펀딩'); c.stat('happiness', 6); return '사흘 만에 달성. 후원자 명단을 앨범 속지에 빼곡히 넣었다.'; }
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(3_000_000), '펀딩'); c.stat('happiness', 6); return '사흘 만에 달성. 후원자 명단을 앨범 속지에 빼곡히 넣었다.'; }
           c.stat('happiness', -4);
           return '마감 1시간 전 92%. 아쉽게 실패했다. 응원 댓글은 남았다.';
         },
       },
       {
         label: '크게 간다 — 뮤직비디오까지',
-        hint: (c) => c.pct(c.chance(0.3, (c.p.fans - 4000) / 3000)),
+        odds: (c) => c.fromP(c.chance(0.3, (c.p.fans - 4000) / 3000), '인지도 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.3, (c.p.fans - 4000) / 3000))) { c.money(c.krw(12_000_000), '펀딩'); fanBump(c, 0.05, 100); c.chron('크라우드펀딩으로 앨범 제작비를 모았다', 'music'); return '목표의 140%. 이제 정말 잘 만들어야 한다는 무게가 생겼다.'; }
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(12_000_000), '펀딩'); fanBump(c, 0.05, 100); c.chron('크라우드펀딩으로 앨범 제작비를 모았다', 'music'); return '목표의 140%. 이제 정말 잘 만들어야 한다는 무게가 생겼다.'; }
           c.stat('stress', 8); c.rep(-1);
           return '목표의 41%. 숫자가 멈춘 그래프를 한참 들여다봤다.';
         },
@@ -666,9 +668,9 @@ export const CAREER: EventDef[] = [
     choices: [
       {
         label: '간다. 원테이크로 끝낸다',
-        hint: (c) => c.pct(c.chance(0.5, (c.mainSkill - 55) / 10)),
+        odds: (c) => c.fromP(c.chance(0.5, (c.mainSkill - 55) / 10), '연주 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.5, (c.mainSkill - 55) / 10))) { c.money(c.krw(600_000), '세션비'); c.skill(c.p.mainInst!, 3); c.rep(2); return '“세 곡 다 첫 테이크로 갑시다.” 그 뒤로 같은 번호에서 연락이 자주 왔다.'; }
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(600_000), '세션비'); c.skill(c.p.mainInst!, 3); c.rep(2); return '“세 곡 다 첫 테이크로 갑시다.” 그 뒤로 같은 번호에서 연락이 자주 왔다.'; }
           c.money(c.krw(450_000), '세션비'); c.skill(c.p.mainInst!, 4); c.stat('stress', 4);
           return '열 번 넘게 다시 갔다. 남의 곡을 치는 일은 생각보다 훨씬 어렵다.';
         },

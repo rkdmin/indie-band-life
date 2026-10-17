@@ -1,0 +1,8 @@
+{
+  "appId": "app.indieband.life",
+  "appName": "인디밴드 키우기",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0e0f1a"
+  }
+}

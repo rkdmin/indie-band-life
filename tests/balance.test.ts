@@ -55,6 +55,13 @@ describe('밸런스', () => {
     // 전설은 드물어야 한다
     expect((r.endings.legend ?? 0) / N).toBeLessThan(0.25);
   });
+  it('알아서 정책 (기본 자동 계획)', () => {
+    const r = run('auto');
+    console.log('[auto]', JSON.stringify({ ...r, seen: undefined }, null, 1));
+    expect(r.avgDeath).toBeGreaterThan(65);
+    expect(r.bandRate).toBeGreaterThan(0.6);
+    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(5);
+  });
   it('무작위 정책', () => {
     const r = run('random');
     console.log('[random]', JSON.stringify({ ...r, seen: undefined }, null, 1));

@@ -1,16 +1,20 @@
 // 이벤트·행동이 상태를 바꿀 때 쓰는 도우미. 모든 변화는 결과 줄(ResultLine)로 남아 화면에 보인다.
 
-import type { ChronicleEntry, GameState, Genre, Inst, Npc, ResultLine, SceneId, Skill, Stats } from './types';
+import type { ChronicleEntry, GameState, Genre, Inst, Npc, Odds, PendingRoll, ResultLine, Roll, SceneId, Skill, Stats } from './types';
 import { Rng, clamp, prob } from './rng';
 import { addGenre, addSkill, addStat, age, ageInt, chron, flag, mainSkill, setFlag, stageOf, year } from './state';
 import { createNpc, relDelta, remember, type NpcSpec } from './npc';
 import { GENRE_INFO, INST_LABEL, SKILL_LABEL, priceIndex } from './data/world';
 import { callName, given, josa, won, count } from './korean';
+import { themeByKey } from './songs';
 
 const STAT_LABEL: Record<keyof Stats, string> = { happiness: '행복', stress: '스트레스', health: '건강', energy: '컨디션' };
 
 export class Ctx {
   lines: ResultLine[] = [];
+  rolls: Roll[] = [];
+  /** 지금 고른 선택지의 확률 (engine 이 run 직전에 채운다) */
+  choicesOdds?: Odds;
   constructor(
     public s: GameState,
     public rng: Rng,
@@ -93,7 +97,7 @@ export class Ctx {
     const n = this.npc(role);
     relDelta(this.s, n, d);
     if (memory) remember(n, `${ageInt(this.s)}세 · ${memory}`);
-    if (d !== 0) this.lines.push({ text: `${given(n.name)} 친밀도 ${d > 0 ? '+' : ''}${d}`, tone: d > 0 ? 'good' : 'bad' });
+    if (d !== 0) this.lines.push({ text: `${given(n.name)} 친밀도 ${d > 0 ? '+' : ''}${d}`, tone: d > 0 ? 'good' : 'bad', delta: true });
   }
   conflict(role: string, d: number) {
     const n = this.npc(role);
@@ -105,24 +109,25 @@ export class Ctx {
     if (!d) return;
     addStat(this.s, k, d);
     const good = k === 'stress' ? d < 0 : d > 0;
-    this.lines.push({ text: `${STAT_LABEL[k]} ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: good ? 'good' : 'bad' });
+    this.lines.push({ text: `${STAT_LABEL[k]} ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: good ? 'good' : 'bad', delta: true });
   }
   skill(k: Skill, d: number) {
     if (!d) return;
     const before = this.p.skills[k];
     addSkill(this.s, k, d);
     const real = Math.round((this.p.skills[k] - before) * 10) / 10;
-    if (Math.abs(real) >= 0.5) this.lines.push({ text: `${SKILL_LABEL[k]} ${real > 0 ? '+' : ''}${Math.round(real)}`, tone: real > 0 ? 'good' : 'bad' });
+    if (Math.abs(real) >= 0.5) this.lines.push({ text: `${SKILL_LABEL[k]} ${real > 0 ? '+' : ''}${Math.round(real)}`, tone: real > 0 ? 'good' : 'bad', delta: true });
   }
   genre(g: Genre, d: number) {
     addGenre(this.s, g, d);
-    if (d >= 3) this.lines.push({ text: `${GENRE_INFO[g].label} 친숙도 +${Math.round(d)}`, tone: 'good' });
+    if (d >= 3) this.lines.push({ text: `${GENRE_INFO[g].label} 친숙도 +${Math.round(d)}`, tone: 'good', delta: true });
   }
   money(d: number, why?: string) {
     if (!d) return;
     const v = Math.round(d);
     this.p.money += v;
-    this.lines.push({ text: `${why ? why + ' ' : ''}${v > 0 ? '+' : ''}${won(v)}`, tone: v > 0 ? 'good' : 'bad' });
+    book(this.s, v, why);
+    this.lines.push({ text: `${why ? why + ' ' : ''}${v > 0 ? '+' : ''}${won(v)}`, tone: v > 0 ? 'good' : 'bad', delta: true });
   }
   /** 2026년 물가 기준 금액을 해당 연도 물가로 */
   krw(base2026: number) {
@@ -132,15 +137,15 @@ export class Ctx {
     const v = Math.round(d);
     if (!v) return;
     this.p.fans = Math.max(0, this.p.fans + v);
-    this.lines.push({ text: `팬 ${v > 0 ? '+' : ''}${count(v)}`, tone: v > 0 ? 'good' : 'bad' });
+    this.lines.push({ text: `팬 ${v > 0 ? '+' : ''}${count(v)}`, tone: v > 0 ? 'good' : 'bad', delta: true });
   }
   rep(d: number) {
     this.p.rep = clamp(this.p.rep + d);
-    if (Math.abs(d) >= 1) this.lines.push({ text: `평판 ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: d > 0 ? 'good' : 'bad' });
+    if (Math.abs(d) >= 1) this.lines.push({ text: `평판 ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: d > 0 ? 'good' : 'bad', delta: true });
   }
   study(d: number) {
     this.p.study = clamp(this.p.study + d);
-    if (Math.abs(d) >= 2) this.lines.push({ text: `학업 ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: d > 0 ? 'good' : 'bad' });
+    if (Math.abs(d) >= 2) this.lines.push({ text: `학업 ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: d > 0 ? 'good' : 'bad', delta: true });
   }
   setInst(i: Inst) {
     if (!this.p.mainInst) {
@@ -156,6 +161,50 @@ export class Ctx {
   /** P = sigmoid(logit(p0) + Σterms) */
   chance(p0: number, ...terms: number[]) {
     return prob(p0, ...terms);
+  }
+  /**
+   * d20 판정 (발더스 게이트식): d20 + 보정치 ≥ 난이도(DC) 이면 성공. 자연 20은 무조건 성공, 자연 1은 무조건 실패.
+   * 보정치는 실제 능력치에서 나온다. 난이도는 현실 통계(경쟁률 등)나 게임 가정에서 정한다 — note 에 근거를 적는다.
+   */
+  dc(dc: number, ability: string, mods: [string, number][], src: Odds['src'] = '가정', note?: string, adv = false): Odds {
+    const parts = mods.filter(([, v]) => v).map(([label, v]) => ({ label, d: Math.round(v) }));
+    const mod = parts.reduce((a, x) => a + x.d, 0);
+    const need = dc - mod; // 이 눈 이상이면 성공
+    let p = Math.min(0.95, Math.max(0.05, (21 - need) / 20));
+    if (adv) p = 1 - (1 - p) * (1 - p);
+    return { p, base: 0, src, note, parts, dc, ability, mod, adv };
+  }
+  /** 능력치 0~100 → 보정치 (-4 ~ +6) */
+  m(v: number) {
+    return Math.floor((v - 40) / 10);
+  }
+  /** 확률을 같은 성공률의 d20 난이도로 바꾼다 (보정치 0) */
+  fromP(p: number, ability = '운 판정', note?: string): Odds {
+    const dc = Math.max(2, Math.min(21, Math.round(21 - p * 20)));
+    return this.dc(dc, ability, [], '가정', note);
+  }
+  /** 이전 버전 호환: 확률 모델을 d20 으로 근사 */
+  odds(base: number, terms: [string, number][], src: Odds['src'] = '가정', note?: string): Odds {
+    const dc = Math.round(21 - base * 20);
+    return this.dc(dc, '판정', terms.map(([l, v]) => [l, Math.round(v * 3)]), src, note);
+  }
+  /** 정해진 결과가 있으면(engine 이 미리 굴린 것) 그것을, 없으면 지금 굴린다 */
+  preset: PendingRoll | null = null;
+  check(o: Odds, label = o.ability): boolean {
+    let nat: number;
+    let nat2: number | undefined;
+    if (this.preset) {
+      nat = this.preset.nat;
+      nat2 = this.preset.nat2;
+      this.preset = null;
+    } else {
+      nat = this.rng.int(1, 20);
+      if (o.adv) nat2 = this.rng.int(1, 20);
+    }
+    const best = nat2 !== undefined ? Math.max(nat, nat2) : nat;
+    const ok = best === 20 || (best !== 1 && best + o.mod >= o.dc);
+    this.rolls.push({ label, p: o.p, roll: best / 20, ok, nat, nat2, mod: o.mod, dc: o.dc, crit: best === 20 ? 'success' : best === 1 ? 'fail' : undefined });
+    return ok;
   }
   pct(p: number) {
     return `성공 확률 약 ${Math.round(p * 100)}%`;
@@ -177,7 +226,11 @@ export class Ctx {
   theme(key: string) {
     if (!this.s.flags[`theme:${key}`]) {
       this.s.flags[`theme:${key}`] = true;
-      this.lines.push({ text: '새 곡 주제를 얻었다', tone: 'big' });
+      this.lines.push({ text: `곡 주제 ‘${themeByKey(key).label}’`, tone: 'good', delta: true });
+      if (this.p.inspiration < 3) {
+        this.p.inspiration++;
+        this.lines.push({ text: '영감 +1', tone: 'good', delta: true });
+      }
     }
   }
   chron(text: string, kind: ChronicleEntry['kind'] = 'life', role?: string) {
@@ -198,6 +251,8 @@ export class Ctx {
 export interface EventChoice {
   label: string | ((c: Ctx) => string);
   hint?: (c: Ctx) => string | undefined;
+  /** 성공 확률 내역 — 있으면 선택지 아래에 막대와 내역이 보이고, run 안에서 c.check() 로 굴린다 */
+  odds?: (c: Ctx) => Odds;
   if?: (c: Ctx) => boolean;
   run: (c: Ctx) => string | void;
 }
@@ -220,4 +275,16 @@ export interface EventDef {
   bind?: (c: Ctx) => boolean;
   text: (c: Ctx) => string;
   choices: EventChoice[];
+}
+
+const MUSIC_IN = ['공연 수익', '출연료', '계약금', '레슨비', '음원', '기타 케이스', '광고 음악', 'OST', '세션', '굿즈', '펀딩', '지원금', '작곡'];
+const MUSIC_OUT = ['합주실', '녹음', '광고비', '공연 적자', '장비', '앰프', '이펙터', '대관', '항공', '투어'];
+
+/** 장부에 적는다: 음악 수입 / 음악 지출 / 그 밖의 수입 */
+export function book(s: GameState, v: number, why?: string) {
+  if (!s.ledger) s.ledger = { music: 0, cost: 0, other: 0 };
+  const w = why ?? '';
+  if (v > 0 && MUSIC_IN.some((k) => w.includes(k))) s.ledger.music += v;
+  else if (v < 0 && MUSIC_OUT.some((k) => w.includes(k))) s.ledger.cost += -v;
+  else if (v > 0 && w && !w.includes('부모') && !w.includes('엄마') && !w.includes('용돈')) s.ledger.other += v;
 }

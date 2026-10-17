@@ -5,7 +5,8 @@ import type { Ctx } from '../ctx';
 import type { Genre, Inst } from '../types';
 import { GENRES } from '../types';
 import { GENRE_INFO, INST_LABEL, REGIONS, VENUES, eraOf } from '../data/world';
-import { disband, formBand, playGig, recruit } from '../actions';
+import { actionById, disband, formBand, playGig, recruit } from '../actions';
+import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
 import { clamp } from '../rng';
 import { CAREER_LABEL } from '../npc';
@@ -166,11 +167,10 @@ export const STORY: EventDef[] = [
     choices: [
       {
         label: (c) => (c.vars.hasClub ? `${c.n('mf')}와 함께 오디션 보기` : `${c.n('mf')}와 교외 밴드 만들기`),
-        hint: (c) => (c.vars.hasClub ? c.pct(c.chance(0.5, (c.mainSkill - 30) / 12, c.npc('mf').affinity / 60)) : undefined),
+        odds: (c) => (c.vars.hasClub ? auditionOdds(c) : c.dc(5, '결심 판정', [['친구와의 우정', c.npc('mf').affinity >= 30 ? 2 : 0]], '가정', '교외 밴드는 만들기만 하면 된다')),
         run: (c) => {
-          const p = c.vars.hasClub ? c.chance(0.5, (c.mainSkill - 30) / 12, c.npc('mf').affinity / 60) : 1;
           c.study(-4);
-          if (c.roll(p)) {
+          if (c.check(c.choicesOdds!)) {
             const band = formBand(c, c.vars.hasClub ? `${c.pick(['한빛', '새솔', '푸른', '동명', '세화'])}고 밴드부` : `${c.pick(['방과후', '구민회관', '지하'])} ${c.pick(['소년단', '클럽', '밴드'])}`);
             if (!band.memberIds.includes(c.bind.mf)) {
               band.memberIds.push(c.bind.mf);
@@ -203,8 +203,9 @@ export const STORY: EventDef[] = [
       {
         label: '우리가 만든 자작곡',
         hint: (c) => (c.s.songs.length ? undefined : '자작곡이 아직 없다 — 즉석으로 완성해야 한다'),
+        odds: (c) => c.dc(c.s.songs.length ? 11 : 14, '작곡 판정', [['작곡 실력', c.m(c.p.skills.compose)], ['무대 경험', c.m(c.p.skills.stage)]]),
         run: (c) => {
-          const ok = c.roll(c.chance(0.45, (c.p.skills.compose - 20) / 15));
+          const ok = c.check(c.choicesOdds!, '작곡 판정');
           c.skill('compose', 3);
           c.theme('youth');
           if (ok) { c.fans(c.rng.int(50, 120)); c.rep(2); c.stat('happiness', 12); c.chron('학교 축제에서 첫 자작곡을 불렀다', 'big'); return '모르는 노래인데 다들 두 번째 후렴부터 따라 불렀다.'; }
@@ -220,10 +221,11 @@ export const STORY: EventDef[] = [
     choices: [
       {
         label: '실용음악과 입시',
-        hint: (c) => `${c.pct(c.chance(0.15, (c.mainSkill - 55) / 8))} · 입시 학원비 ${won(c.krw(3_000_000))}`,
+        hint: (c) => `입시 학원비 ${won(c.krw(3_000_000))}`,
+        odds: (c) => c.dc(19, '실기 판정', [['주 악기 실력', c.m(c.mainSkill)], ['작곡 실력', Math.floor(c.m(c.p.skills.compose) / 2)], ['입시 레슨', c.p.income === 'high' ? 2 : c.p.income === 'low' ? -1 : 0]], '근사', '실용음악과 실기 경쟁률은 수십 대 1 — 20명 중 1~2명이 붙는 셈이라 난이도 19'),
         run: (c) => {
           c.money(-c.krw(3_000_000), '입시 학원비');
-          if (c.roll(c.chance(0.15, (c.mainSkill - 55) / 8))) {
+          if (c.check(c.choicesOdds!, '실용음악과 합격')) {
             c.p.edu = 'music_univ';
             c.skill(c.p.mainInst ?? 'guitar', 6);
             c.skill('compose', 5);
@@ -241,9 +243,9 @@ export const STORY: EventDef[] = [
       },
       {
         label: '일반 대학 진학 (밴드 동아리!)',
-        hint: (c) => c.pct(c.chance(0.5, (c.p.study - 45) / 10)),
+        odds: (c) => c.dc(11, '학업 판정', [['학업', c.m(c.p.study)], ['밴드부에 쏟은 시간', c.flag('teenBand') ? -1 : 0]], '가정'),
         run: (c) => {
-          if (c.roll(c.chance(0.5, (c.p.study - 45) / 10))) {
+          if (c.check(c.choicesOdds!, '대학 합격')) {
             c.p.edu = 'univ';
             c.meet('uni', { metAt: '대학 밴드 동아리', birthYear: c.p.birthYear + c.rng.int(-1, 1), skill: c.rng.int(25, 55), affinity: 25 });
             c.chron('대학 입학. 밴드 동아리방 문을 두드렸다', 'life');
@@ -293,14 +295,15 @@ export const STORY: EventDef[] = [
   {
     id: 'draft', scene: 'military', title: '입영통지서', priority: 190, once: true, chance: (c) => (c.age >= 21.5 ? 1 : 0.5),
     when: (c) => c.isMale && c.p.military === 'pending' && between(c, 20, 29),
-    text: (c) => `${c.year}년. 우편함에 병무청 봉투가 꽂혀 있었다.\n${c.band ? `${c.band.name}은(는) 어떡하지?` : '입대하면 1년 반. 음악은 잠시 멈춘다.'}`,
+    text: (c) => `${c.year}년. 우편함에 병무청 봉투가 꽂혀 있었다.\n${c.band ? `〈${c.band.name}〉${josa(c.band.name, '은/는').slice(c.band.name.length)} 어떡하지?` : '입대하면 1년 반. 음악은 잠시 멈춘다.'}`,
     choices: [
       { label: '바로 입대한다 (육군 18개월)', run: (c) => enlist(c, false) },
       {
         label: '군악대에 지원한다',
-        hint: (c) => `${c.pct(c.chance(0.15, (c.mainSkill - 55) / 7))} · 떨어지면 일반 입대`,
+        hint: () => '떨어지면 일반 입대',
         if: (c) => c.mainSkill >= 35,
-        run: (c) => enlist(c, c.roll(c.chance(0.15, (c.mainSkill - 55) / 7))),
+        odds: (c) => c.dc(17, '실기 판정', [['주 악기 실력', c.m(c.mainSkill)], ['타악·건반 수요', c.p.mainInst === 'drums' ? 2 : c.p.mainInst === 'keys' ? 1 : 0]], '가정', '군악대는 선발 인원이 적어 경쟁이 치열하다'),
+        run: (c) => enlist(c, c.check(c.choicesOdds!, '군악대 선발')),
       },
       {
         label: '입영을 연기한다 (재학생)',
@@ -399,6 +402,21 @@ export const STORY: EventDef[] = [
     choices: [
       { label: '무대에 오른다', run: (c) => { const v = VENUES.find((x) => x.id === 'big_fest')!; const g = playGig(c, v, true); if (g === 'great') c.chron('대형 페스티벌 메인 스테이지 — 노을 아래 2만 5천 명의 떼창', 'big'); c.stat('energy', -15); } },
       { label: '정중히 거절', run: (c) => { c.rep(-1); } },
+    ],
+  },
+  // ───────── 발매 갈림길 (곡이 쌓이면) ─────────
+  {
+    id: 'release_ready', scene: 'recording', title: '곡이 쌓였다', priority: 118, cooldown: 2, chance: (c) => (unreleased(c.s).length >= 4 ? 0.9 : 0.5),
+    when: (c) => c.age >= 16 && c.p.military !== 'serving' && unreleased(c.s).length >= 2,
+    text: (c) => {
+      const songs = bestUnreleased(c, 7);
+      return `노트북 속 데모 폴더에 ${unreleased(c.s).length}곡이 쌓였다.\n제일 자신 있는 건 〈${songs[0].title}〉(완성도 ${songs[0].quality}).\n${c.band && c.band.label !== 'none' ? '레이블이 녹음비를 대 준다.' : `녹음비는 싱글 ${won(c.krw(1_200_000))}, EP ${won(c.krw(4_000_000))}, 정규 ${won(c.krw(9_000_000))}.`}`;
+    },
+    choices: [
+      { label: (c) => `싱글 〈${bestUnreleased(c, 1)[0].title}〉`, run: (c) => doRelease(c, 1) },
+      { label: 'EP로 묶어 낸다', if: (c) => unreleased(c.s).length >= 3, run: (c) => doRelease(c, 5) },
+      { label: '정규 앨범을 낸다', if: (c) => unreleased(c.s).length >= 7, run: (c) => doRelease(c, 10) },
+      { label: '아직이다. 더 다듬자', run: (c) => { c.skill('compose', 2); return '서랍에 넣어 두었다. 좋은 곡은 기다려 준다.'; } },
     ],
   },
   // ───────── 시대 사건 ─────────
@@ -557,4 +575,31 @@ function enlist(c: Ctx, band: boolean): string {
   c.chron('입대. 머리를 밀던 날', 'life');
   c.stat('happiness', -6);
   return '머리를 밀고 거울을 봤다. 낯선 얼굴이 웃고 있었다.';
+}
+
+function bestUnreleased(c: Ctx, n: number) {
+  return [...unreleased(c.s)].sort((a, b) => b.quality - a.quality).slice(0, n);
+}
+
+function doRelease(c: Ctx, n: number): string {
+  const songs = bestUnreleased(c, n);
+  const title = songs.length >= 3 ? `${songs[0].title}` : songs[0].title;
+  actionById('release')!.run(c, `${title}|${songs.map((x) => x.id).join(',')}`);
+  return songs.length >= 7 ? '마스터링이 끝난 날, 멤버들과 처음부터 끝까지 한 번에 들었다.' : songs.length >= 3 ? '다섯 곡이 하나의 이야기가 되었다.' : '발매 버튼을 누르고, 새로고침만 백 번 했다.';
+}
+
+function auditionOdds(c: Ctx) {
+  const aff = c.npc('mf').affinity;
+  return c.dc(
+    13,
+    `${c.p.mainInst ? INST_LABEL[c.p.mainInst] : '연주'} 판정`,
+    [
+      ['주 악기 실력', c.m(c.mainSkill)],
+      [`${c.n('mf')}의 추천`, aff >= 40 ? 2 : aff >= 20 ? 1 : 0],
+      ['무대 경험', c.m(c.p.skills.stage) > 0 ? 1 : 0],
+    ],
+    '가정',
+    aff >= 60 ? `${c.nj('mf', '이/가')} 옆에서 같이 긴장해 준다 — 유리함(주사위 2개 중 높은 값)` : '밴드부 한 자리에 몇 명이 몰린다',
+    aff >= 60,
+  );
 }

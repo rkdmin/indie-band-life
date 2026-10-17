@@ -47,7 +47,9 @@ export type SceneId =
   | 'office'
   | 'rooftop'
   | 'pub'
-  | 'stage_old';
+  | 'stage_old'
+  | 'airport'
+  | 'abroad';
 
 export interface Stats {
   happiness: number; // 0-100
@@ -78,6 +80,8 @@ export interface Player {
   stats: Stats;
   money: number; // 원
   fans: number;
+  globalFans: number; // 해외 팬
+  inspiration: number; // 영감 — 실패한 판정을 다시 굴린다 (최대 3)
   rep: number; // 평판/업계 인지도 0~100
   habits: Habits;
   edu: Edu;
@@ -189,6 +193,67 @@ export interface ChronicleEntry {
 export interface ResultLine {
   text: string;
   tone?: 'good' | 'bad' | 'neutral' | 'big';
+  /** 수치 변화 한 줄 (행복 +5 같은) — 기록에서는 문장 뒤에 작게 붙는다 */
+  delta?: boolean;
+}
+
+/** 확률 내역: 기본값과 각 요인이 몇 %p 바꿨는지 — 화면에 그대로 보인다 */
+export interface Odds {
+  p: number;
+  base: number;
+  src: '통계' | '근사' | '가정';
+  note?: string;
+  parts: { label: string; d: number }[];
+  /** d20 판정: 난이도·판정 능력·보정치 합·유리함 */
+  dc: number;
+  ability: string;
+  mod: number;
+  adv?: boolean;
+}
+
+/** 실제로 굴린 주사위 */
+export interface Roll {
+  label: string;
+  p: number;
+  roll: number;
+  ok: boolean;
+  nat: number;
+  nat2?: number;
+  mod: number;
+  dc: number;
+  crit?: 'success' | 'fail';
+}
+
+/** 굴렸지만 아직 결과를 적용하지 않은 판정 — 영감으로 다시 굴릴 수 있다 */
+export interface PendingRoll {
+  idx: number;
+  odds: Odds;
+  nat: number;
+  nat2?: number;
+  ok: boolean;
+  crit?: 'success' | 'fail';
+  rerolled: boolean;
+}
+
+/** 인생 기록 한 줄. 시간(연도 소수)에 맞춰 화면에 흘러나온다 */
+export interface FeedEntry {
+  t: number;
+  text: string;
+  tone: 'good' | 'bad' | 'neutral' | 'big' | 'flavor';
+  deltas?: string;
+  kind?: 'action' | 'event' | 'news' | 'flavor' | 'life';
+}
+
+/** 전체 화면 연출이 필요한 큰 순간 */
+export interface Cine {
+  kind: 'event' | 'release' | 'band' | 'hit' | 'gig' | 'death' | 'birth';
+  scene: SceneId;
+  kicker: string;
+  title: string;
+  sub?: string;
+  songId?: string;
+  albumId?: string;
+  at: number;
 }
 
 export interface PendingEvent {
@@ -201,11 +266,14 @@ export interface ActiveEvent extends PendingEvent {
   title: string;
   text: string;
   scene: SceneId;
-  choices: { label: string; hint?: string; disabled?: boolean }[];
-  result?: { text: string; lines: ResultLine[] };
+  choices: { label: string; hint?: string; disabled?: boolean; odds?: Odds }[];
+  result?: { text: string; lines: ResultLine[]; rolls?: Roll[] };
+  pending?: PendingRoll;
+  at: number;
+  big: boolean;
 }
 
-export type Phase = 'actions' | 'results' | 'event' | 'ending';
+export type Phase = 'plan' | 'running' | 'event' | 'ending';
 
 export interface EndingResult {
   id: string;
@@ -239,9 +307,18 @@ export interface GameState {
   lastResults: ResultLine[];
   news: ResultLine[]; // 시기가 넘어가며 생긴 일 (생활비·정산·나이 듦)
   lastActions: ActionPick[];
+  plan: ActionPick[];
+  autoPlan: boolean;
+  autoDecide: boolean;
+  feed: FeedEntry[];
+  cine: Cine[];
+  periodEnd: number;
   lastScene: SceneId;
   stressTurns: number;
   history: { age: number; fans: number; happiness: number; money: number }[];
+  /** 올해 장부: 음악으로 번 돈 / 음악에 쓴 돈 / 그 밖의 수입 */
+  ledger: { music: number; cost: number; other: number };
+  ledgers: { year: number; age: number; music: number; cost: number; other: number }[];
   phase: Phase;
   ending: EndingResult | null;
   peakFans: number;

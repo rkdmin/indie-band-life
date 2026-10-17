@@ -1,6 +1,8 @@
 import { useEffect, type ReactNode } from 'react';
+import { useBackButton } from '../platform';
 
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useBackButton(onClose);
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', h);

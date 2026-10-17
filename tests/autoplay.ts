@@ -1,14 +1,14 @@
 // 자동 플레이 정책. 밸런스 검사와 회귀 테스트에서 공용으로 쓴다.
 
 import type { ActionPick, GameState } from '../src/sim/types';
-import { ackResults, choose, newGame, proceed, submitActions } from '../src/sim/engine';
+import { newGame, runPeriodAuto, setPlan } from '../src/sim/engine';
 import { Ctx } from '../src/sim/ctx';
 import { Rng } from '../src/sim/rng';
 import { availableActions, venuesFor } from '../src/sim/actions';
 import { actionSlots } from '../src/sim/state';
 import { availableThemes, unreleased } from '../src/sim/songs';
 
-export type Policy = 'random' | 'musician' | 'safe';
+export type Policy = 'random' | 'musician' | 'safe' | 'auto';
 
 function pickParam(s: GameState, id: string, kind: string | undefined, rng: Rng): string | undefined {
   const c = new Ctx(s, new Rng(1));
@@ -70,16 +70,15 @@ export function playLife(seed: number, policy: Policy, opts: { gender?: 'm' | 'f
   let s = newGame({ name: '김하늘', gender: opts.gender ?? (seed % 2 ? 'm' : 'f'), birthYear: opts.birthYear ?? 1990 + (seed % 25), seed });
   let guard = 0;
   const seenEvents = new Set<string>();
-  while (s.phase !== 'ending' && guard++ < 3000) {
-    if (s.phase === 'actions') s = submitActions(s, decide(s, policy, rng));
-    else if (s.phase === 'results') s = ackResults(s);
-    else if (s.phase === 'event' && s.active) {
-      seenEvents.add(s.active.id);
-      if (!s.active.result) {
-        const opts2 = s.active.choices.map((ch, i) => (ch.disabled ? -1 : i)).filter((i) => i >= 0);
-        s = choose(s, policy === 'safe' ? opts2[opts2.length - 1] : rng.pick(opts2));
-      } else s = proceed(s);
-    } else throw new Error(`stuck in phase ${s.phase}`);
+  const pickChoice = (st: GameState) => {
+    seenEvents.add(st.active!.id);
+    const ok = st.active!.choices.map((ch, i) => (ch.disabled ? -1 : i)).filter((i) => i >= 0);
+    return policy === 'safe' ? ok[ok.length - 1] : rng.pick(ok);
+  };
+  while (s.phase !== 'ending' && guard++ < 400) {
+    if (s.phase === 'plan' && policy !== 'auto') s = setPlan(s, decide(s, policy, rng), false);
+    s = runPeriodAuto(s, pickChoice);
   }
+  if (s.phase !== 'ending') throw new Error('life did not end');
   return { s, guard, seenEvents };
 }

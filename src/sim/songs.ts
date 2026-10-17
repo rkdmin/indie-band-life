@@ -152,7 +152,9 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   }
   // 바이럴은 앨범당 한 번, 가장 좋은 곡만 노린다: 품질·장르 도달력·숏폼 시대
   const viralP = sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 3.2);
-  if (rng.chance(viralP)) {
+  const viral = rng.chance(viralP);
+  s.lastResults.push({ text: `🎲 숏폼 바이럴 ${Math.max(1, Math.round(viralP * 100))}% → ${viral ? '터졌다' : '불발'}`, tone: viral ? 'big' : 'neutral', delta: true });
+  if (viral) {
     best.hit = true;
     const burst = rng.range(1.5, 6) * 1_000_000 * gi.reach * era.streamMul;
     best.streams += Math.round(burst);
@@ -162,6 +164,12 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
     best.peak = rng.int(41, 100);
   }
   newFans = Math.round(newFans);
+  // 해외 팬은 해외 플레이리스트·투어로 생긴 팬층이 있을 때 발매마다 조금씩 는다
+  if (p.globalFans > 0 || gi.id === 'shoegaze' || gi.id === 'metal') {
+    const g = Math.round((p.globalFans * 0.12 + newFans * (gi.id === 'shoegaze' || gi.id === 'metal' ? 0.25 : 0.06)) * Math.pow(best.quality / 70, 2));
+    p.globalFans += g;
+    if (g > 50) s.lastResults.push({ text: `해외 팬 +${count(g)}`, tone: 'good', delta: true });
+  }
   p.fans += newFans;
   p.rep = clamp(p.rep + ((avgQ - 40) / 25) * (kind === 'full' ? 3 : kind === 'ep' ? 1.8 : 0.8) * fatigue);
 
@@ -182,10 +190,12 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   const label = { single: '싱글', ep: 'EP', full: '정규 앨범' }[kind];
   chron(s, `${label} 〈${title}〉 발매`, 'music');
   say(s, `〈${title}〉 발매! 새 팬 ${count(newFans)}명 · 평점 ${album.score}`, 'big');
+  const kindLabel = { single: '싱글', ep: 'EP', full: '정규 앨범' }[kind];
   const hit = songs.find((x) => x.hit);
+  s.cine.push({ kind: hit ? 'hit' : 'release', scene: hit ? 'arena' : 'recording', kicker: `${year(s)} · ${ageInt(s)}세 · ${kindLabel}`, title: hit ? `〈${hit.title}〉 차트 ${hit.peak}위` : `〈${title}〉`, sub: hit ? '숏폼에서 터졌다. 모르는 사람들이 우리 노래를 부른다.' : `${album.bandName}의 ${kindLabel}이 세상에 나왔다.`, songId: (hit ?? best).id, albumId: album.id, at: s.time });
   if (hit) {
     chron(s, `〈${hit.title}〉 차트 ${hit.peak}위 — 인생이 바뀐 날`, 'big');
-    say(s, `〈${hit.title}〉이(가) 숏폼에서 터졌다! 차트 ${hit.peak}위`, 'big');
+    say(s, `〈${hit.title}〉${josa(hit.title, '이/가').slice(hit.title.length)} 숏폼에서 터졌다! 차트 ${hit.peak}위`, 'big');
     s.flags.hadHit = ((s.flags.hadHit as number) || 0) + 1;
   }
   s.flags.promo = 0;

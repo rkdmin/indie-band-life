@@ -63,10 +63,10 @@ export const LIFE: EventDef[] = [
     choices: [
       {
         label: '목청껏 노래한다',
-        hint: (c) => c.pct(c.chance(0.55, (c.p.skills.vocal - 15) / 10)),
+        odds: (c) => c.fromP(c.chance(0.55, (c.p.skills.vocal - 15) / 10), '보컬 판정'),
         run: (c) => {
           c.skill('stage', 3);
-          if (c.roll(c.chance(0.55, (c.p.skills.vocal - 15) / 10))) { c.skill('vocal', 3); c.stat('happiness', 8); return '반 전체가 후렴을 따라 불렀다. 그날 하굣길이 유난히 짧았다.'; }
+          if (c.check(c.choicesOdds!)) { c.skill('vocal', 3); c.stat('happiness', 8); return '반 전체가 후렴을 따라 불렀다. 그날 하굣길이 유난히 짧았다.'; }
           c.stat('stress', 5); return '음이 하늘로 날아갔다. 다들 웃었지만, 이상하게 기분 나쁜 웃음은 아니었다.';
         },
       },
@@ -128,11 +128,11 @@ export const LIFE: EventDef[] = [
     choices: [
       {
         label: '고음에 도전한다',
-        hint: (c) => c.pct(c.chance(0.4, (c.p.skills.vocal - 25) / 10)),
+        odds: (c) => c.fromP(c.chance(0.4, (c.p.skills.vocal - 25) / 10), '보컬 판정'),
         run: (c) => {
           c.money(-c.krw(2000));
           c.skill('vocal', 2);
-          if (c.roll(c.chance(0.4, (c.p.skills.vocal - 25) / 10))) { c.rel('f', 6, '노래방 100점'); c.stat('happiness', 6); return '100점. 둘이 부둥켜안고 소리를 질렀다. 옆 방에서 벽을 쳤다.'; }
+          if (c.check(c.choicesOdds!)) { c.rel('f', 6, '노래방 100점'); c.stat('happiness', 6); return '100점. 둘이 부둥켜안고 소리를 질렀다. 옆 방에서 벽을 쳤다.'; }
           c.rel('f', 4, '노래방 삑사리'); return '목이 갈라졌다. 친구는 바닥에 누워서 웃었다.';
         },
       },
@@ -148,10 +148,10 @@ export const LIFE: EventDef[] = [
     choices: [
       {
         label: '쪽지를 건넨다',
-        hint: (c) => c.pct(c.chance(0.4, c.p.stats.happiness / 60 - 0.5)),
+        odds: (c) => c.fromP(c.chance(0.4, c.p.stats.happiness / 60 - 0.5), '운 판정'),
         run: (c) => {
           c.theme('firstlove');
-          if (c.roll(c.chance(0.4, c.p.stats.happiness / 60 - 0.5))) { c.rel('cr', 20, '쪽지에 답장이 온 날'); c.stat('happiness', 12); c.chron(`${c.n('cr')}에게 쪽지를 건넸다. 답장이 왔다`, 'people', 'cr'); return '답장에는 딱 한 줄. “나도.”\n그날 세상이 형광색이었다.'; }
+          if (c.check(c.choicesOdds!)) { c.rel('cr', 20, '쪽지에 답장이 온 날'); c.stat('happiness', 12); c.chron(`${c.n('cr')}에게 쪽지를 건넸다. 답장이 왔다`, 'people', 'cr'); return '답장에는 딱 한 줄. “나도.”\n그날 세상이 형광색이었다.'; }
           c.rel('cr', 3); c.stat('happiness', -6); return '“고마워… 근데 우리 그냥 친구 하자.”\n그 밤, 처음으로 슬픈 노래를 이해했다.';
         },
       },
@@ -177,9 +177,9 @@ export const LIFE: EventDef[] = [
     choices: [
       {
         label: '“딱 1년만 믿어 줘.”',
-        hint: (c) => c.pct(c.chance(0.45, (c.npc('pa').affinity - 40) / 25, (c.p.study - 40) / 20)),
+        odds: (c) => c.fromP(c.chance(0.45, (c.npc('pa').affinity - 40) / 25, (c.p.study - 40) / 20), '설득 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.45, (c.npc('pa').affinity - 40) / 25, (c.p.study - 40) / 20))) { c.rel('pa', 6, '1년만 믿어 달라고 한 날'); c.stat('happiness', 7); c.set('parentSupport'); return `“…성적 떨어지면 끝이다.”\n${paName(c)}는 그렇게 말하고 내 밥그릇에 고기를 올려 줬다.`; }
+          if (c.check(c.choicesOdds!)) { c.rel('pa', 6, '1년만 믿어 달라고 한 날'); c.stat('happiness', 7); c.set('parentSupport'); return `“…성적 떨어지면 끝이다.”\n${paName(c)}는 그렇게 말하고 내 밥그릇에 고기를 올려 줬다.`; }
           c.rel('pa', -3); c.stat('stress', 6); return '“1년이 10년 되는 거 많이 봤다.” 대화는 거기서 끝났다.';
         },
       },
@@ -237,9 +237,9 @@ export const LIFE: EventDef[] = [
     choices: [
       {
         label: '금연 클리닉에 등록한다',
-        hint: (c) => c.pct(c.chance(0.35, c.p.habits.exercise * 0.3, c.flag('doctorWarned') ? 0.8 : 0, -c.p.stats.stress / 60)),
+        odds: (c) => c.fromP(c.chance(0.35, c.p.habits.exercise * 0.3, c.flag('doctorWarned') ? 0.8 : 0, -c.p.stats.stress / 60), '멘탈 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.35, c.p.habits.exercise * 0.3, c.flag('doctorWarned') ? 0.8 : 0, -c.p.stats.stress / 60))) {
+          if (c.check(c.choicesOdds!)) {
             c.p.habits.smoking = false; c.stat('health', 6); c.skill('vocal', 2); c.chron('담배를 끊었다', 'health');
             return '석 달째. 밥맛이 돌아오고 숨이 길어졌다. 고음 끝이 다시 맑아졌다.';
           }
@@ -248,9 +248,9 @@ export const LIFE: EventDef[] = [
       },
       {
         label: '오늘부로 그냥 끊는다',
-        hint: (c) => c.pct(c.chance(0.2, c.flag('doctorWarned') ? 0.6 : 0, -c.p.stats.stress / 50)),
+        odds: (c) => c.fromP(c.chance(0.2, c.flag('doctorWarned') ? 0.6 : 0, -c.p.stats.stress / 50), '멘탈 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.2, c.flag('doctorWarned') ? 0.6 : 0, -c.p.stats.stress / 50))) {
+          if (c.check(c.choicesOdds!)) {
             c.p.habits.smoking = false; c.stat('health', 5); c.stat('stress', 4); c.chron('담배를 끊었다', 'health');
             return '사탕 봉지가 쌓여 갔다. 그래도 버텼다.';
           }
@@ -322,9 +322,9 @@ export const LIFE: EventDef[] = [
     choices: [
       {
         label: '붙잡는다',
-        hint: (c) => c.pct(c.chance(0.4, (c.npc('pt').affinity - 50) / 20)),
+        odds: (c) => c.fromP(c.chance(0.4, (c.npc('pt').affinity - 50) / 20), '설득 판정'),
         run: (c) => {
-          if (c.roll(c.chance(0.4, (c.npc('pt').affinity - 50) / 20))) { c.rel('pt', 6, '다시 붙잡은 날'); c.stat('stress', 4); return '“…그럼 이번 주말은 비워 둬.” 아직 끝이 아니었다.'; }
+          if (c.check(c.choicesOdds!)) { c.rel('pt', 6, '다시 붙잡은 날'); c.stat('stress', 4); return '“…그럼 이번 주말은 비워 둬.” 아직 끝이 아니었다.'; }
           breakUp(c, -15, '헤어진 날'); c.stat('happiness', -12); return '카페 문이 닫히는 종소리가 이상하게 길게 울렸다.';
         },
       },
@@ -361,11 +361,11 @@ export const LIFE: EventDef[] = [
       { label: '정성껏 준비한 커버', run: (c) => { c.money(c.krw(300000), '축가 사례'); c.money(-c.krw(100000), '축의금'); c.skill('stage', 3); c.rel('f', 10, '결혼식 축가'); c.stat('happiness', 5); return '2절에서 신부 어머니가 우셨다. 뷔페는 정말 맛있었다.'; } },
       {
         label: '두 사람을 위한 자작곡',
-        hint: (c) => c.pct(c.chance(0.5, (c.p.skills.compose - 35) / 12)),
+        odds: (c) => c.fromP(c.chance(0.5, (c.p.skills.compose - 35) / 12), '작곡 판정'),
         run: (c) => {
           c.money(-c.krw(100000), '축의금');
           c.skill('compose', 3);
-          if (c.roll(c.chance(0.5, (c.p.skills.compose - 35) / 12))) { c.rel('f', 18, '나를 위해 만든 노래'); c.fans(c.rng.int(10, 40)); c.theme('friend'); return '하객 중 누가 영상을 올렸다. “이 노래 제목이 뭐예요?” 댓글이 달렸다.'; }
+          if (c.check(c.choicesOdds!)) { c.rel('f', 18, '나를 위해 만든 노래'); c.fans(c.rng.int(10, 40)); c.theme('friend'); return '하객 중 누가 영상을 올렸다. “이 노래 제목이 뭐예요?” 댓글이 달렸다.'; }
           c.rel('f', 8); return '가사를 반쯤 까먹었다. 신랑이 대신 불러 줬다. 그게 더 감동이었다.';
         },
       },
@@ -453,10 +453,10 @@ export const LIFE: EventDef[] = [
       { label: '매일 아침 30분 걷기', run: (c) => { c.p.habits.exercise = Math.min(3, c.p.habits.exercise + 1); c.stat('health', 4); c.stat('stress', -4); return '걸음 수가 쌓일수록 멜로디가 쌓였다. 걷는 박자는 대체로 BPM 110.'; } },
       {
         label: '동네 헬스장 3개월 등록',
-        hint: (c) => c.pct(0.5),
+        odds: (c) => c.fromP(0.5, '운 판정'),
         run: (c) => {
           c.money(-c.krw(240000), '헬스장');
-          if (c.roll(0.5)) { c.p.habits.exercise = Math.min(3, c.p.habits.exercise + 1); c.stat('health', 6); c.skill('stage', 2); return '석 달 뒤, 앙코르까지 숨이 남았다.'; }
+          if (c.check(c.choicesOdds!)) { c.p.habits.exercise = Math.min(3, c.p.habits.exercise + 1); c.stat('health', 6); c.skill('stage', 2); return '석 달 뒤, 앙코르까지 숨이 남았다.'; }
           c.stat('happiness', -2); return '세 번 갔다. 회원권은 지갑 속 기부 영수증이 됐다.';
         },
       },

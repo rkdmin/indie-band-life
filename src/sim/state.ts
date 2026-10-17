@@ -59,7 +59,7 @@ export function addStat(s: GameState, k: keyof Stats, d: number) {
 export function addSkill(s: GameState, k: Skill, d: number) {
   // 높을수록 오르기 어렵다 (수확 체감)
   const cur = s.player.skills[k];
-  const eff = d > 0 ? d * (1 - cur / 125) : d;
+  const eff = d > 0 ? d * Math.pow(Math.max(0, 1 - cur / 108), 1.5) : d;
   s.player.skills[k] = clamp(cur + eff);
 }
 

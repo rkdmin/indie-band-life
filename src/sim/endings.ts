@@ -30,6 +30,16 @@ export const ENDINGS: EndingDef[] = [
     text: (s) => `${deathAge(s)}살. 짧았지만 남긴 노래들은 아직도 누군가의 이어폰 속에서 재생된다.`,
   },
   {
+    id: 'global', title: '바다 건너의 이름', subtitle: '국내보다 해외에서 더 유명했던 밴드', emoji: '✈️',
+    test: (s) => s.player.globalFans >= 25_000 && s.player.globalFans > s.peakFans * 0.8,
+    text: (s) => `해외 팬 ${count(s.player.globalFans)}명. 서울보다 ${s.flags.worldTour ? '스무 개 도시' : '먼 도시들'}에서 더 많은 사람이 그 노래를 불렀다.`,
+  },
+  {
+    id: 'livelihood', title: '음악으로 먹고산 사람', subtitle: '알바 없이 버틴 해가 있었다', emoji: '🏠',
+    test: (s) => !!s.flags.livingByMusic && s.peakFans < 70_000 && s.albums.length >= 3,
+    text: (s) => `예술인 절반 가까이가 다른 일을 겸하는 나라에서, ${s.flags.livingByMusic}년부터 음악만으로 월세를 냈다. 화려하진 않았지만 그게 꿈이었다.`,
+  },
+  {
     id: 'revival', title: '역주행', subtitle: '세상이 늦게 알아본 노래', emoji: '📈',
     test: (s) => !!s.flags.revivalHit,
     text: (s) => {

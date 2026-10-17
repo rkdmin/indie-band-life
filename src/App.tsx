@@ -1,24 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { GameState } from './sim/types';
-import { newGame, type NewGameOptions } from './sim/engine';
+import { newGame, popCine, type NewGameOptions } from './sim/engine';
 import { loadGame, loadMeta, recordLife, saveGame, type Meta } from './ui/save';
 import { Title } from './ui/Title';
-import { Create } from './ui/Create';
-import { Game } from './ui/Game';
+import { BirthCert } from './ui/BirthCert';
+import { Life } from './ui/Life';
+import { Ending } from './ui/Ending';
 import { Collection } from './ui/Collection';
+import { Cinematic } from './ui/Cinematic';
 import { stopSong, unlock } from './audio/player';
+import { useBackButton } from './platform';
 
-type Screen = 'title' | 'create' | 'game' | 'collection';
+type Screen = 'title' | 'cert' | 'life' | 'collection';
 
 export function App() {
   const [screen, setScreen] = useState<Screen>('title');
   const [game, setGame] = useState<GameState | null>(() => loadGame());
   const [meta, setMeta] = useState<Meta>(() => loadMeta());
+  const [lastOpts, setLastOpts] = useState<{ o: NewGameOptions; pace: number } | null>(null);
 
   // 첫 터치에서 오디오 잠금 해제 (모바일 자동재생 정책)
   useEffect(() => {
     const h = () => unlock();
     window.addEventListener('pointerdown', h, { once: true });
+    try {
+      if (localStorage.getItem('ibl.calm') === '1') document.documentElement.classList.add('calm');
+    } catch {
+      /* 무시 */
+    }
     return () => window.removeEventListener('pointerdown', h);
   }, []);
 
@@ -28,10 +37,12 @@ export function App() {
     if (s.phase === 'ending') setMeta((m) => recordLife(m, s));
   }, []);
 
-  const start = (o: NewGameOptions) => {
+  const born = (o: NewGameOptions, pace: number) => {
     const s = newGame(o);
+    s.flags.pace = pace;
+    setLastOpts({ o, pace });
     update(s);
-    setScreen('game');
+    setScreen('cert');
   };
 
   const quit = () => {
@@ -39,24 +50,57 @@ export function App() {
     setScreen('title');
   };
 
-  const reset = () => {
+  const newLife = () => {
     saveGame(null);
     setGame(null);
     stopSong();
-    setScreen('create');
+    setScreen('title');
   };
 
-  if (screen === 'create') return <Create onStart={start} onBack={() => setScreen('title')} meta={meta} />;
+  useBackButton(() => setScreen('title'), screen === 'cert' || screen === 'collection');
+
   if (screen === 'collection') return <Collection meta={meta} onBack={() => setScreen('title')} />;
-  if (screen === 'game' && game) return <Game state={game} onChange={update} onQuit={quit} onNewLife={reset} meta={meta} />;
+  if (screen === 'cert' && game)
+    return (
+      <BirthCert
+        s={game}
+        onStart={() => setScreen('life')}
+        onReroll={() => {
+          if (!lastOpts) return setScreen('title');
+          // 같은 설정으로 다른 운명
+          born({ ...lastOpts.o, seed: undefined, name: lastOpts.o.name }, lastOpts.pace);
+        }}
+      />
+    );
+  if (screen === 'life' && game) {
+    if (game.phase === 'ending') {
+      // 마지막 무대 연출을 보여 준 뒤 부고
+      const last = game.cine[0];
+      if (last)
+        return (
+          <Cinematic
+            scene={last.scene}
+            people={[{ look: game.player.look, gender: game.player.gender, age: game.player.deathAge ?? 80, mood: 70 }]}
+            crowd={0.2}
+            seed={game.seed}
+            kicker={last.kicker}
+            title={last.title}
+            sub={`${last.sub}\n\n조명이 천천히 꺼졌다.`}
+            onDone={() => update(popCine(game))}
+          />
+        );
+      return <Ending state={game} meta={meta} onNewLife={newLife} onQuit={quit} />;
+    }
+    return <Life state={game} onChange={update} meta={meta} onQuit={quit} onNewLife={newLife} />;
+  }
   return (
     <Title
-      canContinue={!!game && game.phase !== 'ending'}
-      continueLabel={game ? `${game.player.name} · ${Math.max(0, Math.floor(game.time - game.player.birthYear))}세` : ''}
-      onContinue={() => setScreen('game')}
-      onNew={() => setScreen('create')}
+      meta={meta}
+      canContinue={!!game}
+      continueLabel={game ? (game.phase === 'ending' ? `${game.player.name}의 부고 보기` : `${game.player.name} · ${Math.max(0, Math.floor(game.time - game.player.birthYear))}세`) : ''}
+      onContinue={() => setScreen('life')}
+      onBorn={born}
       onCollection={() => setScreen('collection')}
-      lives={meta.lives.length}
     />
   );
 }

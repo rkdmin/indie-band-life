@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameState, Npc, Song } from '../sim/types';
 import { SKILLS } from '../sim/types';
-import { Avatar } from '../art/Avatar';
+import { Portrait } from '../art/Portrait';
 import { Cover } from '../art/Cover';
 import { CAREER_LABEL, TRAIT_LABEL, npcAge, relationLabel } from '../sim/npc';
 import { GENRE_INFO, INST_LABEL, MOOD_LABEL, SKILL_LABEL } from '../sim/data/world';
 import { count } from '../sim/korean';
 import { getAnalyser, nowPlaying, onPlaybackChange, playSong, renderWav, stopSong } from '../audio/player';
+import { saveFile } from '../platform';
 
 // ───────────────────────── 사람들 ─────────────────────────
 export function PeopleSheet({ s }: { s: GameState }) {
@@ -35,7 +36,7 @@ function PersonRow({ s, n }: { s: GameState; n: Npc }) {
   return (
     <div className="person" style={{ opacity: n.alive ? 1 : 0.5 }}>
       <div className="av">
-        <Avatar look={n.look} gender={n.gender} age={Math.max(0, a)} mood={50 + n.affinity / 2} size={56} />
+        <Portrait person={{ look: n.look, gender: n.gender, age: Math.max(0, a), mood: 50 + n.affinity / 2 }} />
       </div>
       <div>
         <div className="nm">
@@ -134,8 +135,8 @@ export function BandSheet({ s }: { s: GameState }) {
 function Member({ look, gender, age, name, inst, skill }: { look: number; gender: 'm' | 'f'; age: number; name: string; inst: string; skill: number }) {
   return (
     <div style={{ textAlign: 'center', width: 72 }}>
-      <div style={{ borderRadius: '50%', overflow: 'hidden', width: 56, height: 56, margin: '0 auto', background: '#ffffff12' }}>
-        <Avatar look={look} gender={gender} age={age} size={56} mood={70} />
+      <div style={{ overflow: 'hidden', width: 48, height: 58, margin: '0 auto', border: '1px solid #f3eee3' }}>
+        <Portrait person={{ look, gender, age, mood: 70 }} />
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4, lineHeight: 1.2 }}>{name}</div>
       <div className="dim">{inst} {Math.round(skill)}</div>
@@ -198,13 +199,9 @@ export function SongRow({ song, lyric = true }: { song: Song; lyric?: boolean })
   const download = async () => {
     setBusy(true);
     try {
-      const blob = await renderWav(song);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${song.title}.wav`;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+      await saveFile(await renderWav(song), `${song.title}.wav`);
+    } catch {
+      // 네이티브 공유 시트를 닫은 경우 — 조용히 무시
     } finally {
       setBusy(false);
     }

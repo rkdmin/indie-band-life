@@ -1,20 +1,38 @@
 // 게임 엔진. UI 는 이 파일의 함수만 부른다. 모든 함수는 상태를 복제해 새 상태를 돌려준다.
-//   newGame → (submitActions → [ackResults] → choose* → next*) 반복 → ending
+//
+// 시간은 ‘시기(period)’ 단위로 계산하고, 화면은 그 사이를 실시간으로 흘려보낸다.
+//   phase 'plan'    → beginPeriod(): 생활 계획을 적용하고 기록·사건을 이번 시기에 흩뿌린다
+//   phase 'running' → 시계가 사건 시점에 닿으면 openEvent() → phase 'event'
+//   phase 'event'   → choose() → proceed() → 다시 'running'
+//   시계가 시기 끝에 닿으면 endPeriod() → 다음 시기 'plan' (또는 'ending')
 
-import type { ActionPick, ActiveEvent, GameState, Gender, Genre, Income, ParentTaste, Region } from './types';
+import type { ActionPick, ActiveEvent, FeedEntry, Odds, PendingRoll, GameState, Gender, Genre, Income, ParentTaste, Region, ResultLine } from './types';
 import { GENRES } from './types';
 import { Rng, clamp, hashStr } from './rng';
-import { Ctx, type EventDef } from './ctx';
+import { Ctx, book, type EventDef } from './ctx';
+import { ARTIST_SURVEY } from './data/reality';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
-import { actionSlots, age, ageInt, chron, livingCost, stepSize, year } from './state';
-import { REGIONS, annualDeathProb, priceIndex } from './data/world';
+import { actionSlots, age, ageInt, chron, livingCost, stepSize } from './state';
+import { REGIONS, annualDeathProb, minWage, priceIndex } from './data/world';
 import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
 import { computeEnding } from './endings';
 import { won } from './korean';
+import { flavorLines } from './flavor';
+import { narrate, resolvePlan } from './plan';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 5;
+
+/** 전체 화면 연출로 보여 줄 큰 사건 */
+export const CINEMATIC = new Set([
+  'birth', 'first_inst', 'first_live', 'club_audition', 'school_festival', 'suneung', 'teen_band_end',
+  'draft', 'discharge', 'old_friend_call', 'crossroads30', 'label_indie', 'label_major', 'fest_local', 'fest_big',
+  'pandemic', 'band_boom', 'debt_crisis', 'reunion', 'producer_friend', 'parent_farewell', 'retire_ask', 'revival',
+  'move_out', 'life_proposal', 'life_baby', 'life_friend_funeral', 'life_last_call', 'life_grandchild',
+  'g_invite', 'g_stage', 'g_asia_tour', 'g_world_tour', 'release_ready',
+  'car_overseas_fest', 'car_tv_live', 'car_survival_show', 'car_drama_ost', 'car_club_closing', 'car_tribute_cover',
+]);
 
 export interface NewGameOptions {
   name: string;
@@ -57,6 +75,8 @@ export function newGame(o: NewGameOptions): GameState {
       stats: { happiness: 65, stress: 20, health: 72, energy: 80 },
       money: income === 'high' ? 3_000_000 : income === 'mid' ? 1_000_000 : 300_000,
       fans: 0,
+      globalFans: 0,
+      inspiration: 1,
       rep: 0,
       habits: { smoking: false, smokeYears: 0, drinking: 0, exercise: 1 },
       edu: 'none',
@@ -83,32 +103,37 @@ export function newGame(o: NewGameOptions): GameState {
     lastResults: [],
     news: [],
     lastActions: [],
+    plan: [],
+    autoPlan: true,
+    autoDecide: false,
+    feed: [],
+    cine: [],
+    periodEnd: o.birthYear,
     lastScene: 'nursery',
     stressTurns: 0,
     history: [],
-    phase: 'actions',
+    ledger: { music: 0, cost: 0, other: 0 },
+    ledgers: [],
+    phase: 'plan',
     ending: null,
     peakFans: 0,
   };
-  // 부모님
   const mom = createNpc(s, rng, { gender: 'f', birthYear: o.birthYear - rng.int(27, 35), metAt: '가족', role: 'parent', affinity: 80, skill: 10 });
   const dad = createNpc(s, rng, { gender: 'm', birthYear: o.birthYear - rng.int(28, 37), metAt: '가족', role: 'parent', affinity: 70, skill: 10 });
-  // 아버지의 성을 따른다
-  dad.name = o.name[0] + dad.name.slice(1);
+  dad.name = o.name[0] + dad.name.slice(1); // 아버지의 성을 따른다
   s.flags.mom = mom.id;
   s.flags.dad = dad.id;
   s.rng = rng.state;
-  // 태교 단계는 행동이 없으므로 바로 이벤트로
-  return startTurn(s);
+  return s;
 }
 
-// ───────────────────────── 이벤트 선택 ─────────────────────────
+// ───────────────────────── 사건 ─────────────────────────
 
 function evTitle(def: EventDef, c: Ctx) {
   return typeof def.title === 'function' ? def.title(c) : def.title;
 }
 
-function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, string>, vars?: Record<string, string | number>): ActiveEvent | null {
+function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, string>, at: number, vars?: Record<string, string | number>): ActiveEvent | null {
   const def = eventById(id);
   if (!def) return null;
   const c = new Ctx(s, rng, { ...bind }, vars ?? {});
@@ -119,7 +144,7 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
     if (def.queued && def.bind && Object.keys(bind).length === 0 && !def.bind(c)) return null;
     const choices = def.choices.map((ch) => {
       const ok = ch.if ? ch.if(c) : true;
-      return { label: typeof ch.label === 'function' ? ch.label(c) : ch.label, hint: ch.hint?.(c), disabled: !ok };
+      return { label: typeof ch.label === 'function' ? ch.label(c) : ch.label, hint: ch.hint?.(c), disabled: !ok, odds: ok ? ch.odds?.(c) : undefined };
     });
     if (!choices.some((x) => !x.disabled)) return null;
     return {
@@ -130,6 +155,8 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       text: def.text(c),
       scene: typeof def.scene === 'function' ? def.scene(c) : def.scene,
       choices,
+      at,
+      big: CINEMATIC.has(id),
     };
   } catch (e) {
     if (import.meta.env?.DEV) console.warn('event failed', id, e);
@@ -149,7 +176,6 @@ function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   }
 }
 
-/** 이번 턴에 보여 줄 사건들을 큐에 쌓는다 */
 function scheduleEvents(s: GameState, rng: Rng) {
   const story: EventDef[] = [];
   const random: EventDef[] = [];
@@ -162,127 +188,225 @@ function scheduleEvents(s: GameState, rng: Rng) {
   }
   story.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   const picked: EventDef[] = story.slice(0, 2);
-  const shuffled = rng.shuffle(random);
   const maxRandom = picked.length >= 2 ? 0 : picked.length === 1 ? (rng.chance(0.35) ? 1 : 0) : rng.chance(0.4) ? 2 : 1;
-  for (const def of shuffled) {
+  for (const def of rng.shuffle(random)) {
     if (picked.length >= 3 || picked.filter((d) => (d.priority ?? 0) < 100).length >= maxRandom) break;
     picked.push(def);
   }
   for (const def of picked) s.queue.push({ id: def.id, bind: {} });
 }
 
-function nextEvent(s: GameState, rng: Rng): boolean {
-  while (s.queue.length) {
-    const pe = s.queue.shift()!;
-    const ev = materialize(s, rng, pe.id, pe.bind, pe.vars);
-    if (ev) {
-      s.active = ev;
-      s.fired[pe.id] = s.turn;
-      s.phase = 'event';
-      return true;
-    }
-  }
-  s.active = null;
-  return false;
+// ───────────────────────── 기록 ─────────────────────────
+
+function summarize(lines: ResultLine[]): string | undefined {
+  const d = lines.filter((l) => l.delta).map((l) => l.text);
+  return d.length ? d.join(' · ') : undefined;
 }
 
-// ───────────────────────── 턴 흐름 ─────────────────────────
-
-function startTurn(s: GameState): GameState {
-  s.lastResults = [];
-  if (actionSlots(s) === 0) {
-    // 행동이 없는 시기(태교~6세): 사건만 보고 지나간다
-    const rng = new Rng(s.rng);
-    scheduleEvents(s, rng);
-    const has = nextEvent(s, rng);
-    s.rng = rng.state;
-    if (!has) return endTurn(s);
-    return s;
-  }
-  s.phase = 'actions';
-  return s;
+function pushFeed(s: GameState, e: FeedEntry) {
+  s.feed.push(e);
+  if (s.feed.length > 400) s.feed.splice(0, s.feed.length - 400);
 }
 
-export function submitActions(prev: GameState, picks: ActionPick[]): GameState {
+/** 결과 줄 묶음을 기록으로: 서술 문장은 각각, 수치 변화는 앞 문장 뒤에 작게 */
+function linesToFeed(s: GameState, lines: ResultLine[], t: number, lead?: string, kind: FeedEntry['kind'] = 'action') {
+  const sentences = lines.filter((l) => !l.delta);
+  const deltas = summarize(lines);
+  if (lead) {
+    pushFeed(s, { t, text: lead, tone: 'neutral', deltas: sentences.length ? undefined : deltas, kind });
+  }
+  sentences.forEach((l, i) => {
+    pushFeed(s, { t: t + 0.001 * (i + 1), text: l.text, tone: l.tone ?? 'neutral', deltas: i === sentences.length - 1 ? deltas : undefined, kind });
+  });
+  if (!lead && !sentences.length && deltas) pushFeed(s, { t, text: '', tone: 'neutral', deltas, kind });
+}
+
+// ───────────────────────── 시기 흐름 ─────────────────────────
+
+/** 이번 시기 시작: 계획 적용 + 작은 순간 + 사건 예약 */
+export function beginPeriod(prev: GameState): GameState {
   const s = clone(prev);
-  if (s.phase !== 'actions') return s;
+  if (s.phase !== 'plan') return s;
   const rng = new Rng(s.rng);
+  const step = stepSize(age(s));
+  s.periodEnd = Math.round((s.time + step) * 1000) / 1000;
   s.lastResults = [];
+  const picks: ActionPick[] = resolvePlan(s, rng);
   s.lastActions = picks;
   const c = new Ctx(s, rng);
   let energyUsed = 0;
-  for (const pick of picks.slice(0, actionSlots(s))) {
+  const cineBefore = s.cine.length;
+  picks.forEach((pick, i) => {
     const def = actionById(pick.id);
-    if (!def || !def.when(c) || def.locked?.(c)) continue;
+    if (!def || !def.when(c) || def.locked?.(c)) return;
     const before = c.lines.length;
+    const sayBefore = s.lastResults.length;
     s.lastScene = def.scene;
     def.run(c, pick.param);
     energyUsed += def.energy;
-    const head = `${def.emoji} ${def.label}`;
-    s.lastResults.push({ text: head, tone: 'neutral' });
-    s.lastResults.push(...c.lines.slice(before));
-  }
+    const lines = [...c.lines.slice(before), ...s.lastResults.splice(sayBefore)];
+    s.lastResults.push(...lines);
+    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), narrate(def.id, rng));
+  });
+  for (const cn of s.cine.slice(cineBefore)) cn.at = s.time + step * 0.4;
   s.player.stats.energy = clamp(s.player.stats.energy - energyUsed);
   if (s.player.stats.energy <= 5 && energyUsed > 0) {
     s.player.stats.stress = clamp(s.player.stats.stress + 8);
     s.player.stats.health = clamp(s.player.stats.health - 0.8);
-    s.lastResults.push({ text: '무리했다. 몸이 비명을 지른다 (스트레스↑ 건강↓)', tone: 'bad' });
+    pushFeed(s, { t: s.time + step * 0.7, text: '무리했다. 몸이 먼저 신호를 보냈다.', tone: 'bad', deltas: '스트레스 +8 · 건강 -1', kind: 'life' });
   }
+  for (const line of flavorLines(s, rng)) pushFeed(s, { t: s.time + step * rng.range(0.05, 0.95), text: line, tone: 'flavor', kind: 'flavor' });
+  s.feed.sort((a, b) => a.t - b.t);
   scheduleEvents(s, rng);
   s.rng = rng.state;
-  s.phase = 'results';
+  s.phase = 'running';
   return s;
 }
 
-/** 행동 결과 화면을 닫고 사건으로 */
-export function ackResults(prev: GameState): GameState {
+/** 큐의 다음 사건을 연다. 없으면 그대로 'running' */
+export function openEvent(prev: GameState, at: number): GameState {
   const s = clone(prev);
+  if (s.phase !== 'running') return s;
   const rng = new Rng(s.rng);
-  const has = nextEvent(s, rng);
+  while (s.queue.length) {
+    const pe = s.queue.shift()!;
+    const ev = materialize(s, rng, pe.id, pe.bind, at, pe.vars);
+    if (ev) {
+      s.active = ev;
+      s.fired[pe.id] = s.turn;
+      s.phase = 'event';
+      s.lastScene = ev.scene;
+      break;
+    }
+  }
   s.rng = rng.state;
-  return has ? s : endTurn(s);
+  return s;
 }
+
+export const hasQueuedEvent = (s: GameState) => s.queue.length > 0;
 
 export function choose(prev: GameState, idx: number): GameState {
   const s = clone(prev);
   const ev = s.active;
-  if (!ev || ev.result) return s;
+  if (!ev || ev.result || ev.pending) return s;
   const def = eventById(ev.id);
   if (!def) return s;
+  const ch = def.choices[idx];
   const rng = new Rng(s.rng);
   const c = new Ctx(s, rng, ev.bind, ev.vars ?? {});
-  const ch = def.choices[idx];
   if (!ch || (ch.if && !ch.if(c))) return s;
-  const text = ch.run(c) || '';
-  s.active = { ...ev, bind: c.bind, result: { text, lines: c.lines } };
+  // 판정이 있는 선택지는 먼저 주사위만 굴린다 (결과 적용은 resolveRoll)
+  if (ch.odds) {
+    const o = ch.odds(c);
+    s.active = { ...ev, pending: rollD20(rng, o, idx, false) };
+    s.rng = rng.state;
+    return s;
+  }
+  return applyChoice(s, idx);
+}
+
+function rollD20(rng: Rng, o: Odds, idx: number, rerolled: boolean): PendingRoll {
+  const nat = rng.int(1, 20);
+  const nat2 = o.adv ? rng.int(1, 20) : undefined;
+  const best = nat2 !== undefined ? Math.max(nat, nat2) : nat;
+  const ok = best === 20 || (best !== 1 && best + o.mod >= o.dc);
+  return { idx, odds: o, nat, nat2, ok, crit: best === 20 ? 'success' : best === 1 ? 'fail' : undefined, rerolled };
+}
+
+/** 영감을 써서 실패한 판정을 다시 굴린다 */
+export function reroll(prev: GameState): GameState {
+  const s = clone(prev);
+  const pd = s.active?.pending;
+  if (!pd || pd.ok || pd.rerolled || s.player.inspiration <= 0) return s;
+  const rng = new Rng(s.rng);
+  s.player.inspiration--;
+  s.active!.pending = rollD20(rng, pd.odds, pd.idx, true);
   s.rng = rng.state;
   return s;
 }
 
-/** 사건 결과를 닫고 다음 사건 또는 다음 시기로 */
+/** 굴린 결과를 확정하고 선택지를 적용한다 */
+export function resolveRoll(prev: GameState): GameState {
+  const pd = prev.active?.pending;
+  if (!pd) return prev;
+  return applyChoice(clone(prev), pd.idx, pd);
+}
+
+function applyChoice(s: GameState, idx: number, pd?: PendingRoll): GameState {
+  const ev = s.active!;
+  const def = eventById(ev.id)!;
+  const rng = new Rng(s.rng);
+  const c = new Ctx(s, rng, ev.bind, ev.vars ?? {});
+  const ch = def.choices[idx];
+  const cineBefore = s.cine.length;
+  c.choicesOdds = pd?.odds ?? ch.odds?.(c);
+  c.preset = pd ?? null;
+  const sayBefore = s.lastResults.length;
+  const text = ch.run(c) || '';
+  c.lines.push(...s.lastResults.splice(sayBefore));
+  for (const cn of s.cine.slice(cineBefore)) cn.at = ev.at;
+  for (const r of c.rolls) c.lines.push({ text: `🎲 ${r.label} d20(${r.nat2 !== undefined ? `${r.nat}·${r.nat2}` : r.nat})${r.mod >= 0 ? '+' : ''}${r.mod} vs 난이도 ${r.dc} → ${r.crit === 'success' ? '대성공' : r.crit === 'fail' ? '대실패' : r.ok ? '성공' : '실패'}`, tone: r.ok ? 'good' : 'bad', delta: true });
+  s.active = { ...ev, pending: undefined, bind: c.bind, result: { text, lines: c.lines, rolls: c.rolls } };
+  const label = typeof ch.label === 'function' ? ch.label(c) : ch.label;
+  pushFeed(s, { t: ev.at, text: `${ev.title} — ${label}`, tone: ev.big ? 'big' : 'neutral', kind: 'event' });
+  linesToFeed(s, c.lines, ev.at + 0.002, text || undefined, 'event');
+  s.feed.sort((a, b) => a.t - b.t);
+  s.rng = rng.state;
+  return s;
+}
+
+/** 자동 결정: 고를 수 있는 선택지 중 무작위 (결정적) */
+export function autoChoose(prev: GameState): GameState {
+  const ev = prev.active;
+  if (!ev || ev.result) return prev;
+  const rng = new Rng(prev.rng ^ 0x5bd1e995);
+  const ok = ev.choices.map((c, i) => (c.disabled ? -1 : i)).filter((i) => i >= 0);
+  const s = choose(prev, rng.pick(ok));
+  return s.active?.pending ? resolveRoll(s) : s;
+}
+
 export function proceed(prev: GameState): GameState {
   const s = clone(prev);
   if (s.phase === 'ending') return s;
+  s.active = null;
   if (!s.player.alive) return finish(s);
-  const rng = new Rng(s.rng);
-  const has = nextEvent(s, rng);
-  s.rng = rng.state;
-  if (has) return s;
-  return endTurn(s);
+  s.phase = 'running';
+  return s;
+}
+
+export function popCine(prev: GameState): GameState {
+  const s = clone(prev);
+  s.cine.shift();
+  return s;
+}
+
+export function setPlan(prev: GameState, plan: ActionPick[], auto: boolean): GameState {
+  const s = clone(prev);
+  s.plan = plan;
+  s.autoPlan = auto;
+  return s;
+}
+
+export function setAutoDecide(prev: GameState, v: boolean): GameState {
+  const s = clone(prev);
+  s.autoDecide = v;
+  return s;
 }
 
 function finish(s: GameState): GameState {
   s.phase = 'ending';
   s.active = null;
+  s.queue = [];
   s.ending = computeEnding(s);
   return s;
 }
 
 /** 시기 마감: 돈·건강·나이 듦·NPC 인생·사망 판정 후 시간을 넘긴다 */
-function endTurn(s: GameState): GameState {
+export function endPeriod(prev: GameState): GameState {
+  const s = clone(prev);
+  if (s.phase !== 'running') return s;
   const rng = new Rng(s.rng);
   const p = s.player;
-  s.news = [];
   const a0 = age(s);
   const step = stepSize(a0);
   const y0 = Math.floor(s.time);
@@ -290,42 +414,38 @@ function endTurn(s: GameState): GameState {
   s.turn++;
   const a = age(s);
   const yearsPassed = Math.floor(s.time) - y0;
+  const t = s.time;
+  const news: ResultLine[] = [];
 
-  // 생활비 (반기 단위로 환산)
   const halfYears = step * 2;
   if (a >= 20) {
     const cost = livingCost(s, priceIndex(s.time)) * halfYears;
     p.money -= cost;
-    s.news.push({ text: `생활비 -${won(cost)}`, tone: 'neutral' });
+    news.push({ text: `생활비 -${won(cost)}`, tone: 'neutral', delta: true });
   }
-  // 직장 월급
   if (p.job === 'office' || p.job === 'teacher' || p.job === 'producer') {
     const base = { office: 16_000_000, teacher: 15_000_000, producer: 20_000_000 }[p.job] * priceIndex(s.time) * halfYears;
     p.money += Math.round(base);
+    book(s, Math.round(base), '월급');
     p.stats.stress = clamp(p.stats.stress + (p.job === 'office' ? 6 : 3));
-    s.news.push({ text: `월급 +${won(base)}`, tone: 'good' });
+    news.push({ text: `월급 +${won(base)}`, tone: 'good', delta: true });
   }
-  // 군 복무
   if (p.military === 'serving' && s.time >= p.militaryUntil) {
     p.military = 'done';
     s.queue.push({ id: 'discharge', bind: {} });
   }
 
-  // 컨디션 회복 & 스트레스 → 건강
   p.stats.energy = clamp(p.stats.energy + 45 + p.habits.exercise * 4 - (p.job === 'office' ? 18 : 0) - (a > 60 ? 10 : 0));
   if (p.stats.stress >= 80) s.stressTurns++;
   else s.stressTurns = Math.max(0, s.stressTurns - 1);
   if (p.stats.stress >= 75) p.stats.health = clamp(p.stats.health - 0.8 * halfYears);
   if (p.stats.stress <= 30) p.stats.happiness = clamp(p.stats.happiness + 1);
-  // 행복은 아주 천천히 기준점(55)으로
   p.stats.happiness = clamp(p.stats.happiness + (55 - p.stats.happiness) * 0.06);
   p.stats.stress = clamp(p.stats.stress + (25 - p.stats.stress) * 0.12);
 
-  // 팬은 활동이 없으면 서서히 줄어든다
   if (p.fans > 0) p.fans = Math.round(p.fans * (1 - 0.035 * halfYears));
   s.peakFans = Math.max(s.peakFans, p.fans);
 
-  // 해가 바뀌면: 나이 듦·습관·NPC·음원 정산·사망 판정
   for (let i = 0; i < yearsPassed; i++) {
     const ya = a - (yearsPassed - 1 - i);
     if (p.habits.smoking) p.habits.smokeYears++;
@@ -335,12 +455,13 @@ function endTurn(s: GameState): GameState {
     p.rep = clamp(p.rep * 0.97);
     p.habits.drinking = Math.max(0, p.habits.drinking - 0.1);
     if (ya > 50) for (const k of ['guitar', 'bass', 'drums', 'keys', 'vocal'] as const) p.skills[k] = clamp(p.skills[k] - 0.4);
-    const news = ageNpcs(s, rng);
-    for (const n of news.slice(0, 2)) s.news.push({ text: n, tone: 'neutral' });
+    for (const n of ageNpcs(s, rng).slice(0, 2)) pushFeed(s, { t, text: n, tone: 'neutral', kind: 'news' });
     const before = s.lastResults.length;
+    const m0 = p.money;
     yearlyStreams(s, rng);
-    s.news.push(...s.lastResults.splice(before));
-    // 사망 판정 — 20세 이전과 건강이 괜찮은 40세 이전에는 판정하지 않는다 (요절은 드물게)
+    if (p.money > m0) book(s, p.money - m0, '음원 정산');
+    news.push(...s.lastResults.splice(before));
+    closeLedger(s, Math.floor(s.time) - (yearsPassed - 1 - i) - 1, Math.floor(ya) - 1, t);
     if (ya >= 20 && (ya >= 40 || p.stats.health < 25)) {
       const q = annualDeathProb(ya, p.stats.health, p.habits.smokeYears);
       if (rng.chance(q) || ya >= 104) {
@@ -350,8 +471,11 @@ function endTurn(s: GameState): GameState {
       }
     }
   }
-  // 빚
   if (p.money < -priceIndex(s.time) * 30_000_000 && !s.flags.bankrupt) s.queue.push({ id: 'debt_crisis', bind: {} });
+  s.news = news;
+  const money = news.filter((n) => n.delta).map((n) => n.text);
+  if (money.length) pushFeed(s, { t, text: '', tone: 'neutral', deltas: money.join(' · '), kind: 'news' });
+  for (const n of news.filter((x) => !x.delta)) pushFeed(s, { t, text: n.text, tone: n.tone ?? 'neutral', kind: 'news' });
 
   s.history.push({ age: Math.floor(a), fans: p.fans, happiness: Math.round(p.stats.happiness), money: p.money });
   if (s.history.length > 200) s.history.shift();
@@ -359,26 +483,10 @@ function endTurn(s: GameState): GameState {
 
   if (!p.alive) {
     chron(s, '마지막 숨. 어딘가에서 내 노래가 흐르고 있었다.', 'big');
-    s.queue = [];
+    s.cine.push({ kind: 'death', scene: 'stage_old', kicker: `${p.birthYear + (p.deathAge ?? 0)} · ${p.deathAge}세`, title: '마지막 무대', sub: `${p.name}, ${p.birthYear}–${p.birthYear + (p.deathAge ?? 0)}`, at: s.time });
     return finish(s);
   }
-  return startTurn(s);
-}
-
-/** 은퇴 후: 남은 인생을 빠르게 흘려보낸다 */
-export function fastForward(prev: GameState): GameState {
-  let s = clone(prev);
-  let guard = 0;
-  while (s.phase !== 'ending' && guard++ < 200) {
-    if (s.phase === 'actions') s = submitActions(s, [{ id: 'rest' }]);
-    else if (s.phase === 'results') s = ackResults(s);
-    else if (s.phase === 'event' && s.active) {
-      if (!s.active.result) {
-        const i = s.active.choices.findIndex((c) => !c.disabled);
-        s = choose(s, Math.max(0, i));
-      } else s = proceed(s);
-    } else break;
-  }
+  s.phase = 'plan';
   return s;
 }
 
@@ -390,9 +498,72 @@ export function retire(prev: GameState): GameState {
   const s = clone(prev);
   s.player.retired = true;
   chron(s, '은퇴를 선언했다. 이제 남은 시간은 나를 위해', 'big');
+  pushFeed(s, { t: s.time, text: '은퇴를 선언했다.', tone: 'big', kind: 'life' });
   return s;
 }
 
-export const describeTime = (s: GameState) => `${year(s)}년 · ${Math.max(0, ageInt(s))}세`;
+/** 한 시기를 통째로 진행 (테스트·자동 진행용). 사건은 자동 결정. */
+export function runPeriodAuto(prev: GameState, pickChoice?: (s: GameState) => number): GameState {
+  let s = prev;
+  if (s.phase === 'plan') s = beginPeriod(s);
+  let guard = 0;
+  while (s.phase !== 'ending' && guard++ < 20) {
+    if (s.phase === 'running') {
+      if (hasQueuedEvent(s)) {
+        s = openEvent(s, s.time + 0.25);
+        if (s.phase === 'running') continue;
+      } else {
+        s = { ...s, cine: [] };
+        s = endPeriod(s);
+        return s;
+      }
+    }
+    if (s.phase === 'event') {
+      s = pickChoice ? choose(s, pickChoice(s)) : autoChoose(s);
+      if (s.active?.pending) s = resolveRoll(s);
+      s = proceed(s);
+    }
+  }
+  return s;
+}
 
-export { ACTIONS };
+/** 은퇴 후: 남은 인생을 빠르게 */
+export function fastForward(prev: GameState): GameState {
+  let s = setPlan(prev, [{ id: 'rest' }], false);
+  let guard = 0;
+  while (s.phase !== 'ending' && guard++ < 200) s = runPeriodAuto(s);
+  return s;
+}
+
+export const describeTime = (s: GameState) => `${Math.floor(s.time)}년 · ${Math.max(0, ageInt(s))}세`;
+
+export { ACTIONS, actionSlots };
+
+/** 한 해 장부 마감: 현실 통계와 나란히 기록에 남기고, 처음으로 음악만으로 먹고살게 된 해를 기념한다 */
+function closeLedger(s: GameState, yr: number, ag: number, t: number) {
+  const L = s.ledger ?? { music: 0, cost: 0, other: 0 };
+  s.ledgers = s.ledgers ?? [];
+  if (ag >= 17 && (L.music || L.cost || L.other)) {
+    s.ledgers.push({ year: yr, age: ag, ...L });
+    if (s.ledgers.length > 120) s.ledgers.shift();
+    const net = L.music - L.cost;
+    const avg = ARTIST_SURVEY.avgArtIncomeMusic;
+    const tone: FeedEntry['tone'] = net >= avg ? 'good' : 'neutral';
+    pushFeed(s, {
+      t,
+      text: `${yr}년 결산 — 음악으로 ${won(L.music)} 벌고 ${won(L.cost)} 썼다.${L.other ? ` 다른 일로 ${won(L.other)}.` : ''}`,
+      tone,
+      deltas: `음악인 평균 예술활동 수입 ${won(avg)} · 2024 예술인 실태조사`,
+      kind: 'news',
+    });
+    // ‘먹고산다’의 기준: 최저임금으로 1년 일한 만큼(주 40시간, 209시간×12개월)의 80% [가정]
+    const livingBar = minWage(yr) * 209 * 12 * 0.8;
+    if (!s.flags.livingByMusic && ag >= 19 && net >= livingBar) {
+      s.flags.livingByMusic = yr;
+      chron(s, '처음으로 음악으로 번 돈만으로 한 해를 살았다', 'big');
+      s.cine.push({ kind: 'gig', scene: 'rooftop', kicker: `${yr} · ${ag}세`, title: '음악으로 월세를 냈다', sub: `올해 음악으로 번 돈 ${won(net)}.
+예술인 절반 가까이(47.5%)가 다른 일을 겸하는 나라에서, 처음으로 알바 없이 한 해를 버텼다.`, at: t });
+    }
+  }
+  s.ledger = { music: 0, cost: 0, other: 0 };
+}
