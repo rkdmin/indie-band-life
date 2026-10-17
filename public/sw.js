@@ -1,5 +1,5 @@
 // 오프라인 플레이용 단순 캐시 (stale-while-revalidate). 게임 데이터는 전부 클라이언트에 있다.
-const CACHE = 'ibl-v1';
+const CACHE = 'ibl-v2';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -13,6 +13,18 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // 페이지(HTML)는 항상 네트워크 먼저 — 새 버전이 배포되면 바로 보이게. 오프라인일 때만 캐시.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html'))),
+    );
+    return;
+  }
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const hit = await cache.match(e.request);
