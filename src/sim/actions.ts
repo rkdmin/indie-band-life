@@ -452,29 +452,23 @@ export function formBand(c: Ctx, name?: string, genre?: Genre) {
     bestGig: null,
   };
   c.s.band = band;
-  // 친한 음악 친구 중 악기가 겹치지 않는 사람을 먼저 부른다 — 어린 시절 인연이 여기서 돌아온다
-  const taken = new Set<Inst>([inst]);
-  const candidates = Object.values(c.s.npcs)
-    .filter((n) => n.alive && n.role !== 'parent' && n.role !== 'partner' && n.affinity >= 25 && n.skill >= 20 && (n.career === 'student' || n.career === 'musician'))
-    .sort((a, b) => b.affinity + b.skill - (a.affinity + a.skill));
-  for (const n of candidates) {
-    if (taken.has(n.inst) || band.memberIds.length >= 3) continue;
-    taken.add(n.inst);
-    band.memberIds.push(n.id);
-    n.inBand = true;
-    n.role = 'member';
-    n.career = 'musician';
-    c.line(`${n.name}(${INST_LABEL[n.inst]}) 합류!`, 'good');
-  }
+  // 멤버는 카드로 직접 고른다 (events/draft.ts) — 결성 직후 첫 카드를 띄운다
+  c.queue('pick_member', {}, { src: 'form', round: 1 });
   band.chemistry = clamp(40 + c.members.reduce((a, m) => a + m.affinity, 0) / Math.max(1, c.members.length) / 3);
   c.chron(`밴드 〈${band.name}〉 결성 (${GENRE_INFO[g].label})`, 'band');
   c.line(`밴드 〈${band.name}〉 결성!`, 'big');
-  c.s.cine.push({ kind: 'band', scene: 'studio', kicker: `${c.year} · ${c.ageInt}세 · ${GENRE_INFO[g].label}`, title: `〈${band.name}〉`, sub: c.members.length ? `${c.members.map((m) => given(m.name)).join(', ')}와 함께 밴드를 시작했다.` : '혼자서 시작하는 밴드. 이름부터 정했다.', at: c.s.time });
-  if (c.members.length === 0) c.line('아직 멤버가 없다. 멤버 모집을 해 보자.', 'neutral');
+  c.s.cine.push({ kind: 'band', scene: 'studio', kicker: `${c.year} · ${c.ageInt}세 · ${GENRE_INFO[g].label}`, title: `〈${band.name}〉`, sub: c.members.length ? `${c.members.map((m) => given(m.name)).join(', ')}와 함께 밴드를 시작했다.` : '이름부터 정했다. 이제 함께할 사람을 고를 차례.', at: c.s.time });
   return band;
 }
 
+/** 멤버 모집: 후보 카드를 띄운다 */
 export function recruit(c: Ctx) {
+  c.queue('pick_member', {}, { src: 'recruit', round: 1 });
+  c.line('멤버 모집 공고를 올렸다 — 곧 지원자 카드가 도착한다', 'neutral');
+}
+
+/** 바로 한 명을 들인다 (학교 밴드부 선배처럼 이야기상 정해진 경우) */
+export function addWalkIn(c: Ctx) {
   const miss = missingInst(c);
   const inst = miss[0] ?? c.pick(INSTRUMENTS);
   const fame = c.p.fans;

@@ -7,6 +7,7 @@ import { Cover } from '../art/Cover';
 import { drawPerson } from '../art/pixel';
 import { ENDINGS } from '../sim/endings';
 import { biography } from '../sim/bio';
+import { rarityText } from '../sim/data/fate';
 import { GENRE_INFO, INST_LABEL } from '../sim/data/world';
 import { count } from '../sim/korean';
 import { playSong, sfx, stopBgm, stopSong } from '../audio/player';
@@ -103,6 +104,14 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
             <div className="liner-years">
               {s.player.birthYear} – {s.player.birthYear + deathAge} · {deathAge}세{genre ? ` · ${GENRE_INFO[genre].label}` : ''}
             </div>
+            {s.player.rarityLog > 0 && <div className="liner-rarity">약 {rarityText(s.player.rarityLog)}의 확률로 태어난 인생</div>}
+            {s.player.fate?.draws?.length > 0 && (
+              <div className="row" style={{ flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                {s.player.fate.draws.slice(0, 5).map((d) => (
+                  <span key={d.id} className="chip">{d.label}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <section className="liner-sec">

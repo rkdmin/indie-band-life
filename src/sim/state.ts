@@ -59,7 +59,7 @@ export function addStat(s: GameState, k: keyof Stats, d: number) {
 export function addSkill(s: GameState, k: Skill, d: number) {
   // 높을수록 오르기 어렵다 (수확 체감)
   const cur = s.player.skills[k];
-  const eff = d > 0 ? d * Math.pow(Math.max(0, 1 - cur / 108), 1.5) : d;
+  const eff = d > 0 ? d * Math.pow(Math.max(0, 1 - cur / 108), 1.5) * growthMul(s, k) : d;
   s.player.skills[k] = clamp(cur + eff);
 }
 
@@ -96,4 +96,30 @@ export function livingCost(s: GameState, priceIdx: number): number {
   const atHome = s.flags.independent !== true;
   const base = atHome ? 1_800_000 : 7_200_000;
   return Math.round(base * priceIdx);
+}
+
+const TALENT_OF: Record<Skill, ('pitch' | 'rhythm' | 'lyric' | 'presence' | 'stamina')[]> = {
+  vocal: ['pitch'],
+  keys: ['pitch'],
+  guitar: ['pitch', 'rhythm'],
+  bass: ['rhythm'],
+  drums: ['rhythm'],
+  compose: ['lyric', 'pitch'],
+  stage: ['presence'],
+};
+
+/** 타고난 재능(0.64~1.38배)과 성격이 실력 성장 속도를 바꾼다 */
+export function growthMul(s: GameState, k: Skill): number {
+  const t = s.player.talents;
+  if (!t) return 1;
+  const ks = TALENT_OF[k];
+  const v = ks.reduce((a, x) => a + t[x], 0) / ks.length;
+  let m = 0.6 + (v / 100) * 0.8;
+  const tr = s.player.traits ?? [];
+  if (tr.includes('diligent') && k !== 'stage') m *= 1.12;
+  if (tr.includes('shy') && k === 'stage') m *= 0.8;
+  if ((tr.includes('shy') || tr.includes('sensitive')) && k === 'compose') m *= 1.12;
+  if (tr.includes('ambitious') && k === 'stage') m *= 1.1;
+  if (s.flags.perfectPitch && (k === 'vocal' || k === 'compose' || k === 'keys')) m *= 1.15;
+  return m;
 }

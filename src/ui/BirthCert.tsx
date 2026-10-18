@@ -1,6 +1,8 @@
 import type { GameState } from '../sim/types';
 import { REGIONS, birthsIn, eraOf, lifeExpectancy, minWage } from '../sim/data/world';
 import { Portrait } from '../art/Portrait';
+import { TALENTS, TALENT_LABEL, rarityText, stars } from '../sim/data/fate';
+import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
 
 const TASTE: Record<string, string> = {
@@ -57,6 +59,44 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div><span className="label">기대수명</span><div className="v">{lifeExpectancy(y)}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
             <div><span className="label">16세 알바 시급</span><div className="v">{minWage(y + 16).toLocaleString()}원</div></div>
+          </div>
+          <div className="fate-box">
+            <div className="fate-rarity">
+              <span className="label">이렇게 태어날 확률</span>
+              <b>약 {rarityText(p.rarityLog)}</b>
+            </div>
+            <div className="fate-cols">
+              <div>
+                <span className="label">타고난 재능</span>
+                {TALENTS.map((t) => (
+                  <div key={t} className="talent">
+                    <span>{TALENT_LABEL[t]}</span>
+                    <span className="stars">{'★'.repeat(stars(p.talents[t]))}<i>{'★'.repeat(5 - stars(p.talents[t]))}</i></span>
+                  </div>
+                ))}
+                <span className="label" style={{ marginTop: 8, display: 'block' }}>성격</span>
+                <div className="row" style={{ flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                  {p.traits.map((t) => (
+                    <span key={t} className="chip">{TRAIT_LABEL[t]}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="label">이 인생의 변수</span>
+                <ul className="fate-list">
+                  {p.fate.draws.map((d) => (
+                    <li key={d.id}>
+                      <b>{d.label}</b>
+                      <span className="fate-p">
+                        {d.p >= 0.01 ? `${Math.round(d.p * 1000) / 10}%` : `${Math.round(1 / d.p).toLocaleString()}분의 1`}
+                        <span className={`src src-${d.kind}`}>{d.kind}</span>
+                      </span>
+                      <small>{d.src}</small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
           <div className="cert-note">
             {y}년 대한민국에서 태어난 아기는 약 {Math.floor(births / 10000)}만 {Math.round((births % 10000) / 1000) ? `${Math.round((births % 10000) / 1000)}천` : ''}명. 그중 한 명입니다.

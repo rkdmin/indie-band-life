@@ -20,7 +20,10 @@ import { yearlyStreams } from './songs';
 import { computeEnding } from './endings';
 import { won } from './korean';
 import { flavorLines } from './flavor';
+import { rollFate, rollTalents } from './data/fate';
+import type { Trait } from './types';
 import { narrate, resolvePlan } from './plan';
+import { bandUpkeep } from './bandlife';
 
 export const SAVE_VERSION = 5;
 
@@ -30,6 +33,8 @@ export const CINEMATIC = new Set([
   'draft', 'discharge', 'old_friend_call', 'crossroads30', 'label_indie', 'label_major', 'fest_local', 'fest_big',
   'pandemic', 'band_boom', 'debt_crisis', 'reunion', 'producer_friend', 'parent_farewell', 'retire_ask', 'revival',
   'move_out', 'life_proposal', 'life_baby', 'life_friend_funeral', 'life_last_call', 'life_grandchild',
+  'member_leave',
+  'fate_divorce', 'fate_cancer', 'fate_origin_visit', 'fate_perfect_pitch', 'fate_twin_duo', 'era_2002',
   'g_invite', 'g_stage', 'g_asia_tour', 'g_world_tour', 'release_ready',
   'car_overseas_fest', 'car_tv_live', 'car_survival_show', 'car_drama_ost', 'car_club_closing', 'car_tribute_cover',
 ]);
@@ -77,6 +82,10 @@ export function newGame(o: NewGameOptions): GameState {
       fans: 0,
       globalFans: 0,
       inspiration: 1,
+      talents: { pitch: 50, rhythm: 50, lyric: 50, presence: 50, stamina: 50 },
+      traits: [],
+      fate: null as never,
+      rarityLog: 0,
       rep: 0,
       habits: { smoking: false, smokeYears: 0, drinking: 0, exercise: 1 },
       edu: 'none',
@@ -109,6 +118,7 @@ export function newGame(o: NewGameOptions): GameState {
     feed: [],
     cine: [],
     periodEnd: o.birthYear,
+    deckOut: [],
     lastScene: 'nursery',
     stressTurns: 0,
     history: [],
@@ -123,6 +133,52 @@ export function newGame(o: NewGameOptions): GameState {
   dad.name = o.name[0] + dad.name.slice(1); // 아버지의 성을 따른다
   s.flags.mom = mom.id;
   s.flags.dad = dad.id;
+
+  // ── 사건 덱: 일반 사건의 약 45%를 이번 인생에서 뺀다 → 인생마다 겪는 일이 달라진다 ──
+  s.deckOut = EVENTS.filter((e) => !e.queued && (e.priority ?? 0) < 100 && /^(life_|car_)/.test(e.id) && rng.chance(0.45)).map((e) => e.id);
+
+  // ── 인생 변수 · 재능 · 성격 ──
+  const fate = rollFate(rng, o.birthYear, o.gender);
+  s.player.fate = fate;
+  s.player.talents = rollTalents(rng, fate.perfectPitch);
+  const TR: Trait[] = ['diligent', 'free', 'sensitive', 'warm', 'ambitious', 'funny', 'stubborn', 'shy'];
+  const t1 = rng.pick(TR);
+  const rest = TR.filter((t) => t !== t1);
+  s.player.traits = [t1, rng.pick(rest)];
+  // 희귀도: 인생 변수 + 지역·형편·부모 취향·성별
+  const regionW = REGIONS.find((r) => r.id === region)!.weight;
+  const incomeW = { low: 0.3, mid: 0.5, high: 0.2 }[income];
+  s.player.rarityLog = fate.rarityLog - Math.log10(regionW) - Math.log10(incomeW) + Math.log10(2) + Math.log10(8);
+  if (fate.origin) {
+    const foreign = fate.origin.parent === 'mom' ? mom : dad;
+    const NAMES: Record<string, [string, string]> = {
+      베트남: ['응우옌 티 란', '쩐 반 훙'], 중국: ['왕리', '리웨이'], 태국: ['쑤다', '쏨차이'], 필리핀: ['마리아', '호세'],
+      일본: ['사토 유키', '다나카 켄'], 미국: ['에밀리', '제임스'], 캄보디아: ['소피아', '다라'], 몽골: ['사롤', '바트'], 우즈베키스탄: ['딜노자', '루스탐'],
+    };
+    const nm = NAMES[fate.origin.country];
+    if (nm) foreign.name = foreign.gender === 'f' ? nm[0] : nm[1];
+    s.flags.origin = fate.origin.country;
+    s.flags.originMusic = fate.origin.music;
+  }
+  for (let i = 0; i < fate.older; i++) {
+    const sib = createNpc(s, rng, { birthYear: o.birthYear - rng.int(1, 3) - i * 2, metAt: '가족', role: 'sibling', affinity: 45, skill: rng.int(5, 40) });
+    sib.name = o.name[0] + sib.name.slice(1);
+    s.flags.olderSib = sib.id;
+  }
+  if (fate.twin) {
+    const tw = createNpc(s, rng, { birthYear: o.birthYear, metAt: '같은 날 태어난 쌍둥이', role: 'sibling', affinity: 60, skill: rng.int(5, 25) });
+    tw.name = o.name[0] + tw.name.slice(1);
+    s.flags.twin = tw.id;
+  }
+  if (fate.younger) s.flags.youngerLeft = fate.younger;
+  if (fate.grandparents) s.flags.grandparents = true;
+  s.flags.parentJob = fate.parentJob;
+  if (fate.pet) s.flags.pet = 1;
+  if (fate.perfectPitch) s.flags.perfectPitch = true;
+  if (fate.lefty) s.flags.lefty = true;
+  if (fate.divorceAge !== null) s.flags.divorceAge = fate.divorceAge;
+  if (fate.jobLossAge !== null) s.flags.jobLossAge = fate.jobLossAge;
+  if (fate.cancerAge !== null) s.flags.cancerAge = fate.cancerAge;
   s.rng = rng.state;
   return s;
 }
@@ -166,6 +222,7 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
 
 function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if (def.queued) return false;
+  if (s.deckOut?.includes(def.id)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
   if (def.cooldown && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < def.cooldown) return false;
   const c = new Ctx(s, rng);
@@ -435,7 +492,7 @@ export function endPeriod(prev: GameState): GameState {
     s.queue.push({ id: 'discharge', bind: {} });
   }
 
-  p.stats.energy = clamp(p.stats.energy + 45 + p.habits.exercise * 4 - (p.job === 'office' ? 18 : 0) - (a > 60 ? 10 : 0));
+  p.stats.energy = clamp(p.stats.energy + 45 + (p.talents.stamina - 50) / 8 + p.habits.exercise * 4 - (p.job === 'office' ? 18 : 0) - (a > 60 ? 10 : 0));
   if (p.stats.stress >= 80) s.stressTurns++;
   else s.stressTurns = Math.max(0, s.stressTurns - 1);
   if (p.stats.stress >= 75) p.stats.health = clamp(p.stats.health - 0.8 * halfYears);
@@ -443,8 +500,10 @@ export function endPeriod(prev: GameState): GameState {
   p.stats.happiness = clamp(p.stats.happiness + (55 - p.stats.happiness) * 0.06);
   p.stats.stress = clamp(p.stats.stress + (25 - p.stats.stress) * 0.12);
 
+  const fansBefore = p.fans;
   if (p.fans > 0) p.fans = Math.round(p.fans * (1 - 0.035 * halfYears));
   s.peakFans = Math.max(s.peakFans, p.fans);
+  for (const line of bandUpkeep(s, rng, halfYears, fansBefore)) news.push({ text: line, tone: 'neutral', delta: true });
 
   for (let i = 0; i < yearsPassed; i++) {
     const ya = a - (yearsPassed - 1 - i);

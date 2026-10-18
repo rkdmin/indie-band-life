@@ -18,9 +18,9 @@ const ERAS = [
 ] as const;
 
 const PACES = [
-  { v: 0.7, label: '약 20분' },
-  { v: 1, label: '약 30분' },
-  { v: 1.6, label: '약 45분' },
+  { v: 0.5, label: '약 30분' },
+  { v: 1, label: '약 1시간' },
+  { v: 1.5, label: '약 1시간 30분' },
 ];
 
 const TICKS = [
@@ -129,7 +129,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
                 <button key={p.v} className={pace === p.v ? 'on' : ''} onClick={() => setPace(p.v)}>{p.label}</button>
               ))}
             </div>
-            <div className="seg-help">스무 살 무렵엔 1년이 약 {Math.round(22 * pace)}초. 사는 동안 멈춤과 배속이 됩니다.</div>
+            <div className="seg-help">스무 살 무렵엔 1년이 약 {Math.round(55 * pace)}초. 사는 동안 멈춤·배속·‘다음 결정까지’ 빨리 감기가 됩니다.</div>
           </div>
           <div className="opt-group">
             <button className="linkbtn" onClick={() => setCustom(!custom)}>{custom ? '운명에 맡기기' : '이름과 성별을 직접 정하기 (선택)'}</button>

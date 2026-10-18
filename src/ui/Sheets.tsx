@@ -84,7 +84,7 @@ export function BandSheet({ s }: { s: GameState }) {
             <Member look={p.look} gender={p.gender} age={s.time - p.birthYear} name={p.name + ' (나)'} inst={INST_LABEL[b.playerInst]} skill={p.skills[b.playerInst]} />
             {b.memberIds.map((id) => {
               const n = s.npcs[id];
-              return n ? <Member key={id} look={n.look} gender={n.gender} age={s.time - n.birthYear} name={n.name} inst={INST_LABEL[n.inst]} skill={n.skill} /> : null;
+              return n ? <Member key={id} look={n.look} gender={n.gender} age={s.time - n.birthYear} name={n.name} inst={INST_LABEL[n.inst]} skill={n.skill} sat={n.sat ?? 60} genre={GENRE_INFO[n.genre].label} fit={n.genre === b.genre} /> : null;
             })}
           </div>
         </div>
@@ -132,7 +132,7 @@ export function BandSheet({ s }: { s: GameState }) {
   );
 }
 
-function Member({ look, gender, age, name, inst, skill }: { look: number; gender: 'm' | 'f'; age: number; name: string; inst: string; skill: number }) {
+function Member({ look, gender, age, name, inst, skill, sat, genre, fit }: { look: number; gender: 'm' | 'f'; age: number; name: string; inst: string; skill: number; sat?: number; genre?: string; fit?: boolean }) {
   return (
     <div style={{ textAlign: 'center', width: 72 }}>
       <div style={{ overflow: 'hidden', width: 48, height: 58, margin: '0 auto', border: '1px solid #f3eee3' }}>
@@ -140,6 +140,15 @@ function Member({ look, gender, age, name, inst, skill }: { look: number; gender
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4, lineHeight: 1.2 }}>{name}</div>
       <div className="dim">{inst} {Math.round(skill)}</div>
+      {sat !== undefined && (
+        <>
+          <div className="dim" style={{ color: fit ? '#9fe0b4' : '#ffb3a8' }}>{genre}</div>
+          <div className="sat" title={`만족도 ${Math.round(sat)}`}>
+            <i style={{ width: `${sat}%`, background: sat < 30 ? '#ff6a6a' : sat < 55 ? '#ffd166' : '#73e2c5' }} />
+          </div>
+          <div className="dim" style={{ fontSize: 10.5 }}>만족도 {Math.round(sat)}</div>
+        </>
+      )}
     </div>
   );
 }

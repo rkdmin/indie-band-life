@@ -235,3 +235,54 @@ body::before {
 
 .title-page .mobile-only { display: none; }
 @media (max-width: 899px) { .title-page .mobile-only { display: block; } .title-page .desk-only { display: none !important; } }
+
+/* ── 인생 변수 (J카드) ── */
+.fate-box { margin-top: 16px; border: 2px solid var(--ink); border-radius: 4px; background: #fff; }
+.fate-rarity { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 14px; background: var(--yellow); border-bottom: 2px solid var(--ink); }
+.fate-rarity b { font-family: var(--serif); font-weight: 400; font-size: 22px; }
+.fate-cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; padding: 12px 14px; }
+@media (max-width: 560px) { .fate-cols { grid-template-columns: 1fr; } }
+.talent { display: flex; justify-content: space-between; font-size: 13.5px; margin-top: 4px; }
+.stars { color: var(--pink); letter-spacing: 1px; }
+.stars i { color: var(--line); font-style: normal; }
+.fate-list { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 8px; }
+.fate-list li { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; font-size: 13.5px; }
+.fate-list b { font-weight: 700; }
+.fate-p { font-family: var(--mono); font-size: 12px; color: var(--blue); white-space: nowrap; }
+.fate-list small { grid-column: 1 / -1; color: var(--sub); font-size: 11.5px; }
+
+.liner-rarity { margin-top: 6px; display: inline-block; font-family: var(--hand); font-size: 18px; background: var(--yellow); padding: 0 8px; transform: rotate(-1deg); }
+
+/* ── 멤버 고르기 카드 ── */
+.draft-back { position: fixed; inset: 0; z-index: 72; background: radial-gradient(ellipse at 50% 30%, #2a2050 0, #120f22 70%); overflow-y: auto; animation: fade 0.25s both; }
+.draft { max-width: 980px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom)); color: #f4efe6; }
+.draft-head .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.25em; color: var(--yellow); }
+.draft-head h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 6vw, 40px); margin: 4px 0 6px; text-shadow: 3px 3px 0 #f0378f88, -1px -1px 0 #2357e688; }
+.draft-head p { white-space: pre-line; color: #d6d0e8; margin: 0 0 16px; }
+.draft-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+@media (max-width: 520px) { .draft-cards { grid-template-columns: 1fr 1fr; gap: 10px; } }
+.mcard { position: relative; display: grid; justify-items: start; gap: 5px; text-align: left; padding: 14px 12px 12px; border-radius: 10px; background: #fbf8f2; color: var(--ink); border: 2px solid var(--ink); box-shadow: 5px 5px 0 var(--pink); animation: dealIn 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both; transition: transform 0.15s, box-shadow 0.15s; }
+.mcard.known { box-shadow: 5px 5px 0 var(--blue); }
+.mcard:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 8px 10px 0 var(--yellow); }
+.mcard:disabled { opacity: 0.5; }
+@keyframes dealIn { from { transform: translateY(40px) rotate(6deg) scale(0.9); opacity: 0; } }
+.mcard-tag { position: absolute; top: -10px; right: 10px; font-family: var(--serif); font-size: 13px; padding: 1px 10px; border-radius: 99px; border: 2px solid var(--ink); background: var(--yellow); }
+.mcard.known .mcard-tag { background: #8fd4ff; }
+.mcard-face { width: 64px; height: 78px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; background: #e9e2d2; }
+.mcard-name { font-family: var(--serif); font-size: 20px; line-height: 1.1; }
+.mcard-inst { font-size: 13px; color: var(--sub); }
+.mcard-inst b { font-family: var(--mono); color: var(--ink); }
+.mcard-bar { width: 100%; height: 6px; background: var(--line2); border-radius: 2px; overflow: hidden; }
+.mcard-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--blue)); }
+.mcard-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.mcard-fit { font-size: 12px; font-weight: 700; }
+.mcard-fit.good { color: var(--green); }
+.mcard-fit.bad { color: var(--red-ink); }
+.mcard-how { font-size: 11.5px; color: var(--sub); }
+.mcard-mem { font-family: var(--hand); font-size: 15px; color: var(--ink2); line-height: 1.2; }
+.mcard-odds { width: 100%; margin-top: 4px; padding-top: 6px; border-top: 1.5px dashed var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--blue); }
+.mcard-odds b { font-size: 14px; color: var(--ink); }
+.draft-foot { margin-top: 16px; text-align: center; }
+.draft-foot .linkbtn { color: #d6d0e8; }
+.sat { width: 56px; height: 4px; margin: 3px auto 0; background: #ffffff22; border-radius: 2px; overflow: hidden; }
+.sat i { display: block; height: 100%; }

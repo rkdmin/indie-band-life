@@ -19,8 +19,9 @@ import { playBgm, sfx } from '../audio/player';
 import { Cinematic } from './Cinematic';
 import { OddsBar } from './Odds';
 import { DiceScreen } from './Dice';
+import { MemberDraft } from './Draft';
 import { AchievementToast, Coach, GoalsCard, StatPops, feedIcon, useAchievementToasts, useStatPops } from './Juice';
-import { relationLabel } from '../sim/npc';
+import { TRAIT_LABEL, relationLabel } from '../sim/npc';
 import { Sheet } from './Sheet';
 import { BandSheet, ChronicleSheet, PeopleSheet, RecordsSheet } from './Sheets';
 import { Settings } from './Settings';
@@ -30,14 +31,18 @@ import type { Meta } from './save';
 type Speed = 0 | 1 | 2 | 4 | 8;
 type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'settings' | 'plan';
 
-/** 1배속에서 1년이 몇 초인가 — 음악 인생의 핵심(10대 후반~30대)은 느리게 */
-function secPerYear(a: number) {
-  if (a < 7) return 5;
-  if (a < 13) return 9;
-  if (a < 19) return 16;
-  if (a < 40) return 22;
-  if (a < 65) return 13;
-  return 8;
+/**
+ * 1배속에서 1년이 몇 초인가 — ‘약 1시간’ 설정 기준.
+ * 80억분의 1 처럼 1년 ≈ 40~60초가 기본이고, 음악 인생의 핵심(10대 후반~30대)이 가장 느리다.
+ * 합계 약 59분: 0~6세 25초 · 7~12세 35초 · 13~18세 50초 · 19~39세 55초 · 40~64세 45초 · 65세~ 30초.
+ */
+export function secPerYear(a: number) {
+  if (a < 7) return 25;
+  if (a < 13) return 35;
+  if (a < 19) return 50;
+  if (a < 40) return 55;
+  if (a < 65) return 45;
+  return 30;
 }
 
 export const SCENE_LABEL: Record<SceneId, string> = {
@@ -112,7 +117,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
   const clockRef = useRef(s.time);
   const stRef = useRef(s);
   stRef.current = s;
-  const nextEvRef = useRef<number>(Infinity);
+  // 이어하기로 시기 중간에 들어오면 이미 쌓인 사건을 곧바로 연다
+  const nextEvRef = useRef<number>(s.phase === 'running' && s.queue.length ? s.time + 0.02 : Infinity);
   const pace = (s.flags.pace as number) || 1;
 
   const commit = useCallback(
@@ -318,7 +324,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
         </div>
       </div>
 
-      {!coach && ev && !ev.big && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
+      {!coach && ev && isDraft(ev.id) && !ev.result && !ev.pending && <MemberDraft s={s} onChoose={onChoose} />}
+      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
       {!coach && ev && ev.big && (
         <Cinematic
           key={`${ev.id}-${ev.at}`}
@@ -415,6 +422,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
             <dt>작곡</dt><dd>{Math.round(p.skills.compose)}</dd>
             <dt>밴드</dt><dd>{s.band ? `〈${s.band.name}〉 ${GENRE_INFO[s.band.genre].label}` : '—'}</dd>
+            {p.traits?.length > 0 && <><dt>성격</dt><dd>{p.traits.map((t) => TRAIT_LABEL[t]).join(' · ')}</dd></>}
           </dl>
         </div>
       </div>
@@ -507,7 +515,7 @@ function PaceSetting({ s, onChange }: { s: GameState; onChange: (s: GameState) =
     <div>
       <span className="label">한 번의 인생 길이</span>
       <div className="seg" style={{ marginTop: 6 }}>
-        {([[0.7, '약 20분'], [1, '약 30분'], [1.6, '약 45분']] as [number, string][]).map(([v, l]) => (
+        {([[0.5, '약 30분'], [1, '약 1시간'], [1.5, '약 1시간 30분']] as [number, string][]).map(([v, l]) => (
           <button key={v} className={pace === v ? 'on' : ''} onClick={() => set(v)}>{l}</button>
         ))}
       </div>
@@ -738,3 +746,5 @@ function WhoBar({ s }: { s: GameState }) {
     </div>
   );
 }
+
+const isDraft = (id: string) => id === 'pick_member' || id === 'member_walkin';

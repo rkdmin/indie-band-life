@@ -144,6 +144,7 @@ export function relDelta(s: GameState, n: Npc, d: number) {
 
 export function relationLabel(n: Npc): string {
   if (n.role === 'parent') return '가족';
+  if (n.role === 'sibling') return '형제·자매';
   if (n.role === 'partner') return '연인';
   if (n.inBand) return '밴드 멤버';
   if (n.affinity >= 70) return '절친';

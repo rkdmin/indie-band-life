@@ -87,7 +87,7 @@ export class Ctx {
   }
   /** 조건에 맞는 기존 인물 중 하나를 역할에 묶는다 */
   bindFrom(role: string, filter: (n: Npc) => boolean, weight: (n: Npc) => number = (n) => 1 + Math.max(0, n.affinity)): boolean {
-    const pool = Object.values(this.s.npcs).filter((n) => n.alive && n.role !== 'parent' && filter(n));
+    const pool = Object.values(this.s.npcs).filter((n) => n.alive && n.role !== 'parent' && n.role !== 'sibling' && filter(n));
     const pick = this.rng.weighted(pool, weight);
     if (!pick) return false;
     this.bind[role] = pick.id;
@@ -95,6 +95,10 @@ export class Ctx {
   }
   rel(role: string, d: number, memory?: string) {
     const n = this.npc(role);
+    const tr = this.p.traits ?? [];
+    if (d > 0 && tr.includes('warm')) d = Math.round(d * 1.25);
+    if (d > 0 && tr.includes('funny')) d = Math.round(d * 1.15);
+    if (d < 0 && tr.includes('stubborn')) d = Math.round(d * 1.25);
     relDelta(this.s, n, d);
     if (memory) remember(n, `${ageInt(this.s)}세 · ${memory}`);
     if (d !== 0) this.lines.push({ text: `${given(n.name)} 친밀도 ${d > 0 ? '+' : ''}${d}`, tone: d > 0 ? 'good' : 'bad', delta: true });
@@ -107,6 +111,10 @@ export class Ctx {
   // ---------- 수치 ----------
   stat(k: keyof Stats, d: number) {
     if (!d) return;
+    const tr = this.p.traits ?? [];
+    if (k === 'stress' && d > 0 && tr.includes('sensitive')) d *= 1.2;
+    if (k === 'stress' && d > 0 && tr.includes('free')) d *= 0.85;
+    if (k === 'happiness' && d > 0 && tr.includes('free')) d *= 1.1;
     addStat(this.s, k, d);
     const good = k === 'stress' ? d < 0 : d > 0;
     this.lines.push({ text: `${STAT_LABEL[k]} ${d > 0 ? '+' : ''}${Math.round(d)}`, tone: good ? 'good' : 'bad', delta: true });

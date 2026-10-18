@@ -44,6 +44,7 @@ export const GLOBAL: EventDef[] = [
             ['업계 평판', Math.floor(c.m(c.p.rep) / 2) + 1],
             ['해외에서 통하는 장르', genreBonus(c)],
             ['라이브 실력', Math.floor(c.m(c.p.skills.stage) / 2)],
+            ['외국어 (다문화 가정)', c.flag('bilingual') ? 2 : 0],
           ], '가정', '수백 팀이 지원해 수십 팀이 무대에 선다고 보고 난이도를 높게 잡았다'),
         run: (c) => {
           c.stat('stress', 4);

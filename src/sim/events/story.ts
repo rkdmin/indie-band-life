@@ -5,7 +5,7 @@ import type { Ctx } from '../ctx';
 import type { Genre, Inst } from '../types';
 import { GENRES } from '../types';
 import { GENRE_INFO, INST_LABEL, REGIONS, VENUES, eraOf } from '../data/world';
-import { actionById, disband, formBand, playGig, recruit } from '../actions';
+import { actionById, addWalkIn, disband, formBand, playGig } from '../actions';
 import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
 import { clamp } from '../rng';
@@ -178,7 +178,7 @@ export const STORY: EventDef[] = [
               m.inBand = true;
               m.role = 'member';
             }
-            while (c.members.length < 2) recruit(c);
+            addWalkIn(c);
             c.set('teenBand');
             c.rel('mf', 10, '밴드부 합격한 날');
             c.theme('band');

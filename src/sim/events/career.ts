@@ -2,7 +2,7 @@ import type { EventDef } from '../ctx';
 import type { Ctx } from '../ctx';
 import type { Npc } from '../types';
 import { GENRE_INFO, INST_LABEL, VENUES, eraOf } from '../data/world';
-import { leaveBand, playGig, recruit } from '../actions';
+import { leaveBand, playGig, addWalkIn } from '../actions';
 import { josa, won } from '../korean';
 import { clamp } from '../rng';
 import { npcAge } from '../npc';
@@ -124,7 +124,7 @@ export const CAREER: EventDef[] = [
           c.set(`npcMil:${c.bind.m}`);
           c.rel('m', -8, '입대하자 대체된 일');
           leaveBand(c, c.bind.m, '입대');
-          recruit(c);
+          addWalkIn(c);
           return '현실적인 선택이었다. 휴가 나온 그가 공연을 보러 왔을 때, 무대에서 눈을 못 마주쳤다.';
         },
       },
@@ -179,7 +179,7 @@ export const CAREER: EventDef[] = [
         run: (c) => {
           c.rel('m', -20, '밴드에서 잘린 날');
           leaveBand(c, c.bind.m, '실력 차이');
-          recruit(c);
+          addWalkIn(c);
           c.stat('happiness', -5);
           return '소리는 좋아졌다. 단톡방은 한동안 조용했다.';
         },
@@ -191,8 +191,8 @@ export const CAREER: EventDef[] = [
     when: (c) => free(c) && !!c.band && c.members.length < 4 && c.p.fans >= 80 && c.age >= 17,
     text: () => `멤버 모집 공고를 올렸더니 지원자가 다섯 명.\n합주실 2시간 대관, 한 사람당 20분.\n누구를 뽑을까?`,
     choices: [
-      { label: '실력이 제일 좋은 사람', run: (c) => { recruit(c); bumpNpc(c.npc('r'), 8); chem(c, -2); return '첫 합주에서 그가 말했다. “템포가 좀 흔들리네요.” 맞는 말이라 더 아팠다.'; } },
-      { label: '같이 있으면 웃긴 사람', run: (c) => { recruit(c); chem(c, 7); c.rel('r', 8, '오디션 날 웃겨 준 사람'); return '연주는 조금 서툴렀지만, 오디션 중에 다 같이 세 번 웃었다.'; } },
+      { label: '실력이 제일 좋은 사람', run: (c) => { addWalkIn(c); bumpNpc(c.npc('r'), 8); chem(c, -2); return '첫 합주에서 그가 말했다. “템포가 좀 흔들리네요.” 맞는 말이라 더 아팠다.'; } },
+      { label: '같이 있으면 웃긴 사람', run: (c) => { addWalkIn(c); chem(c, 7); c.rel('r', 8, '오디션 날 웃겨 준 사람'); return '연주는 조금 서툴렀지만, 오디션 중에 다 같이 세 번 웃었다.'; } },
       { label: '이번엔 아무도 안 뽑는다', run: (c) => { c.stat('stress', 2); return '맞는 사람은 결국 나타난다고, 다들 그렇게 말한다.'; } },
     ],
   },

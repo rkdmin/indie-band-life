@@ -82,6 +82,14 @@ export interface Player {
   fans: number;
   globalFans: number; // 해외 팬
   inspiration: number; // 영감 — 실패한 판정을 다시 굴린다 (최대 3)
+  /** 타고난 재능 (음감·리듬감·가사 감각·무대 존재감·체력) 0~100 */
+  talents: Record<'pitch' | 'rhythm' | 'lyric' | 'presence' | 'stamina', number>;
+  /** 성격 두 가지 */
+  traits: Trait[];
+  /** 태어날 때 정해진 인생 변수 (data/fate.ts) */
+  fate: import('./data/fate').FateResult;
+  /** 이런 인생이 나올 확률의 log10(1/p) */
+  rarityLog: number;
   rep: number; // 평판/업계 인지도 0~100
   habits: Habits;
   edu: Edu;
@@ -129,8 +137,10 @@ export interface Npc {
   lastSeenTurn: number;
   memories: string[]; // 공유한 기억 (최근 순)
   inBand: boolean;
+  /** 밴드 만족도 0~100 — 낮아지면 탈퇴 위기 */
+  sat?: number;
   alive: boolean;
-  role?: 'parent' | 'friend' | 'rival' | 'mentor' | 'partner' | 'fan' | 'member';
+  role?: 'parent' | 'sibling' | 'friend' | 'rival' | 'mentor' | 'partner' | 'fan' | 'member';
 }
 
 export interface Song {
@@ -313,6 +323,8 @@ export interface GameState {
   feed: FeedEntry[];
   cine: Cine[];
   periodEnd: number;
+  /** 이번 인생의 사건 덱에서 빠진 일반 사건들 — 인생마다 다른 조합 */
+  deckOut: string[];
   lastScene: SceneId;
   stressTurns: number;
   history: { age: number; fans: number; happiness: number; money: number }[];
