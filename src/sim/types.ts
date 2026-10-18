@@ -255,7 +255,7 @@ export interface PendingRoll {
 export interface FeedEntry {
   t: number;
   text: string;
-  tone: 'good' | 'bad' | 'neutral' | 'big' | 'flavor';
+  tone: 'good' | 'bad' | 'neutral' | 'big' | 'flavor' | 'history';
   deltas?: string;
   kind?: 'action' | 'event' | 'news' | 'flavor' | 'life';
 }

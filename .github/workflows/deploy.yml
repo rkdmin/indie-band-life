@@ -29,6 +29,7 @@ jobs:
           BALANCE_N: '100'
           VARIETY_N: '60'
           COUNTRY_N: '30'
+          HISTORY_N: '30'
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:

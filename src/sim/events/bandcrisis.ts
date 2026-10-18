@@ -5,7 +5,7 @@ import { GENRE_INFO } from '../data/world';
 import { REASON_LABEL, type LeaveReason } from '../bandlife';
 import { disband, leaveBand } from '../actions';
 import { clamp } from '../rng';
-import { given, won } from '../korean';
+import { given, josa, won } from '../korean';
 
 const reasonText = (c: Ctx): string => {
   const r = c.vars.reason as LeaveReason;
@@ -57,7 +57,7 @@ export const BAND_CRISIS: EventDef[] = [
         },
       },
       {
-        label: (c) => `밴드 장르를 ${GENRE_INFO[c.npc('m').genre].label}(으)로 바꿔 본다`,
+        label: (c) => `밴드 장르를 ${josa(GENRE_INFO[c.npc('m').genre].label, '으로/로')} 바꿔 본다`,
         if: (c) => c.vars.reason === 'genre' && c.npc('m').genre !== c.band?.genre,
         run: (c) => {
           const m = c.npc('m');
@@ -69,7 +69,7 @@ export const BAND_CRISIS: EventDef[] = [
           for (const o of c.members) if (o.id !== m.id) o.sat = clamp((o.sat ?? 60) + (o.genre === band.genre ? 12 : o.genre === from ? -18 : -6));
           band.chemistry = clamp(band.chemistry - 6);
           c.genre(band.genre, 8);
-          c.chron(`〈${band.name}〉 ${GENRE_INFO[from].label}에서 ${GENRE_INFO[band.genre].label}(으)로 방향을 틀었다`, 'band');
+          c.chron(`〈${band.name}〉 ${GENRE_INFO[from].label}에서 ${josa(GENRE_INFO[band.genre].label, '으로/로')} 방향을 틀었다`, 'band');
           return '첫 합주는 어색했다. 그런데 몇 곡은 이상하게 더 우리 같았다. 대신 누군가는 표정이 굳었다.';
         },
       },

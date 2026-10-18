@@ -4,7 +4,7 @@ import type { EventDef } from '../ctx';
 import type { Ctx } from '../ctx';
 import type { Genre, Inst } from '../types';
 import { GENRES } from '../types';
-import { GENRE_INFO, INST_LABEL, REGIONS, VENUES, eraOf } from '../data/world';
+import { GENRE_INFO, INST_LABEL, REGIONS, VENUES, eraOf, serviceYears } from '../data/world';
 import { actionById, addWalkIn, disband, formBand, playGig } from '../actions';
 import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
@@ -125,7 +125,7 @@ export const STORY: EventDef[] = [
     },
     text: (c) => {
       const n = c.npc('mf');
-      return `중학교 1학년. 뒷자리 ${c.nj('mf', '이/가')} 이어폰 한쪽을 건넸다.\n“이거 들어 봐. ${GENRE_INFO[n.genre].label}인데 진짜 좋아.”\n${c.nj('mf', '은/는')} ${INST_LABEL[n.inst]}를 친다고 했다.`;
+      return `중학교 1학년. 뒷자리 ${c.nj('mf', '이/가')} 이어폰 한쪽을 건넸다.\n“이거 들어 봐. ${GENRE_INFO[n.genre].label}인데 진짜 좋아.”\n${c.nj('mf', '은/는')} ${josa(INST_LABEL[n.inst], '을/를')} 친다고 했다.`;
     },
     choices: [
       { label: '“와… 이거 누구야?”', run: (c) => { const g = c.npc('mf').genre; c.genre(g, 12); c.rel('mf', 15, '이어폰 한쪽'); c.theme('youth'); c.chron(`${c.n('mf')}의 이어폰 한쪽에서 ${GENRE_INFO[g].label}을 처음 들었다`, 'people', 'mf'); } },
@@ -162,11 +162,11 @@ export const STORY: EventDef[] = [
     },
     text: (c) =>
       c.vars.hasClub
-        ? `고등학교 2학년. 밴드부에 ${c.p.mainInst ? INST_LABEL[c.p.mainInst] : '새 멤버'}가 필요하다!\n${c.nj('mf', '이/가')} 오디션에 같이 가자고 한다.\n그런데 다음 주에는 중간고사가 있다.`
+        ? `고등학교 2학년. 밴드부에 ${josa(c.p.mainInst ? INST_LABEL[c.p.mainInst] : '새 멤버', '이/가')} 필요하다!\n${c.nj('mf', '이/가')} 오디션에 같이 가자고 한다.\n그런데 다음 주에는 중간고사가 있다.`
         : `우리 학교엔 밴드부가 없다.\n${c.nj('mf', '이/가')} 말했다. “그럼 우리가 만들면 되잖아. 구민회관 합주실 싸대.”\n그런데 다음 주에는 중간고사가 있다.`,
     choices: [
       {
-        label: (c) => (c.vars.hasClub ? `${c.n('mf')}와 함께 오디션 보기` : `${c.n('mf')}와 교외 밴드 만들기`),
+        label: (c) => (c.vars.hasClub ? `${c.nj('mf', '과/와')} 함께 오디션 보기` : `${c.nj('mf', '과/와')} 교외 밴드 만들기`),
         odds: (c) => (c.vars.hasClub ? auditionOdds(c) : c.dc(5, '결심 판정', [['친구와의 우정', c.npc('mf').affinity >= 30 ? 2 : 0]], '가정', '교외 밴드는 만들기만 하면 된다')),
         run: (c) => {
           c.study(-4);
@@ -182,7 +182,7 @@ export const STORY: EventDef[] = [
             c.set('teenBand');
             c.rel('mf', 10, '밴드부 합격한 날');
             c.theme('band');
-            c.chron(`${c.n('mf')}와 함께 첫 밴드를 시작했다`, 'band', 'mf');
+            c.chron(`${c.nj('mf', '과/와')} 함께 첫 밴드를 시작했다`, 'band', 'mf');
             return '첫 합주. 소리가 엉망인데 이상하게 웃음이 멈추지 않았다.';
           }
           c.rel('mf', 6);
@@ -295,9 +295,9 @@ export const STORY: EventDef[] = [
   {
     id: 'draft', scene: 'military', title: '입영통지서', priority: 190, once: true, chance: (c) => (c.age >= 21.5 ? 1 : 0.5),
     when: (c) => c.isMale && c.p.military === 'pending' && between(c, 20, 29),
-    text: (c) => `${c.year}년. 우편함에 병무청 봉투가 꽂혀 있었다.\n${c.band ? `〈${c.band.name}〉${josa(c.band.name, '은/는').slice(c.band.name.length)} 어떡하지?` : '입대하면 1년 반. 음악은 잠시 멈춘다.'}`,
+    text: (c) => `${c.year}년. 우편함에 병무청 봉투가 꽂혀 있었다.\n${c.band ? `〈${c.band.name}〉${josa(c.band.name, '은/는').slice(c.band.name.length)} 어떡하지?` : `입대하면 ${Math.round(serviceYears(c.year) * 12)}개월. 음악은 잠시 멈춘다.`}`,
     choices: [
-      { label: '바로 입대한다 (육군 18개월)', run: (c) => enlist(c, false) },
+      { label: (c) => `바로 입대한다 (육군 ${Math.round(serviceYears(c.year) * 12)}개월)`, run: (c) => enlist(c, false) },
       {
         label: '군악대에 지원한다',
         hint: () => '떨어지면 일반 입대',
@@ -317,7 +317,7 @@ export const STORY: EventDef[] = [
     when: () => true,
     text: (c) => `${c.year}년. 위병소를 나서며 하늘을 봤다.\n“충성!” 마지막 경례. 손가락이 기타 줄을 그리워한다.`,
     choices: [
-      { label: '바로 합주실로 달려간다', run: (c) => { c.stat('happiness', 12); c.theme('military'); c.chron('전역. 18개월 만의 합주', 'life'); if (c.band) c.band.chemistry = clamp(c.band.chemistry + 6); return '손이 굳었다. 그래도 첫 코드에서 다들 웃었다.'; } },
+      { label: '바로 합주실로 달려간다', run: (c) => { c.stat('happiness', 12); c.theme('military'); c.chron(`전역. ${Math.round(serviceYears(c.year - 2) * 12)}개월 만의 합주`, 'life'); if (c.band) c.band.chemistry = clamp(c.band.chemistry + 6); return '손이 굳었다. 그래도 첫 코드에서 다들 웃었다.'; } },
       { label: '일단 집에서 쉰다', run: (c) => { c.stat('stress', -15); c.stat('health', 2); c.theme('military'); c.chron('전역', 'life'); } },
     ],
   },
@@ -563,7 +563,7 @@ export const STORY: EventDef[] = [
 
 function enlist(c: Ctx, band: boolean): string {
   c.p.military = 'serving';
-  c.p.militaryUntil = c.s.time + 1.5;
+  c.p.militaryUntil = c.s.time + serviceYears(c.year);
   c.theme('military');
   if (c.band) c.band.chemistry = clamp(c.band.chemistry - 12);
   if (band) {

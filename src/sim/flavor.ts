@@ -4,7 +4,8 @@
 import type { GameState } from './types';
 import type { Rng } from './rng';
 import { age } from './state';
-import { given } from './korean';
+import { given, josa } from './korean';
+import { textMinYear } from './data/anachronism';
 
 type Flavor = { when: (s: GameState, a: number) => boolean; lines: string[] };
 
@@ -28,11 +29,16 @@ const FLAVORS: Flavor[] = [
   { when: (_, a) => a >= 65, lines: ['손주에게 기타 코드 세 개를 가르쳤다.', '동네 공원 벤치에서 하모니카를 불었다.', '오래된 사진첩을 넘기다 한참을 웃었다.', '병원 대기실에서 옛날 노래를 흥얼거렸다.', '창가에 앉아 비 오는 소리를 들었다.'] },
 ];
 
-const FRIEND_LINES = ['{f}에게서 안부 문자가 왔다.', '{f}와 오랜만에 통화했다.', '{f}의 SNS에서 옛날 사진을 봤다.', '길에서 {f}를 닮은 사람을 봤다.'];
+const FRIEND_LINES: ((f: string) => string)[] = [
+  (f) => `${f}에게서 안부 문자가 왔다.`,
+  (f) => `${josa(f, '과/와')} 오랜만에 통화했다.`,
+  (f) => `${f}의 SNS에서 옛날 사진을 봤다.`,
+  (f) => `길에서 ${josa(f, '을/를')} 닮은 사람을 봤다.`,
+];
 
 export function flavorLines(s: GameState, rng: Rng): string[] {
   const a = age(s);
-  const pool = FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines);
+  const pool = FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines).filter((l) => textMinYear(l) <= s.time);
   const out: string[] = [];
   const n = a < 7 ? 2 : rng.chance(0.6) ? 2 : 1;
   for (let i = 0; i < n && pool.length; i++) {
@@ -41,7 +47,7 @@ export function flavorLines(s: GameState, rng: Rng): string[] {
   }
   if (a >= 13 && rng.chance(0.25)) {
     const f = friendName(s, rng);
-    if (f) out.push(rng.pick(FRIEND_LINES).replace('{f}', f));
+    if (f) out.push(rng.pick(FRIEND_LINES)(f));
   }
   return out;
 }

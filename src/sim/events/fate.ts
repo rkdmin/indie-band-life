@@ -65,7 +65,7 @@ export const FATE: EventDef[] = [
     id: 'fate_sib_compare', scene: 'home', title: '비교', cooldown: 8, chance: 0.15,
     when: (c) => (!!npcOf(c, 'olderSib') || !!npcOf(c, 'twin')) && between(c, 10, 22),
     bind: (c) => { c.bind.sb = (npcOf(c, 'twin') ?? npcOf(c, 'olderSib'))!.id; return true; },
-    text: (c) => `명절 저녁상. “${c.n('sb')}는 이번에 장학금 받았다더라. 너는 아직도 그 기타니?”\n수저 소리만 들렸다.`,
+    text: (c) => `명절 저녁상. “${c.nj('sb', '은/는')} 이번에 장학금 받았다더라. 너는 아직도 그 기타니?”\n수저 소리만 들렸다.`,
     choices: [
       { label: '“저도 제 길이 있어요.”', odds: (c) => c.dc(12, '설득 판정', [['자신감', c.m(c.p.skills.stage)], ['형제와의 사이', c.npc('sb').affinity >= 50 ? 2 : 0]], '가정'), run: (c) => { if (c.check(c.choicesOdds!)) { c.stat('happiness', 5); c.rel('sb', 4, '편들어 준 저녁'); return `${c.nj('sb', '이/가')} 조용히 거들었다. “얘 공연 진짜 좋아요.”`; } c.stat('stress', 8); return '말이 꼬였다. 방에 들어가 이어폰을 꽂았다.'; } },
       { label: '그냥 웃어넘긴다', run: (c) => { c.stat('stress', 4); c.theme('family'); return '그날 밤 쓴 가사 첫 줄: “밥상 위의 침묵”.'; } },
@@ -96,7 +96,7 @@ export const FATE: EventDef[] = [
   {
     id: 'fate_origin_visit', scene: 'airport', title: (c) => `${c.s.flags.origin}의 외갓집`, once: true, chance: 0.6, priority: 120,
     when: (c) => !!c.s.flags.origin && between(c, 7, 15),
-    text: (c) => `방학에 ${parentWord(c)}의 나라 ${c.s.flags.origin}에 갔다.\n친척들이 모인 저녁, 할머니가 ${c.s.flags.originMusic}를 부르기 시작했다.\n가사는 몰라도 멜로디는 이상하게 익숙하다.`,
+    text: (c) => `방학에 ${parentWord(c)}의 나라 ${c.s.flags.origin}에 갔다.\n친척들이 모인 저녁, 할머니가 ${josa(String(c.s.flags.originMusic), '을/를')} 부르기 시작했다.\n가사는 몰라도 멜로디는 이상하게 익숙하다.`,
     choices: [
       { label: '할머니 옆에서 따라 부른다', run: (c) => { c.skill('vocal', 4); c.skill('compose', 3); c.set('bilingual'); c.theme('family'); c.chron(`${c.s.flags.origin} 외갓집에서 처음 들은 노래`, 'big'); return '돌아오는 비행기에서 그 멜로디를 수첩에 그렸다. 언젠가 내 곡에 넣을 거다.'; } },
       { label: '사촌들과 말이 통하지 않아 쑥스럽다', run: (c) => { c.set('bilingual'); c.stat('stress', 2); c.genre(c.pick(GENRES), 5); return '말 대신 휴대폰으로 서로 좋아하는 노래를 틀어 줬다. 그게 대화였다.'; } },

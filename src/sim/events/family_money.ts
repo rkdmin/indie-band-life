@@ -3,7 +3,7 @@
 import type { EventDef, Ctx } from '../ctx';
 import type { Npc } from '../types';
 import { createNpc } from '../npc';
-import { won, withFamilyName } from '../korean';
+import { josa, won, withFamilyName } from '../korean';
 import { clamp } from '../rng';
 
 const between = (c: Ctx, a: number, b: number) => c.age >= a && c.age < b;
@@ -100,7 +100,7 @@ export const FAMILY_MONEY: EventDef[] = [
           c.s.flags.childId = n.id;
           c.bind.k = n.id;
           c.stat('happiness', 6);
-          c.chron(`아이 이름을 ${n.name}(으)로 지었다`, 'people', 'k');
+          c.chron(`아이 이름을 ${josa(n.name, '으로/로')} 지었다`, 'people', 'k');
           return `${n.name}. 소리 내어 불러 보니, 첫 음이 좋았다.`;
         },
       },

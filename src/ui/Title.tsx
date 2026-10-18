@@ -12,10 +12,11 @@ import { count } from '../sim/korean';
 import type { Meta } from './save';
 
 const ERAS = [
+  { id: 'old', label: '옛 시절', from: 1950, to: 1984, help: '1950~1984년생. 미8군 무대와 통기타, 대학가요제를 지나 홍대 인디가 태어나는 순간을 산다.' },
   { id: 'past', label: '지난 세상', from: 1985, to: 1999, help: '1985~1999년생. 홍대 클럽데이와 CD의 마지막 시절에 청춘을 보낸다.' },
   { id: 'now', label: '지금 세상', from: 2000, to: 2012, help: '2000~2012년생. 숏폼과 밴드 붐 한가운데서 스무 살이 된다.' },
   { id: 'next', label: '다가올 세상', from: 2013, to: 2026, help: '2013~2026년생. AI 음악이 넘쳐나는 세상에서 사람의 라이브를 한다.' },
-  { id: 'any', label: '아무 때나', from: 1985, to: 2026, help: '태어날 해도 운명에 맡긴다.' },
+  { id: 'any', label: '아무 때나', from: 1950, to: 2026, help: '태어날 해도 운명에 맡긴다.' },
 ] as const;
 
 const PACES = [
@@ -125,7 +126,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
                   {COUNTRIES[id].name}
                 </button>
               ))}
-              <button className={country === 'random' ? 'on' : ''} onClick={() => setCountry('random')}>
+              <button className={`wide ${country === 'random' ? 'on' : ''}`} onClick={() => setCountry('random')}>
                 <span className="cf">🎲</span>운명에 맡김
               </button>
             </div>
@@ -137,9 +138,12 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
           </div>
           <div className="opt-group">
             <span className="label">태어날 세상</span>
-            <div className="seg">
+            <div className="era-pick">
               {ERAS.map((e) => (
-                <button key={e.id} className={era === e.id ? 'on' : ''} onClick={() => setEra(e.id)}>{e.label}</button>
+                <button key={e.id} className={`${era === e.id ? 'on' : ''} ${e.id === 'any' ? 'wide' : ''}`} onClick={() => setEra(e.id)}>
+                  <b>{e.label}</b>
+                  <span>{e.id === 'any' ? `${e.from}–${e.to}` : `${e.from}–${String(e.to).slice(2)}년생`}</span>
+                </button>
               ))}
             </div>
             <div className="seg-help">{ERAS.find((e) => e.id === era)!.help}</div>

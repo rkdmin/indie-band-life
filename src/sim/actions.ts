@@ -7,7 +7,7 @@ import { GENRE_INFO, INST_LABEL, VENUES, eraOf, festivalFee, minWage, type Venue
 import { availableThemes, release, unreleased, writeSong } from './songs';
 import { favoriteGenre } from './state';
 import { randomBandName } from './names';
-import { given } from './korean';
+import { given, josa } from './korean';
 import { clamp } from './rng';
 
 export type ParamKind = 'inst' | 'genre' | 'compose' | 'venue' | 'release' | 'friend';
@@ -463,7 +463,7 @@ export function formBand(c: Ctx, name?: string, genre?: Genre) {
   band.chemistry = clamp(40 + c.members.reduce((a, m) => a + m.affinity, 0) / Math.max(1, c.members.length) / 3);
   c.chron(`밴드 〈${band.name}〉 결성 (${GENRE_INFO[g].label})`, 'band');
   c.line(`밴드 〈${band.name}〉 결성!`, 'big');
-  c.s.cine.push({ kind: 'band', scene: 'studio', kicker: `${c.year} · ${c.ageInt}세 · ${GENRE_INFO[g].label}`, title: `〈${band.name}〉`, sub: c.members.length ? `${c.members.map((m) => given(m.name)).join(', ')}와 함께 밴드를 시작했다.` : '이름부터 정했다. 이제 함께할 사람을 고를 차례.', at: c.s.time });
+  c.s.cine.push({ kind: 'band', scene: 'studio', kicker: `${c.year} · ${c.ageInt}세 · ${GENRE_INFO[g].label}`, title: `〈${band.name}〉`, sub: c.members.length ? `${josa(c.members.map((m) => given(m.name)).join(', '), '과/와')} 함께 밴드를 시작했다.` : '이름부터 정했다. 이제 함께할 사람을 고를 차례.', at: c.s.time });
   return band;
 }
 

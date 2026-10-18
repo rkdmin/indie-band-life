@@ -22,6 +22,7 @@ import { OddsBar } from './Odds';
 import { DiceScreen } from './Dice';
 import { MemberDraft } from './Draft';
 import { AchievementToast, Coach, GoalsCard, StatPops, feedIcon, useAchievementToasts, useStatPops } from './Juice';
+import { periodText } from '../sim/data/anachronism';
 import { TRAIT_LABEL, relationLabel } from '../sim/npc';
 import { Sheet } from './Sheet';
 import { BandSheet, ChronicleSheet, PeopleSheet, RecordsSheet } from './Sheets';
@@ -358,8 +359,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           crowd={cine.kind === 'release' ? 0.4 : 1}
           seed={s.seed + s.turn + 5}
           kicker={cine.kicker}
-          title={cine.title}
-          sub={cine.sub}
+          title={periodText(cine.title, cine.at, s.player.country)}
+          sub={cine.sub && periodText(cine.sub, cine.at, s.player.country)}
           song={cineSong ? { ...cineSong, title: cineSong.title } : undefined}
           onDone={() => commit(popCine(stRef.current))}
           autoCloseMs={s.autoDecide ? 6500 : undefined}
@@ -381,7 +382,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
       {tab === 'people' && <Sheet title="사람들" onClose={() => setTab(null)}><PeopleSheet s={s} /></Sheet>}
       {tab === 'band' && <Sheet title="밴드 · 실력" onClose={() => setTab(null)}><BandSheet s={s} /></Sheet>}
       {tab === 'records' && <Sheet title="디스코그래피" onClose={() => setTab(null)}><RecordsSheet s={s} /></Sheet>}
-      {tab === 'chron' && <Sheet title="인생 연대기" onClose={() => setTab(null)}><ChronicleSheet s={s} /></Sheet>}
+      {tab === 'chron' && <Sheet title="연대기 · 음악사" onClose={() => setTab(null)}><ChronicleSheet s={s} /></Sheet>}
       {tab === 'settings' && (
         <Sheet title="설정" onClose={() => setTab(null)}>
           <PaceSetting s={s} onChange={commit} />
@@ -405,7 +406,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
     ['스트레스', st.stress, 'var(--bad)', st.stress > 75],
     ['컨디션', st.energy, 'var(--blue)', st.energy < 25],
   ];
-  const mrz = `IBL<KOR<${p.name.length}${p.birthYear}<<${(p.mainInst ?? 'NONE').toUpperCase()}<<${s.band ? s.band.genre.toUpperCase() : 'SOLO'}<<<${String(s.seed).slice(0, 6)}`;
+  const mrz = `IBL<${({ KR: 'KOR', JP: 'JPN', US: 'USA', UK: 'GBR', DE: 'DEU', BR: 'BRA' } as Record<string, string>)[p.country ?? 'KR'] ?? 'KOR'}<${p.name.length}${p.birthYear}<<${(p.mainInst ?? 'NONE').toUpperCase()}<<${s.band ? s.band.genre.toUpperCase() : 'SOLO'}<<<${String(s.seed).slice(0, 6)}`;
   return (
     <div className="card idcard">
       <div className="idcard-head">
@@ -529,7 +530,8 @@ function PaceSetting({ s, onChange }: { s: GameState; onChange: (s: GameState) =
 function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear: number; paused: boolean }) {
   const rows = useMemo(() => {
     const list = entries.slice(-160).reverse();
-    const out: ({ head: string } | FeedEntry)[] = [];
+    const out: ({ head: string } | (FeedEntry & { key: string }))[] = [];
+    const seen = new Map<string, number>();
     let lastAge = Infinity;
     for (const e of list) {
       const ag = Math.max(0, Math.floor(e.t - birthYear));
@@ -537,7 +539,11 @@ function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear:
         out.push({ head: `${ag}세 · ${Math.floor(e.t)}` });
         lastAge = ag;
       }
-      out.push(e);
+      // 같은 시각·같은 문장이 두 번 나올 수 있다 — 순번을 붙여 키를 고정한다
+      const base = `${e.t}-${e.kind ?? ''}-${e.text}-${e.deltas ?? ''}`;
+      const n = seen.get(base) ?? 0;
+      seen.set(base, n + 1);
+      out.push({ ...e, key: n ? `${base}#${n}` : base });
     }
     return out;
   }, [entries, birthYear]);
@@ -552,12 +558,12 @@ function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear:
           'head' in r ? (
             <div key={`h${r.head}`} className="entry yearhead"><span>{r.head}</span></div>
           ) : (
-            <div key={`${r.t}-${r.kind ?? ''}-${r.text}-${r.deltas ?? ''}`} className={`entry ${r.tone} ${r.kind ?? ''}`}>
+            <div key={r.key} className={`entry ${r.tone} ${r.kind ?? ''}`}>
               <span className="when">{Math.min(12, Math.floor((r.t - Math.floor(r.t)) * 12) + 1)}월</span>
               <span className="what">
                 <span className="ico" aria-hidden>{feedIcon(r)}</span>
                 {r.text}
-                {r.deltas && <span className="deltas">{r.deltas}</span>}
+                {r.deltas && <span className={`deltas${r.text ? '' : ' solo'}`}>{r.deltas}</span>}
               </span>
             </div>
           ),
@@ -677,7 +683,7 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
           {last.other > last.music ? ' — 음악만으론 못 산다' : last.music - last.cost > 0 ? ' — 음악이 생계였다' : ''}
         </div>
       )}
-      <div className="dim" style={{ marginTop: 4 }}>예술인 {Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. 최저시급 {minWage(yr).toLocaleString()}원.</div>
+      <div className="dim" style={{ marginTop: 4 }}>예술인 {Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. {(s.player.country ?? 'KR') === 'KR' && yr < 1988 ? '알바 시급(추정)' : '최저시급'} {Math.round(minWage(yr) * countryOf(s.player.country).wageMul).toLocaleString()}원.</div>
       {open && (
         <ul className="facts">
           {facts(yr, minWage(yr)).map((f) => (

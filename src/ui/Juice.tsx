@@ -162,6 +162,7 @@ const ICONS: [RegExp, string][] = [
 
 export function feedIcon(e: FeedEntry): string {
   if (e.kind === 'flavor') return '·';
+  if (e.tone === 'history') return '📻';
   // 문장 자체로 먼저 판단하고, 문장이 비었거나 단서가 없을 때만 수치 줄을 본다
   for (const [re, ic] of ICONS) if (re.test(e.text)) return ic;
   if (e.kind === 'event') return '⚑';

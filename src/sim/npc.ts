@@ -1,3 +1,4 @@
+import { periodText } from './data/anachronism';
 import type { GameState, Gender, Genre, Inst, Npc, NpcCareer, Trait } from './types';
 import { GENRES, INSTRUMENTS } from './types';
 import { Rng, clamp } from './rng';
@@ -58,6 +59,13 @@ export interface NpcSpec {
   career?: NpcCareer;
 }
 
+/** 외국 이름도 이미 있는 사람(나 포함)과 부르는 이름이 겹치지 않게 */
+function uniqueForeign(rng: Rng, country: string, gender: Gender, used: Set<string>): string {
+  let name = foreignName(rng, countryOf(country), gender);
+  for (let i = 0; i < 12 && used.has(given(name)); i++) name = foreignName(rng, countryOf(country), gender);
+  return name;
+}
+
 export function createNpc(s: GameState, rng: Rng, spec: NpcSpec): Npc {
   const gender = spec.gender ?? (rng.chance(0.5) ? 'm' : 'f');
   const birthYear = spec.birthYear ?? s.player.birthYear + rng.int(-1, 1);
@@ -69,7 +77,7 @@ export function createNpc(s: GameState, rng: Rng, spec: NpcSpec): Npc {
   if (t2 === t1) t2 = TRAITS[(TRAITS.indexOf(t1) + 3) % TRAITS.length];
   const npc: Npc = {
     id,
-    name: s.player.country && s.player.country !== 'KR' ? foreignName(rng, countryOf(s.player.country), gender) : randomName(rng, gender, birthYear, used),
+    name: s.player.country && s.player.country !== 'KR' ? uniqueForeign(rng, s.player.country, gender, used) : randomName(rng, gender, birthYear, used),
     gender,
     birthYear,
     look: rng.int(1, 1_000_000),
@@ -79,7 +87,7 @@ export function createNpc(s: GameState, rng: Rng, spec: NpcSpec): Npc {
     genre: spec.genre ?? rng.pick(GENRES),
     dream: rng.pick(DREAMS),
     career: spec.career ?? 'student',
-    metAt: spec.metAt,
+    metAt: periodText(spec.metAt, s.time, s.player.country),
     metAge: Math.max(0, Math.floor(age(s))),
     affinity: spec.affinity ?? rng.int(10, 30),
     trust: 30,

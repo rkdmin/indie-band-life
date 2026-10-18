@@ -26,6 +26,8 @@ import { rollFate, rollTalents } from './data/fate';
 import type { Trait } from './types';
 import { narrate, resolvePlan } from './plan';
 import { bandUpkeep } from './bandlife';
+import { eventMinYear, periodText } from './data/anachronism';
+import { historyBetween } from './data/history';
 
 export const SAVE_VERSION = 5;
 
@@ -35,7 +37,7 @@ export const CINEMATIC = new Set([
   'draft', 'discharge', 'old_friend_call', 'crossroads30', 'label_indie', 'label_major', 'fest_local', 'fest_big',
   'pandemic', 'band_boom', 'debt_crisis', 'reunion', 'producer_friend', 'parent_farewell', 'retire_ask', 'revival',
   'move_out', 'life_proposal', 'life_baby', 'life_friend_funeral', 'life_last_call', 'life_grandchild',
-  'member_leave', 'career_end',
+  'member_leave', 'career_end', 'h_wave', 'h_kr_1995', 'h_first_fest', 'h_kr_1975',
   'fate_divorce', 'fate_cancer', 'fate_origin_visit', 'fate_perfect_pitch', 'fate_twin_duo', 'era_2002',
   'g_invite', 'g_stage', 'g_asia_tour', 'g_world_tour', 'release_ready',
   'car_overseas_fest', 'car_tv_live', 'car_survival_show', 'car_drama_ost', 'car_club_closing', 'car_tribute_cover',
@@ -81,7 +83,8 @@ export function newGame(o: NewGameOptions): GameState {
       mainInst: null,
       genre,
       stats: { happiness: 65, stress: 20, health: 72, energy: 80 },
-      money: income === 'high' ? 3_000_000 : income === 'mid' ? 1_000_000 : 300_000,
+      // 1990년 이전 출생은 그 시절 물가로 줄인다
+      money: Math.round((income === 'high' ? 3_000_000 : income === 'mid' ? 1_000_000 : 300_000) * Math.min(1, priceIndex(o.birthYear) / priceIndex(1990))),
       fans: 0,
       globalFans: 0,
       inspiration: 1,
@@ -207,15 +210,16 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
     if (def.queued && def.bind && Object.keys(bind).length === 0 && !def.bind(c)) return null;
     const choices = def.choices.map((ch) => {
       const ok = ch.if ? ch.if(c) : true;
-      return { label: typeof ch.label === 'function' ? ch.label(c) : ch.label, hint: ch.hint?.(c), disabled: !ok, odds: ok ? ch.odds?.(c) : undefined };
+      const hint = ch.hint?.(c);
+      return { label: periodText(typeof ch.label === 'function' ? ch.label(c) : ch.label, at, s.player.country), hint: hint ? periodText(hint, at, s.player.country) : hint, disabled: !ok, odds: ok ? ch.odds?.(c) : undefined };
     });
     if (!choices.some((x) => !x.disabled)) return null;
     return {
       id,
       bind: c.bind,
       vars: c.vars,
-      title: evTitle(def, c),
-      text: def.text(c),
+      title: periodText(evTitle(def, c), at, s.player.country),
+      text: periodText(def.text(c), at, s.player.country),
       scene: typeof def.scene === 'function' ? def.scene(c) : def.scene,
       choices,
       at,
@@ -232,6 +236,7 @@ function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if ((s.player.country ?? 'KR') !== 'KR' && isKoreaOnly(def.id)) return false;
   if ((s.player.country ?? 'KR') === 'KR' && def.id.startsWith('ct_')) return false;
   if (s.deckOut?.includes(def.id)) return false;
+  if (s.time < eventMinYear(def) || (def.maxYear !== undefined && s.time > def.maxYear)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
   if (def.cooldown && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < def.cooldown) return false;
   const c = new Ctx(s, rng);
@@ -270,6 +275,10 @@ function summarize(lines: ResultLine[]): string | undefined {
 }
 
 function pushFeed(s: GameState, e: FeedEntry) {
+  // 그 시대에 없던 말은 그 시대의 말로
+  const ct = s.player.country ?? 'KR';
+  e.text = periodText(e.text, e.t, ct);
+  if (e.deltas) e.deltas = periodText(e.deltas, e.t, ct);
   s.feed.push(e);
   if (s.feed.length > 400) s.feed.splice(0, s.feed.length - 400);
 }
@@ -320,6 +329,10 @@ export function beginPeriod(prev: GameState): GameState {
     s.player.stats.stress = clamp(s.player.stats.stress + 8);
     s.player.stats.health = clamp(s.player.stats.health - 0.8);
     pushFeed(s, { t: s.time + step * 0.7, text: '무리했다. 몸이 먼저 신호를 보냈다.', tone: 'bad', deltas: '스트레스 +8 · 건강 -1', kind: 'life' });
+  }
+  // 그해의 실제 음악 소식 (내 나라 + 세계)
+  for (const h of historyBetween(s.time, s.periodEnd, (s.player.country ?? 'KR') as CountryId)) {
+    pushFeed(s, { t: h.y + ((h.m ?? 6) - 0.5) / 12, text: h.text, tone: 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : COUNTRIES[h.c].flag} · ${h.src}`, kind: 'news' });
   }
   for (const line of flavorLines(s, rng)) pushFeed(s, { t: s.time + step * rng.range(0.05, 0.95), text: line, tone: 'flavor', kind: 'flavor' });
   s.feed.sort((a, b) => a.t - b.t);
@@ -408,7 +421,8 @@ function applyChoice(s: GameState, idx: number, pd?: PendingRoll): GameState {
   c.choicesOdds = pd?.odds ?? ch.odds?.(c);
   c.preset = pd ?? null;
   const sayBefore = s.lastResults.length;
-  const text = ch.run(c) || '';
+  const text = periodText(ch.run(c) || '', ev.at, s.player.country);
+  for (const l of c.lines) l.text = periodText(l.text, ev.at, s.player.country);
   c.lines.push(...s.lastResults.splice(sayBefore));
   for (const cn of s.cine.slice(cineBefore)) cn.at = ev.at;
   for (const r of c.rolls) c.lines.push({ text: `🎲 ${r.label} d20(${r.nat2 !== undefined ? `${r.nat}·${r.nat2}` : r.nat})${r.mod >= 0 ? '+' : ''}${r.mod} vs 난이도 ${r.dc} → ${r.crit === 'success' ? '대성공' : r.crit === 'fail' ? '대실패' : r.ok ? '성공' : '실패'}`, tone: r.ok ? 'good' : 'bad', delta: true });

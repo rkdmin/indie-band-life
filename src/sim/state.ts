@@ -1,3 +1,4 @@
+import { periodText } from './data/anachronism';
 import type { ChronicleEntry, GameState, Genre, ResultLine, Skill, Stats } from './types';
 import { clamp } from './rng';
 
@@ -72,7 +73,7 @@ export function favoriteGenre(s: GameState): Genre {
 }
 
 export function chron(s: GameState, text: string, kind: ChronicleEntry['kind'] = 'life', npcId?: string) {
-  s.chronicle.push({ age: Math.max(0, ageInt(s)), year: year(s), text, kind, npcId });
+  s.chronicle.push({ age: Math.max(0, ageInt(s)), year: year(s), text: periodText(text, s.time, s.player.country), kind, npcId });
 }
 
 export function say(s: GameState, text: string, tone: ResultLine['tone'] = 'neutral') {

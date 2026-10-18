@@ -29,11 +29,12 @@ function lerpTable(t: [number, number][], y: number): number {
 }
 
 // [통계] 합계출산율 (통계청 인구동향조사). 1990·2005·2020 은 반올림 근사
-export const TFR: [number, number][] = [[1985, 1.66], [1990, 1.57], [1995, 1.63], [2000, 1.48], [2005, 1.08], [2010, 1.23], [2015, 1.24], [2018, 0.98], [2020, 0.84], [2021, 0.81], [2023, 0.72], [2024, 0.75], [2025, 0.8], [2030, 0.85]];
+export const TFR: [number, number][] = [[1955, 6.3], [1960, 6.0], [1970, 4.53], [1975, 3.43], [1980, 2.82], [1983, 2.06], [1985, 1.66], [1990, 1.57], [1995, 1.63], [2000, 1.48], [2005, 1.08], [2010, 1.23], [2015, 1.24], [2018, 0.98], [2020, 0.84], [2021, 0.81], [2023, 0.72], [2024, 0.75], [2025, 0.8], [2030, 0.85]];
 // [근사] 다태아 출생 비중 — 2023년 5.5%(통계청). 이전 연도는 시험관 시술 확산 추세로 근사
-const TWIN: [number, number][] = [[1985, 0.01], [1995, 0.012], [2000, 0.019], [2010, 0.027], [2015, 0.037], [2020, 0.054], [2023, 0.055], [2030, 0.057]];
+const GRAND: [number, number][] = [[1950, 0.3], [1970, 0.23], [1980, 0.17], [1990, 0.125], [2000, 0.084], [2010, 0.062], [2020, 0.045], [2030, 0.04]];
+const TWIN: [number, number][] = [[1950, 0.01], [1985, 0.01], [1995, 0.012], [2000, 0.019], [2010, 0.027], [2015, 0.037], [2020, 0.054], [2023, 0.055], [2030, 0.057]];
 // [근사] 다문화 가정 출생 비중 — 2023년 5.3%(통계청 다문화 인구동태). 이전 연도는 추세 근사
-const MULTI: [number, number][] = [[1985, 0.003], [2000, 0.01], [2008, 0.029], [2012, 0.047], [2015, 0.045], [2020, 0.06], [2023, 0.053], [2030, 0.055]];
+const MULTI: [number, number][] = [[1950, 0.001], [1985, 0.003], [2000, 0.01], [2008, 0.029], [2012, 0.047], [2015, 0.045], [2020, 0.06], [2023, 0.053], [2030, 0.055]];
 
 // [통계] 다문화 혼인 외국인 아내 출신국 순위(베트남·중국·태국 순)를 반영한 가중치
 const ORIGINS: [string, number, string][] = [
@@ -58,7 +59,10 @@ function poisson(rng: Rng, lambda: number): number {
   } while (p > L);
   return k - 1;
 }
-const poissonP = (k: number, l: number) => (Math.exp(-l) * Math.pow(l, k)) / [1, 1, 2, 6, 24, 120][Math.min(k, 5)];
+const FACT = [1, 1, 2, 6, 24, 120, 720, 5040];
+const poissonP = (k: number, l: number) => (Math.exp(-l) * Math.pow(l, k)) / FACT[Math.min(k, 7)];
+/** k 이상일 확률 */
+const poissonTail = (k: number, l: number) => Math.max(0, 1 - Array.from({ length: k }, (_, i) => poissonP(i, l)).reduce((a, b) => a + b, 0));
 
 export type ParentJob = 'office' | 'pro' | 'shop' | 'factory' | 'farm' | 'driver';
 
@@ -97,10 +101,12 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
   // 형제 — 합계출산율로 형제 수 분포를 근사 (자녀 수 = 1 + 포아송)
   const tfr = country && country.id !== 'KR' ? country.tfr : lerpTable(TFR, birthYear);
   const lambda = Math.max(0.15, tfr * 1.2 - 0.6);
-  const sib = Math.min(3, poisson(rng, lambda)); // 다섯 남매 이상은 실제로 매우 드물어 3명에서 자른다
+  // 출산율이 높던 시절엔 대여섯 남매도 흔했다 — 형제 수 상한을 시대에 맞춘다
+  const cap = tfr >= 3 ? 6 : tfr >= 2 ? 4 : 3;
+  const sib = Math.min(cap, poisson(rng, lambda));
   const older = sib ? rng.int(0, sib) : 0;
   const younger = sib - older;
-  const pSib = poissonP(sib, lambda) * (1 / (sib + 1));
+  const pSib = (sib === cap ? poissonTail(cap, lambda) : poissonP(sib, lambda)) * (1 / (sib + 1));
   add({
     id: 'siblings',
     label: sib === 0 ? '외동' : [older ? `손위 형제 ${older}명` : '', younger ? `동생 ${younger}명` : ''].filter(Boolean).join(' · '),
@@ -138,8 +144,10 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
   if (jobLossAge !== null) add({ id: 'jobloss', label: `${jobLossAge}살 무렵 집안 가세가 기운다`, p: 0.15 / 13, src: '게임 가정', kind: '가정', at: jobLossAge });
 
   // 조부모와 함께 사는 3대 가구 — [근사]
-  const grandparents = rng.chance(0.06);
-  if (grandparents) add({ id: 'grand', label: '할머니·할아버지와 함께 산다', p: 0.06, src: '3세대 가구 비중 근사', kind: '근사' });
+  // 3세대 가구는 1960~70년대엔 흔했고 점점 줄었다 [근사]
+  const grandRate = country && country.id !== 'KR' ? 0.06 : lerpTable(GRAND, birthYear);
+  const grandparents = rng.chance(grandRate);
+  if (grandparents) add({ id: 'grand', label: '할머니·할아버지와 함께 산다', p: grandRate, src: `${birthYear}년 무렵 3세대 가구 비중 근사 (인구주택총조사 추세)`, kind: '근사' });
 
   // 반려동물 — [통계] 반려동물 양육 가구 약 28%
   const pet = rng.chance(0.28);
@@ -166,7 +174,7 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
   for (const d of draws) log += -Math.log10(Math.max(1e-12, d.p));
   if (!twin) log += -Math.log10(1 - twinRate);
   if (!origin) log += -Math.log10(1 - multiRate);
-  if (!grandparents) log += -Math.log10(0.94);
+  if (!grandparents) log += -Math.log10(1 - grandRate);
   if (!pet) log += -Math.log10(0.72);
   if (divorceAge === null) log += -Math.log10(0.9);
   if (jobLossAge === null) log += -Math.log10(0.85);

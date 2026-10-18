@@ -299,6 +299,9 @@ export interface EventDef {
   bind?: (c: Ctx) => boolean;
   text: (c: Ctx) => string;
   choices: EventChoice[];
+  /** 이 해보다 이르면 나오지 않는다 (전제가 그 시대에 없던 사건) */
+  minYear?: number;
+  maxYear?: number;
 }
 
 const MUSIC_IN = ['공연 수익', '출연료', '계약금', '레슨비', '음원', '기타 케이스', '광고 음악', 'OST', '세션', '굿즈', '펀딩', '지원금', '작곡'];

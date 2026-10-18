@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { CrashGuard } from './ui/Crash';
 import { initBackButton, isNative } from './platform';
 import './styles.css';
 import './theme.css';
@@ -9,7 +10,9 @@ initBackButton();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <CrashGuard>
+      <App />
+    </CrashGuard>
   </StrictMode>,
 );
 

@@ -1,14 +1,14 @@
 import type { GameState } from '../sim/types';
 import { REGIONS, birthsIn, eraOf, lifeExpectancy, minWage } from '../sim/data/world';
 import { Portrait } from '../art/Portrait';
-import { given } from '../sim/korean';
+import { given, josa } from '../sim/korean';
 import { countryOf, successStars } from '../sim/data/countries';
 import { TALENTS, TALENT_LABEL, rarityText, stars } from '../sim/data/fate';
 import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
 
 const TASTE: Record<string, string> = {
-  classical: '클래식 FM', trot: '트로트', ballad: '발라드', none: '음악보다 뉴스', folk: '통기타 포크',
+  classical: '클래식 라디오', trot: '트로트', ballad: '발라드', none: '음악보다 뉴스', folk: '통기타 포크',
   indierock: '인디록', metal: '메탈', indiepop: '인디팝', punk: '펑크', shoegaze: '슈게이즈',
 };
 const INCOME = { low: '넉넉하지 않은 집', mid: '평범하고 바쁜 집', high: '여유 있는 집' };
@@ -49,18 +49,18 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
           </div>
           <p className="cert-story">
             {y}년 {month}월, {region.label}의 {INCOME[p.income]}에서 {p.gender === 'm' ? '남자' : '여자'}아이로 태어났습니다.
-            엄마 {mom ? given(mom.name) : ''}, 아빠 {dad ? given(dad.name) : ''}. 집에는 늘 {TASTE[p.parentTaste] ?? '라디오'}가 흐릅니다.
+            엄마 {mom ? given(mom.name) : ''}, 아빠 {dad ? given(dad.name) : ''}. 집에는 늘 {josa(TASTE[p.parentTaste] ?? '라디오', '이/가')} 흐릅니다.
             {p.instrumentAtHome ? ' 거실 구석에는 아무도 치지 않는 악기가 하나 있습니다.' : ''}
           </p>
           <div className="country-box">
             <span className="cflag">{ct.flag}</span>
             <div className="grow">
               <b>{ct.name}</b>
-              <div className="dim">{ct.scene}</div>
+              <div className="dim">{ct.id === 'KR' && y + 20 < 2015 ? `스무 살 무렵: ${eraOf(y + 20).desc}` : ct.scene}</div>
               <div className="country-stats">
-                <span>음악 시장 세계 <b>{ct.marketRank}위</b></span>
-                <span>기대수명 <b>{ct.lifeExp}세</b></span>
-                <span>최저시급 약 <b>{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</b></span>
+                <span>음악 시장 세계 <b>{ct.marketRank}위</b>{y < 2000 ? ' (2024)' : ''}</span>
+                <span>기대수명 <b>{ct.id === 'KR' ? lifeExpectancy(y) : ct.lifeExp}세</b></span>
+                <span>{y + 16 < 1988 ? '시급(추정)' : '최저시급'} 약 <b>{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</b></span>
                 <span>생활비 <b>×{ct.costMul}</b></span>
               </div>
               <div className="country-stars">
@@ -78,7 +78,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div><span className="label">집의 악기</span><div className="v">{p.instrumentAtHome ? '있음' : '없음'}</div></div>
             <div><span className="label">기대수명</span><div className="v">{ct.id === 'KR' ? lifeExpectancy(y) : ct.lifeExp}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
-            <div><span className="label">16세 알바 시급</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
+            <div><span className="label">16세 알바 시급{y + 16 < 1988 ? ' (추정)' : ''}</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
           </div>
           <div className="fate-box">
             <div className="fate-rarity">

@@ -9,6 +9,7 @@ import { createNpc, npcAge, remember } from '../npc';
 import { bandSkill, missingInst } from '../actions';
 import { clamp } from '../rng';
 import { given, josa } from '../korean';
+import { textMinYear } from '../data/anachronism';
 
 const WALK_IN_PLACES = ['멤버 모집 공고를 보고 온 지원자', '공연 뒤풀이에서 만난 연주자', '합주실 옆방에서 연습하던 사람', 'SNS DM 으로 연락 온 사람', '음악 학원 강사', '버스킹 구경꾼이었던 사람', '중고 악기 거래에서 만난 사람'];
 
@@ -34,7 +35,7 @@ function draftCandidates(c: Ctx, src: string): Npc[] {
     const inst: Inst = want.length && c.rng.chance(0.75) ? c.pick(want) : c.pick(INSTRUMENTS.filter((x) => !taken.has(x)).length ? INSTRUMENTS.filter((x) => !taken.has(x)) : INSTRUMENTS);
     const skill = clamp(Math.round(25 + Math.log10(fame + 10) * 8 + c.rng.normal(src === 'walkin' ? 12 : 0, 14)), 8, 95);
     const n = createNpc(c.s, c.rng, {
-      metAt: src === 'walkin' ? c.pick(WALK_IN_PLACES.slice(1)) : c.pick(WALK_IN_PLACES),
+      metAt: c.pick((src === 'walkin' ? WALK_IN_PLACES.slice(1) : WALK_IN_PLACES).filter((x) => textMinYear(x) <= c.year)),
       inst,
       skill,
       genre: c.rng.chance(0.55) ? band.genre : undefined,

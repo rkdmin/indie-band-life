@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, Npc, Song } from '../sim/types';
 import { SKILLS } from '../sim/types';
 import { Portrait } from '../art/Portrait';
@@ -9,6 +9,8 @@ import { count } from '../sim/korean';
 import { getAnalyser, nowPlaying, onPlaybackChange, playSong, renderWav, stopSong } from '../audio/player';
 import { saveFile } from '../platform';
 import { FanGraph } from './FanGraph';
+import { WAVES, historyBetween } from '../sim/data/history';
+import { COUNTRIES, type CountryId } from '../sim/data/countries';
 
 // ───────────────────────── 사람들 ─────────────────────────
 export function PeopleSheet({ s }: { s: GameState }) {
@@ -292,16 +294,54 @@ function NowPlaying() {
 
 // ───────────────────────── 연대기 ─────────────────────────
 export function ChronicleSheet({ s }: { s: GameState }) {
-  const entries = [...s.chronicle].reverse();
+  const [mode, setMode] = useState<'all' | 'me' | 'world'>('all');
+  const ct = (s.player.country ?? 'KR') as CountryId;
+  const born = s.player.birthYear;
+  // 내 인생과 그 시절 실제 음악사를 한 줄에 엮는다
+  const rows = useMemo(() => {
+    const mine = s.chronicle.map((e) => ({ t: e.year + 0.5, mine: true as const, e }));
+    const world = historyBetween(born - 15, s.time, ct).map((h) => ({ t: h.y + ((h.m ?? 6) - 0.5) / 12, mine: false as const, h }));
+    const list = mode === 'me' ? mine : mode === 'world' ? world : [...mine, ...world];
+    return list.sort((a, b) => b.t - a.t);
+  }, [s.chronicle, s.time, born, ct, mode]);
+  const waves = WAVES.filter((w) => w.c === ct && w.from <= s.time && w.to >= born);
   return (
-    <div className="timeline">
-      {entries.map((e, i) => (
-        <div key={i} className={`tl ${e.kind}`}>
-          <div className="when">{e.year}년 · {e.age}세</div>
-          <div className="what">{e.text}</div>
+    <div>
+      <div className="seg" role="tablist">
+        {([['all', '전부'], ['me', '내 인생'], ['world', '그 시절 음악사']] as const).map(([k, l]) => (
+          <button key={k} className={mode === k ? 'on' : ''} onClick={() => setMode(k)}>{l}</button>
+        ))}
+      </div>
+      {mode !== 'me' && waves.length > 0 && (
+        <div className="waves">
+          {waves.map((w) => (
+            <div key={w.id} className={`wave-chip ${s.flags.rodeWave === w.id ? 'rode' : ''}`}>
+              <b>{w.name}</b> <span>{w.from}–{w.to}</span>
+              {s.flags.rodeWave === w.id && <em>그 물결의 한가운데 있었다</em>}
+            </div>
+          ))}
         </div>
-      ))}
-      {!entries.length && <div className="dim">아직 기록이 없다.</div>}
+      )}
+      <div className="timeline">
+        {rows.map((r, i) =>
+          r.mine ? (
+            <div key={i} className={`tl ${r.e.kind}`}>
+              <div className="when">{r.e.year}년 · {r.e.age}세</div>
+              <div className="what">{r.e.text}</div>
+            </div>
+          ) : (
+            <div key={i} className="tl world">
+              <div className="when">
+                {r.h.y}{r.h.m ? `.${String(r.h.m).padStart(2, '0')}` : ''} · {r.h.c === 'GLOBAL' ? '🌐' : COUNTRIES[r.h.c].flag}
+                {r.h.y >= born ? ` · 나는 ${r.h.y - born}세` : ' · 태어나기 전'}
+              </div>
+              <div className="what">{r.h.text}</div>
+              <div className="src">출처: {r.h.src}</div>
+            </div>
+          ),
+        )}
+        {!rows.length && <div className="dim">아직 기록이 없다.</div>}
+      </div>
     </div>
   );
 }

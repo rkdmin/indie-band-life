@@ -109,11 +109,25 @@ export function DiceScreen({ pending, inspiration, onReroll, onAccept, auto }: P
     const el = table.current;
     const W = el?.clientWidth ?? 360;
     const H = el?.clientHeight ?? 360;
-    let last = performance.now();
+    const start = performance.now();
+    let last = start;
     let flick = 0;
+    let moving = true;
+    // 한 프레임이 길어도(저전력 모드·백그라운드 탭) 실제 흐른 시간만큼 잘게 나눠 굴린다
     const step = (now: number) => {
-      const dt = Math.min(0.033, (now - last) / 1000);
+      let left = Math.min(0.5, (now - last) / 1000);
       last = now;
+      do {
+        const dt = Math.min(0.033, left);
+        left -= dt;
+        moving = advance(dt);
+      } while (left > 0.0005 && moving);
+      force((x) => x + 1);
+      // 아무리 늦어도 3.5초 안에는 멈춘다
+      if (moving && now - start < 3500) raf.current = requestAnimationFrame(step);
+      else land();
+    };
+    const advance = (dt: number): boolean => {
       let moving = false;
       for (const [i, b] of [b1.current, b2.current].entries()) {
         if (i === 1 && !o.adv) continue;
@@ -144,9 +158,7 @@ export function DiceScreen({ pending, inspiration, onReroll, onAccept, auto }: P
         setFace(1 + Math.floor(Math.random() * 20));
         setFace2(1 + Math.floor(Math.random() * 20));
       }
-      force((x) => x + 1);
-      if (moving) raf.current = requestAnimationFrame(step);
-      else land();
+      return moving;
     };
     raf.current = requestAnimationFrame(step);
   };
@@ -154,7 +166,11 @@ export function DiceScreen({ pending, inspiration, onReroll, onAccept, auto }: P
   // ── 잡고 던지기 ──
   const onDown = (e: React.PointerEvent) => {
     if (stage !== 'ready') return;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch {
+      /* 포인터가 이미 떠났으면 캡처 없이 진행 */
+    }
     drag.current = { px: e.clientX, py: e.clientY, t: performance.now(), vx: 0, vy: 0 };
     setStage('dragging');
   };
