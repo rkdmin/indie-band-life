@@ -82,6 +82,12 @@ export interface Player {
   fans: number;
   globalFans: number; // 해외 팬
   inspiration: number; // 영감 — 실패한 판정을 다시 굴린다 (최대 3)
+  /** 대출 잔액(원)과 가중평균 연이율, 신용(0~100) */
+  debt: number;
+  debtRate: number;
+  credit: number;
+  /** 태어난 나라 (data/countries.ts) */
+  country: string;
   /** 타고난 재능 (음감·리듬감·가사 감각·무대 존재감·체력) 0~100 */
   talents: Record<'pitch' | 'rhythm' | 'lyric' | 'presence' | 'stamina', number>;
   /** 성격 두 가지 */
@@ -140,7 +146,7 @@ export interface Npc {
   /** 밴드 만족도 0~100 — 낮아지면 탈퇴 위기 */
   sat?: number;
   alive: boolean;
-  role?: 'parent' | 'sibling' | 'friend' | 'rival' | 'mentor' | 'partner' | 'fan' | 'member';
+  role?: 'parent' | 'sibling' | 'child' | 'friend' | 'rival' | 'mentor' | 'partner' | 'fan' | 'member';
 }
 
 export interface Song {

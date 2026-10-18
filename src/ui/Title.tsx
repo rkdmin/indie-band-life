@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Gender } from '../sim/types';
 import type { NewGameOptions } from '../sim/engine';
 import { birthsIn } from '../sim/data/world';
+import { COUNTRIES, COUNTRY_IDS, rollCountry, foreignName, countryBirthShare, type CountryId } from '../sim/data/countries';
 import { randomName } from '../sim/names';
 import { Rng } from '../sim/rng';
 import { PixelScene } from '../art/PixelScene';
@@ -43,6 +44,7 @@ interface Props {
 
 export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, onCollection }: Props) {
   const [era, setEra] = useState<(typeof ERAS)[number]['id']>('now');
+  const [country, setCountry] = useState<CountryId | 'random'>('KR');
   const [pace, setPace] = useState(1);
   const [custom, setCustom] = useState(false);
   const [gender, setGender] = useState<Gender | 'random'>('random');
@@ -72,8 +74,9 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
     const e = ERAS.find((x) => x.id === era)!;
     const birthYear = r.int(e.from, e.to);
     const g: Gender = gender === 'random' ? (r.chance(0.51) ? 'm' : 'f') : gender;
-    const nm = custom && name.trim().length >= 2 ? name.trim() : randomName(r, g, birthYear);
-    onBorn({ name: nm, gender: g, birthYear }, pace);
+    const ct: CountryId = country === 'random' ? rollCountry(r) : country;
+    const nm = custom && name.trim().length >= 2 ? name.trim() : ct === 'KR' ? randomName(r, g, birthYear) : foreignName(r, COUNTRIES[ct], g);
+    onBorn({ name: nm, gender: g, birthYear, country: ct }, pace);
   };
 
   const people = [
@@ -113,6 +116,25 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
           </div>
           <div className="ticker" key={tick}>“{TICKS[tick]}”</div>
 
+          <div className="opt-group">
+            <span className="label">태어날 나라</span>
+            <div className="country-pick">
+              {COUNTRY_IDS.map((id) => (
+                <button key={id} className={country === id ? 'on' : ''} onClick={() => setCountry(id)}>
+                  <span className="cf">{COUNTRIES[id].flag}</span>
+                  {COUNTRIES[id].name}
+                </button>
+              ))}
+              <button className={country === 'random' ? 'on' : ''} onClick={() => setCountry('random')}>
+                <span className="cf">🎲</span>운명에 맡김
+              </button>
+            </div>
+            <div className="seg-help">
+              {country === 'random'
+                ? `여섯 나라 중 실제 연간 출생아 수에 비례해 뽑는다 — 미국 ${Math.round(countryBirthShare('US') * 100)}% · 브라질 ${Math.round(countryBirthShare('BR') * 100)}% · 한국 ${Math.round(countryBirthShare('KR') * 100)}%.`
+                : `${COUNTRIES[country].quirk} 시뮬레이션상 팬 1만 명 도달 ${COUNTRIES[country].simReach10k}%.`}
+            </div>
+          </div>
           <div className="opt-group">
             <span className="label">태어날 세상</span>
             <div className="seg">

@@ -24,6 +24,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+        env:
+          # 시뮬레이션 테스트 표본 수 — CI 에선 줄여서 빠르게 (로컬 기본값은 더 크다)
+          BALANCE_N: '100'
+          VARIETY_N: '60'
+          COUNTRY_N: '30'
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:

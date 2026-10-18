@@ -13,6 +13,7 @@ import { count } from '../sim/korean';
 import { playSong, sfx, stopBgm, stopSong } from '../audio/player';
 import { ChronicleSheet, SongRow } from './Sheets';
 import { shareFile } from '../platform';
+import { FanGraph } from './FanGraph';
 import type { Meta } from './save';
 
 interface Props {
@@ -144,6 +145,10 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
           <h4>NOTES</h4>
           <p className="liner-notes">{bio}</p>
           <p className="liner-notes" style={{ color: 'var(--red-ink)', marginTop: 6 }}>“{e.text.split('\n')[0]}”</p>
+        </section>
+        <section className="liner-sec">
+          <h4>FANS — 팬이 늘고 줄어든 모양</h4>
+          <FanGraph s={s} />
         </section>
         <section className="liner-sec">
           <div className="numbers">

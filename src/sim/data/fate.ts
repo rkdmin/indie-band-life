@@ -90,12 +90,12 @@ export interface FateResult {
   rarityLog: number;
 }
 
-export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f'): FateResult {
+export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country: import('./countries').Country | null = null): FateResult {
   const draws: FateDraw[] = [];
   const add = (d: FateDraw) => draws.push(d);
 
   // 형제 — 합계출산율로 형제 수 분포를 근사 (자녀 수 = 1 + 포아송)
-  const tfr = lerpTable(TFR, birthYear);
+  const tfr = country && country.id !== 'KR' ? country.tfr : lerpTable(TFR, birthYear);
   const lambda = Math.max(0.15, tfr * 1.2 - 0.6);
   const sib = Math.min(3, poisson(rng, lambda)); // 다섯 남매 이상은 실제로 매우 드물어 3명에서 자른다
   const older = sib ? rng.int(0, sib) : 0;
@@ -105,7 +105,7 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f'): FateRe
     id: 'siblings',
     label: sib === 0 ? '외동' : [older ? `손위 형제 ${older}명` : '', younger ? `동생 ${younger}명` : ''].filter(Boolean).join(' · '),
     p: pSib,
-    src: `${birthYear}년 합계출산율 ${tfr.toFixed(2)}명으로 형제 수 분포를 근사`,
+    src: country && country.id !== 'KR' ? `${country.name} 합계출산율 ${tfr.toFixed(2)}명으로 근사` : `${birthYear}년 합계출산율 ${tfr.toFixed(2)}명으로 형제 수 분포를 근사`,
     kind: '근사',
   });
 
@@ -114,17 +114,19 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f'): FateRe
   add({ id: 'parentjob', label: `부모님: ${job[2]}`, p: job[1], src: '직업별 취업자 비중 (통계청 경제활동인구조사)을 여섯 묶음으로 근사', kind: '근사' });
 
   // 쌍둥이
-  const twinRate = lerpTable(TWIN, birthYear);
+  const twinRate = country && country.id !== 'KR' ? country.twinRate : lerpTable(TWIN, birthYear);
   const twin = rng.chance(twinRate);
   if (twin) add({ id: 'twin', label: '쌍둥이로 태어남', p: twinRate, src: '다태아 출생 비중 (2023년 5.5%, 통계청 출생통계)', kind: birthYear >= 2023 ? '통계' : '근사' });
 
   // 다문화 가정
-  const multiRate = lerpTable(MULTI, birthYear);
+  const multiRate = country && country.id !== 'KR' ? country.immigrantRate : lerpTable(MULTI, birthYear);
   let origin: FateResult['origin'] = null;
   if (rng.chance(multiRate)) {
-    const o = rng.weighted(ORIGINS, (x) => x[1])!;
-    origin = { country: o[0], music: o[2], parent: rng.chance(0.85) ? 'mom' : 'dad' };
-    add({ id: 'multi', label: `${origin.parent === 'mom' ? '엄마' : '아빠'}의 나라: ${o[0]}`, p: multiRate * (o[1] / 88), src: '다문화 가정 출생 비중 (2023년 5.3%, 통계청 다문화 인구동태)', kind: '근사' });
+    const o: [string, number, string] = country && country.id !== 'KR' ? [rng.pick(country.origins), 1, `${'고향'} 노래`] : rng.weighted(ORIGINS, (x) => x[1])!;
+    if (country && country.id !== 'KR') o[2] = `${o[0]}의 옛 노래`;
+    origin = { country: o[0], music: o[2], parent: rng.chance(0.75) ? 'mom' : 'dad' };
+    const label = country && country.id !== 'KR' ? '이민 가정' : '다문화 가정';
+    add({ id: 'multi', label: `${label} — ${origin.parent === 'mom' ? '엄마' : '아빠'}의 나라 ${o[0]}`, p: country && country.id !== 'KR' ? multiRate / country.origins.length : multiRate * (o[1] / 88), src: country && country.id !== 'KR' ? `${country.name} 이민 가정 출생 비중 약 ${Math.round(multiRate * 100)}%` : '다문화 가정 출생 비중 (2023년 5.3%, 통계청 다문화 인구동태)', kind: '근사' });
   }
 
   // 부모님 이혼 (18세 전) — [근사] 연간 이혼 9만여 건 규모로 근사

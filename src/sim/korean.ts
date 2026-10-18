@@ -38,9 +38,24 @@ export function josa(word: string, pair: '이/가' | '은/는' | '을/를' | '�
   }
 }
 
-/** 이름에서 성을 뗀 부르는 이름: 김민재 → 민재 */
+// 외국 성씨 — ‘이름 성’(서양)과 ‘성 이름’(일본)을 구분하는 데 쓴다
+const SURNAME_FIRST = new Set(['사토', '스즈키', '다카하시', '다나카', '와타나베', '이토', '야마모토', '나카무라', '고바야시', '가토']);
+
+/** 이름에서 성을 뗀 부르는 이름: 김민재 → 민재, 리암 존슨 → 리암, 사토 하루토 → 하루토 */
 export function given(name: string): string {
+  if (name.includes(' ')) {
+    const parts = name.split(' ');
+    return SURNAME_FIRST.has(parts[0]) ? parts[parts.length - 1] : parts[0];
+  }
   return name.length >= 3 ? name.slice(1) : name;
+}
+
+/** 가족의 성을 물려받게 이름을 고친다 */
+export function withFamilyName(playerName: string, npcName: string): string {
+  if (!playerName.includes(' ')) return playerName[0] + npcName.slice(1);
+  const pp = playerName.split(' ');
+  const np = npcName.split(' ');
+  return SURNAME_FIRST.has(pp[0]) ? `${pp[0]} ${np[np.length - 1]}` : `${np[0]} ${pp[pp.length - 1]}`;
 }
 
 /** 친근하게 부르는 이름: 민재 → 민재, 서준 → 서준이 */

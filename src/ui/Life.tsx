@@ -5,8 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedEntry, GameState, SceneId } from '../sim/types';
 import { autoChoose, beginPeriod, canRetire, choose, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
 import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
-import { GENRE_INFO, INST_LABEL, REGIONS, minWage } from '../sim/data/world';
+import { GENRE_INFO, INST_LABEL, minWage } from '../sim/data/world';
 import { ARTIST_SURVEY, facts } from '../sim/data/reality';
+import { countryOf } from '../sim/data/countries';
 import { count, won } from '../sim/korean';
 import { actionById } from '../sim/actions';
 import { planOptions, recommendedPlan } from '../sim/plan';
@@ -315,7 +316,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             <div className="stage-view"><PixelScene id={sceneId} people={people} crowd={Math.min(1, ((s.flags.lastGigAudience as number) || 40) / 300)} night={month >= 9 || month <= 2 || sceneId === 'rooftop'} seed={s.seed + s.turn} label={SCENE_LABEL[sceneId]} /></div>
             <div className="stage-cap">
               <span><b>{SCENE_LABEL[sceneId]}</b> · {SEASON[month - 1]}</span>
-              <span className="dim">{REGIONS.find((r) => r.id === s.player.region)?.label}</span>
+              <span className="dim">{countryOf(s.player.country).flag} {countryOf(s.player.country).regions[s.player.region]}</span>
             </div>
           </div>
           <div className="pops-anchor"><StatPops pops={pops} /></div>
@@ -418,7 +419,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
         <div>
           <div className="idname">{p.name}</div>
           <dl className="idfields">
-            <dt>출생</dt><dd>{p.birthYear} · {REGIONS.find((r) => r.id === p.region)?.label}</dd>
+            <dt>출생</dt><dd>{p.birthYear} · {countryOf(p.country).flag} {countryOf(p.country).regions[p.region]}</dd>
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
             <dt>작곡</dt><dd>{Math.round(p.skills.compose)}</dd>
             <dt>밴드</dt><dd>{s.band ? `〈${s.band.name}〉 ${GENRE_INFO[s.band.genre].label}` : '—'}</dd>
@@ -439,6 +440,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
         <div className="money-row">
           <div><div className="k">통장</div><div className={`v ${p.money < 0 ? 'neg' : ''}`}>{won(p.money)}</div></div>
           <div><div className="k">팬 (국내{p.globalFans > 0 ? ' · 해외' : ''})</div><div className="v">{count(p.fans)}{p.globalFans > 0 && <span style={{ fontSize: 14 }}> · ✈ {count(p.globalFans)}</span>}</div></div>
+          {p.debt > 0 && <div><div className="k">빚 (연 {(p.debtRate * 100).toFixed(1)}%)</div><div className="v neg">{won(p.debt)}</div></div>}
           <div><div className="k">영감</div><div className="v" style={{ color: 'var(--gold)' }}>{'✦'.repeat(p.inspiration) || '—'}</div></div>
         </div>
       </div>
@@ -721,6 +723,11 @@ function StatusStrip({ s }: { s: GameState }) {
         </span>
         <span style={{ color: 'var(--gold)' }}>{'✦'.repeat(s.player.inspiration)}</span>
       </div>
+      {s.player.debt > 0 && (
+        <div className="ss-debt">
+          빚 {won(s.player.debt)} · 연 {(s.player.debtRate * 100).toFixed(1)}% · 신용 {Math.round(s.player.credit)}
+        </div>
+      )}
     </div>
   );
 }

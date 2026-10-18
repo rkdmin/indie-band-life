@@ -68,13 +68,14 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   c.s.flags.lastGigAudience = draw;
   c.s.flags.lastGigGrade = grade;
   c.s.flags.lastGigVenue = v.label;
+  c.s.flags.lastGigYear = c.year;
   if (c.band) c.band.gigs++;
   c.inc('gigs');
   if (c.age >= 65) c.set('gigAfter65');
 
   // 관객 대부분은 이미 팬이다. 새 팬은 데려온 친구들과 페스티벌의 처음 보는 관객에게서 [가정]
   const conv = fest ? (grade === 'great' ? 0.08 : grade === 'good' ? 0.03 : 0.004) : grade === 'great' ? 0.22 : grade === 'good' ? 0.09 : 0.01;
-  const fanGain = Math.round(draw * conv * gi.loyalty);
+  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul);
   if (grade === 'great') {
     c.line(`${v.label} — 관객 ${draw.toLocaleString()}명이 떼창했다!`, 'big');
     if (fest || v.capacity >= 700 || !c.flag('firstGreatGig')) {
@@ -100,7 +101,12 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   c.skill('stage', grade === 'bad' ? 1.5 : 2.5);
   const members = c.members.length + 1;
   if (fest) {
-    c.money(festivalFee(c.p.fans) / members, '출연료');
+    c.money((festivalFee(c.p.fans) * c.country.marketMul) / members, '출연료');
+  } else if (c.country.id === 'JP' && (v.id === 'club_group' || v.id === 'club_solo') && draw < 25) {
+    // 일본 라이브하우스 ‘노르마’: 팔지 못한 할당 티켓 값을 밴드가 메운다 [근사]
+    const short = (25 - draw) * c.krw(22_000);
+    c.money(-short / members, '노르마(티켓 할당) 자부담');
+    c.line('노르마를 못 채웠다. 남은 티켓 값을 멤버들이 나눠 냈다.', 'bad');
   } else if (v.ticket > 0) {
     const revenue = draw * c.krw(v.ticket) * 0.75 - c.krw(v.cost);
     c.money(revenue / members, revenue >= 0 ? '공연 수익' : '공연 적자');
@@ -337,10 +343,10 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'parttime', label: '아르바이트', emoji: '🧋', scene: 'street', energy: 20,
-    desc: (c) => `최저시급 ${minWage(c.s.time).toLocaleString()}원 (${Math.floor(c.s.time)}년). 반년 동안 주 20시간.`,
+    desc: (c) => `최저시급 약 ${Math.round(minWage(c.s.time) * c.country.wageMul).toLocaleString()}원${c.country.id !== 'KR' ? '(원화 환산)' : ''} · ${Math.floor(c.s.time)}년. 반년 동안 주 20시간.`,
     when: (c) => c.age >= 16 && free(c) && c.p.job !== 'office' && c.age < 70,
     run: (c) => {
-      const pay = minWage(c.s.time) * 20 * 26;
+      const pay = minWage(c.s.time) * c.country.wageMul * 20 * 26;
       c.money(pay, '알바비');
       c.stat('stress', 6);
       if (c.roll(0.12)) c.meet('w', { metAt: '알바하던 가게', birthYear: c.p.birthYear + c.rng.int(-3, 3) });

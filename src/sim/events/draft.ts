@@ -8,7 +8,7 @@ import { GENRE_INFO, INST_LABEL } from '../data/world';
 import { createNpc, npcAge, remember } from '../npc';
 import { bandSkill, missingInst } from '../actions';
 import { clamp } from '../rng';
-import { josa } from '../korean';
+import { given, josa } from '../korean';
 
 const WALK_IN_PLACES = ['멤버 모집 공고를 보고 온 지원자', '공연 뒤풀이에서 만난 연주자', '합주실 옆방에서 연습하던 사람', 'SNS DM 으로 연락 온 사람', '음악 학원 강사', '버스킹 구경꾼이었던 사람', '중고 악기 거래에서 만난 사람'];
 
@@ -84,7 +84,7 @@ function tryJoin(c: Ctx, id: string): string {
     // 3인조가 될 때까지는 다음 카드를 계속 뽑는다
     const round = Number(c.vars.round ?? 1);
     if (c.members.length < 2 && round < 4) c.queue(c.vars.src === 'walkin' ? 'pick_member' : 'pick_member', {}, { src: 'more', round: round + 1 });
-    return n.affinity >= 50 ? `“네가 하자는데 당연하지.” ${josa(n.name.slice(1), '이/가')} 웃었다.` : '첫 합주 날짜를 잡았다. 새 사람의 소리가 들어오자 곡이 달라졌다.';
+    return n.affinity >= 50 ? `“네가 하자는데 당연하지.” ${josa(given(n.name), '이/가')} 웃었다.` : '첫 합주 날짜를 잡았다. 새 사람의 소리가 들어오자 곡이 달라졌다.';
   }
   n.affinity = clamp(n.affinity - 3, -100, 100);
   const round = Number(c.vars.round ?? 1);

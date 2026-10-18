@@ -5,6 +5,7 @@ import { Rng, clamp, prob } from './rng';
 import { addGenre, addSkill, addStat, age, ageInt, chron, flag, mainSkill, setFlag, stageOf, year } from './state';
 import { createNpc, relDelta, remember, type NpcSpec } from './npc';
 import { GENRE_INFO, INST_LABEL, SKILL_LABEL, priceIndex } from './data/world';
+import { countryOf } from './data/countries';
 import { callName, given, josa, won, count } from './korean';
 import { themeByKey } from './songs';
 
@@ -38,7 +39,10 @@ export class Ctx {
     return stageOf(age(this.s));
   }
   get price() {
-    return priceIndex(this.s.time);
+    return priceIndex(this.s.time) * countryOf(this.p.country).costMul;
+  }
+  get country() {
+    return countryOf(this.p.country);
   }
   get mainSkill() {
     return mainSkill(this.s);
@@ -138,6 +142,18 @@ export class Ctx {
     this.lines.push({ text: `${why ? why + ' ' : ''}${v > 0 ? '+' : ''}${won(v)}`, tone: v > 0 ? 'good' : 'bad', delta: true });
   }
   /** 2026년 물가 기준 금액을 해당 연도 물가로 */
+  /** 대출: 원금은 통장에 들어오고, 잔액·이율은 가중평균으로 합쳐진다 */
+  borrow(amount: number, rate: number, kind: string) {
+    const v = Math.round(amount);
+    if (v <= 0) return;
+    const p = this.p;
+    p.debtRate = (p.debt * p.debtRate + v * rate) / (p.debt + v);
+    p.debt += v;
+    p.money += v;
+    p.credit = clamp(p.credit - (rate >= 0.15 ? 12 : 3));
+    this.lines.push({ text: `${kind} +${won(v)} (연 ${(rate * 100).toFixed(1)}%)`, tone: 'neutral', delta: true });
+    if (rate >= 0.15) this.set('loanShark');
+  }
   krw(base2026: number) {
     return Math.round(base2026 * this.price);
   }

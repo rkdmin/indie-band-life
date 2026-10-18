@@ -8,6 +8,7 @@ import { GENRE_INFO, INST_LABEL, MOOD_LABEL, SKILL_LABEL } from '../sim/data/wor
 import { count } from '../sim/korean';
 import { getAnalyser, nowPlaying, onPlaybackChange, playSong, renderWav, stopSong } from '../audio/player';
 import { saveFile } from '../platform';
+import { FanGraph } from './FanGraph';
 
 // ───────────────────────── 사람들 ─────────────────────────
 export function PeopleSheet({ s }: { s: GameState }) {
@@ -94,6 +95,10 @@ export function BandSheet({ s }: { s: GameState }) {
           <div className="dim">16세 이후 ‘밴드 결성’ 행동이나, 오랜 친구의 연락으로 시작할 수 있다. 친한 음악 친구가 많을수록 좋은 멤버가 모인다.</div>
         </div>
       )}
+      <div className="card">
+        <div className="section-title"><h3>팬의 증감</h3><span className="dim">지금 {count(p.fans)}명 · 최고 {count(s.peakFans)}명</span></div>
+        <FanGraph s={s} />
+      </div>
       <div className="card">
         <div className="section-title"><h3>나의 실력</h3><span className="dim">평판 {Math.round(p.rep)}</span></div>
         <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>

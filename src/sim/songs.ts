@@ -2,6 +2,7 @@ import type { Album, GameState, Genre, Mood, Song } from './types';
 import { Rng, clamp, sigmoid } from './rng';
 import { ageInt, chron, favoriteGenre, say, year } from './state';
 import { GENRE_INFO, eraOf } from './data/world';
+import { countryOf } from './data/countries';
 import { bandMembers } from './npc';
 import { count, josa } from './korean';
 
@@ -138,7 +139,10 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   const sinceLast = s.time - ((s.flags.lastRelease as number) ?? -99);
   const fatigue = sinceLast < 1 ? 0.35 : sinceLast < 2 ? 0.7 : 1;
   s.flags.lastRelease = s.time;
-  const reach = (500 + Math.pow(p.fans, 0.9) * 1.6) * gi.reach * era.streamMul * labelMul * (1 + promo * 0.15) * (kind === 'full' ? 1.25 : kind === 'ep' ? 1 : 0.7) * fatigue;
+  // 최근 급성장한 시장 [통계 기반 가정]: 브라질 녹음 음악 매출 +21.7%(IFPI 2024), 한국 인디 스트리밍 +68%(Spotify 2025 결산)
+  const boom = year(s) >= 2022 ? (p.country === 'BR' ? 1.2 : (p.country ?? 'KR') === 'KR' ? 1.35 : 1) : 1;
+  const cMul = countryOf(p.country).marketMul * boom;
+  const reach = (500 + Math.pow(p.fans, 0.9) * 1.6) * cMul * gi.reach * era.streamMul * labelMul * (1 + promo * 0.15) * (kind === 'full' ? 1.25 : kind === 'ep' ? 1 : 0.7) * fatigue;
   let newFans = 0;
   const best = [...songs].sort((a, b) => b.quality - a.quality)[0];
   for (const song of songs) {

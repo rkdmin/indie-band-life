@@ -4,7 +4,7 @@
 import type { EventDef, Ctx } from '../ctx';
 import { GENRES } from '../types';
 import { GENRE_INFO, INST_LABEL } from '../data/world';
-import { josa } from '../korean';
+import { given, josa, withFamilyName } from '../korean';
 import { createNpc } from '../npc';
 import { clamp } from '../rng';
 
@@ -26,12 +26,12 @@ export const FATE: EventDef[] = [
         label: '동생 침대 옆에서 자장가를 불러 준다',
         run: (c) => {
           const n = createNpc(c.s, c.rng, { birthYear: c.year, metAt: '가족', role: 'sibling', affinity: 50, skill: 0 });
-          n.name = c.p.name[0] + n.name.slice(1);
+          n.name = withFamilyName(c.p.name, n.name);
           c.s.flags.youngerSib = n.id;
           c.s.flags.youngerLeft = ((c.s.flags.youngerLeft as number) || 1) - 1;
           c.skill('vocal', 2);
           c.theme('family');
-          c.chron(`동생 ${josa(n.name.slice(1), '이/가')} 태어났다`, 'people');
+          c.chron(`동생 ${josa(given(n.name), '이/가')} 태어났다`, 'people');
           return '동생은 내 노래를 들으면 울음을 그쳤다. 첫 관객이었다.';
         },
       },
@@ -39,7 +39,7 @@ export const FATE: EventDef[] = [
         label: '관심을 다 뺏겨서 서운하다',
         run: (c) => {
           const n = createNpc(c.s, c.rng, { birthYear: c.year, metAt: '가족', role: 'sibling', affinity: 30, skill: 0 });
-          n.name = c.p.name[0] + n.name.slice(1);
+          n.name = withFamilyName(c.p.name, n.name);
           c.s.flags.youngerSib = n.id;
           c.s.flags.youngerLeft = ((c.s.flags.youngerLeft as number) || 1) - 1;
           c.stat('stress', 4);

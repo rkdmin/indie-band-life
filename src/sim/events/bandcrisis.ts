@@ -5,7 +5,7 @@ import { GENRE_INFO } from '../data/world';
 import { REASON_LABEL, type LeaveReason } from '../bandlife';
 import { disband, leaveBand } from '../actions';
 import { clamp } from '../rng';
-import { won } from '../korean';
+import { given, won } from '../korean';
 
 const reasonText = (c: Ctx): string => {
   const r = c.vars.reason as LeaveReason;
@@ -121,7 +121,7 @@ export const BAND_CRISIS: EventDef[] = [
     id: 'band_genre_vote', scene: 'studio', title: '다음 앨범은 무슨 색?', cooldown: 10, chance: 0.15,
     when: (c) => !!c.band && c.members.filter((m) => m.genre !== c.band!.genre).length >= 2 && c.p.military !== 'serving',
     text: (c) => {
-      const others = c.members.filter((m) => m.genre !== c.band!.genre).map((m) => `${m.name.slice(1)}(${GENRE_INFO[m.genre].label})`);
+      const others = c.members.filter((m) => m.genre !== c.band!.genre).map((m) => `${given(m.name)}(${GENRE_INFO[m.genre].label})`);
       return `멤버 절반이 다른 음악을 하고 싶어 한다: ${others.join(', ')}.\n지금 〈${c.band!.name}〉은 ${GENRE_INFO[c.band!.genre].label} 밴드다.`;
     },
     choices: [

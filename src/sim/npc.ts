@@ -2,6 +2,8 @@ import type { GameState, Gender, Genre, Inst, Npc, NpcCareer, Trait } from './ty
 import { GENRES, INSTRUMENTS } from './types';
 import { Rng, clamp } from './rng';
 import { randomName } from './names';
+import { given } from './korean';
+import { countryOf, foreignName } from './data/countries';
 import { age } from './state';
 
 export const TRAIT_LABEL: Record<Trait, string> = {
@@ -59,15 +61,15 @@ export interface NpcSpec {
 export function createNpc(s: GameState, rng: Rng, spec: NpcSpec): Npc {
   const gender = spec.gender ?? (rng.chance(0.5) ? 'm' : 'f');
   const birthYear = spec.birthYear ?? s.player.birthYear + rng.int(-1, 1);
-  const used = new Set(Object.values(s.npcs).map((n) => n.name.slice(1)));
-  used.add(s.player.name.slice(1));
+  const used = new Set(Object.values(s.npcs).map((n) => given(n.name)));
+  used.add(given(s.player.name));
   const id = `n${++s.npcSeq}`;
   const t1 = rng.pick(TRAITS);
   let t2 = rng.pick(TRAITS);
   if (t2 === t1) t2 = TRAITS[(TRAITS.indexOf(t1) + 3) % TRAITS.length];
   const npc: Npc = {
     id,
-    name: randomName(rng, gender, birthYear, used),
+    name: s.player.country && s.player.country !== 'KR' ? foreignName(rng, countryOf(s.player.country), gender) : randomName(rng, gender, birthYear, used),
     gender,
     birthYear,
     look: rng.int(1, 1_000_000),

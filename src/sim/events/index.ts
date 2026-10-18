@@ -8,8 +8,11 @@ import { REGION_GENRE } from './flavor_region_genre';
 import { PERSON } from './flavor_person';
 import { DRAFT } from './draft';
 import { BAND_CRISIS } from './bandcrisis';
+import { CAREER_END } from './careerend';
+import { FAMILY_MONEY } from './family_money';
+import { COUNTRY_EVENTS } from './country';
 
-export const EVENTS: EventDef[] = [...STORY, ...LIFE, ...CAREER, ...GLOBAL, ...FATE, ...REGION_GENRE, ...PERSON, ...DRAFT, ...BAND_CRISIS];
+export const EVENTS: EventDef[] = [...STORY, ...LIFE, ...CAREER, ...GLOBAL, ...FATE, ...REGION_GENRE, ...PERSON, ...DRAFT, ...BAND_CRISIS, ...CAREER_END, ...FAMILY_MONEY, ...COUNTRY_EVENTS];
 
 const byId = new Map(EVENTS.map((e) => [e.id, e]));
 export const eventById = (id: string) => byId.get(id);

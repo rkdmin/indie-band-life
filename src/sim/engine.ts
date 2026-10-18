@@ -20,6 +20,8 @@ import { yearlyStreams } from './songs';
 import { computeEnding } from './endings';
 import { won } from './korean';
 import { flavorLines } from './flavor';
+import { COUNTRIES, countryBirthShare, countryOf, type CountryId } from './data/countries';
+import { withFamilyName } from './korean';
 import { rollFate, rollTalents } from './data/fate';
 import type { Trait } from './types';
 import { narrate, resolvePlan } from './plan';
@@ -33,7 +35,7 @@ export const CINEMATIC = new Set([
   'draft', 'discharge', 'old_friend_call', 'crossroads30', 'label_indie', 'label_major', 'fest_local', 'fest_big',
   'pandemic', 'band_boom', 'debt_crisis', 'reunion', 'producer_friend', 'parent_farewell', 'retire_ask', 'revival',
   'move_out', 'life_proposal', 'life_baby', 'life_friend_funeral', 'life_last_call', 'life_grandchild',
-  'member_leave',
+  'member_leave', 'career_end',
   'fate_divorce', 'fate_cancer', 'fate_origin_visit', 'fate_perfect_pitch', 'fate_twin_duo', 'era_2002',
   'g_invite', 'g_stage', 'g_asia_tour', 'g_world_tour', 'release_ready',
   'car_overseas_fest', 'car_tv_live', 'car_survival_show', 'car_drama_ost', 'car_club_closing', 'car_tribute_cover',
@@ -45,6 +47,7 @@ export interface NewGameOptions {
   birthYear: number;
   region?: Region;
   seed?: number;
+  country?: CountryId;
 }
 
 function clone<T>(x: T): T {
@@ -82,6 +85,10 @@ export function newGame(o: NewGameOptions): GameState {
       fans: 0,
       globalFans: 0,
       inspiration: 1,
+      debt: 0,
+      debtRate: 0,
+      credit: 70,
+      country: o.country ?? 'KR',
       talents: { pitch: 50, rhythm: 50, lyric: 50, presence: 50, stamina: 50 },
       traits: [],
       fate: null as never,
@@ -91,7 +98,7 @@ export function newGame(o: NewGameOptions): GameState {
       edu: 'none',
       study: 40,
       job: 'none',
-      military: o.gender === 'm' ? 'pending' : 'none',
+      military: o.gender === 'm' && (o.country ?? 'KR') === 'KR' ? 'pending' : 'none',
       militaryUntil: 0,
       partnerId: null,
       alive: true,
@@ -130,7 +137,7 @@ export function newGame(o: NewGameOptions): GameState {
   };
   const mom = createNpc(s, rng, { gender: 'f', birthYear: o.birthYear - rng.int(27, 35), metAt: '가족', role: 'parent', affinity: 80, skill: 10 });
   const dad = createNpc(s, rng, { gender: 'm', birthYear: o.birthYear - rng.int(28, 37), metAt: '가족', role: 'parent', affinity: 70, skill: 10 });
-  dad.name = o.name[0] + dad.name.slice(1); // 아버지의 성을 따른다
+  dad.name = withFamilyName(o.name, dad.name); // 아버지의 성을 따른다
   s.flags.mom = mom.id;
   s.flags.dad = dad.id;
 
@@ -138,7 +145,7 @@ export function newGame(o: NewGameOptions): GameState {
   s.deckOut = EVENTS.filter((e) => !e.queued && (e.priority ?? 0) < 100 && /^(life_|car_)/.test(e.id) && rng.chance(0.45)).map((e) => e.id);
 
   // ── 인생 변수 · 재능 · 성격 ──
-  const fate = rollFate(rng, o.birthYear, o.gender);
+  const fate = rollFate(rng, o.birthYear, o.gender, countryOf(o.country));
   s.player.fate = fate;
   s.player.talents = rollTalents(rng, fate.perfectPitch);
   const TR: Trait[] = ['diligent', 'free', 'sensitive', 'warm', 'ambitious', 'funny', 'stubborn', 'shy'];
@@ -148,7 +155,7 @@ export function newGame(o: NewGameOptions): GameState {
   // 희귀도: 인생 변수 + 지역·형편·부모 취향·성별
   const regionW = REGIONS.find((r) => r.id === region)!.weight;
   const incomeW = { low: 0.3, mid: 0.5, high: 0.2 }[income];
-  s.player.rarityLog = fate.rarityLog - Math.log10(regionW) - Math.log10(incomeW) + Math.log10(2) + Math.log10(8);
+  s.player.rarityLog = fate.rarityLog - Math.log10(regionW) - Math.log10(incomeW) + Math.log10(2) + Math.log10(8) - Math.log10(countryBirthShare((o.country ?? 'KR') as CountryId));
   if (fate.origin) {
     const foreign = fate.origin.parent === 'mom' ? mom : dad;
     const NAMES: Record<string, [string, string]> = {
@@ -156,18 +163,18 @@ export function newGame(o: NewGameOptions): GameState {
       일본: ['사토 유키', '다나카 켄'], 미국: ['에밀리', '제임스'], 캄보디아: ['소피아', '다라'], 몽골: ['사롤', '바트'], 우즈베키스탄: ['딜노자', '루스탐'],
     };
     const nm = NAMES[fate.origin.country];
-    if (nm) foreign.name = foreign.gender === 'f' ? nm[0] : nm[1];
+    if (nm && (o.country ?? 'KR') === 'KR') foreign.name = foreign.gender === 'f' ? nm[0] : nm[1];
     s.flags.origin = fate.origin.country;
     s.flags.originMusic = fate.origin.music;
   }
   for (let i = 0; i < fate.older; i++) {
     const sib = createNpc(s, rng, { birthYear: o.birthYear - rng.int(1, 3) - i * 2, metAt: '가족', role: 'sibling', affinity: 45, skill: rng.int(5, 40) });
-    sib.name = o.name[0] + sib.name.slice(1);
+    sib.name = withFamilyName(o.name, sib.name);
     s.flags.olderSib = sib.id;
   }
   if (fate.twin) {
     const tw = createNpc(s, rng, { birthYear: o.birthYear, metAt: '같은 날 태어난 쌍둥이', role: 'sibling', affinity: 60, skill: rng.int(5, 25) });
-    tw.name = o.name[0] + tw.name.slice(1);
+    tw.name = withFamilyName(o.name, tw.name);
     s.flags.twin = tw.id;
   }
   if (fate.younger) s.flags.youngerLeft = fate.younger;
@@ -222,6 +229,8 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
 
 function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if (def.queued) return false;
+  if ((s.player.country ?? 'KR') !== 'KR' && isKoreaOnly(def.id)) return false;
+  if ((s.player.country ?? 'KR') === 'KR' && def.id.startsWith('ct_')) return false;
   if (s.deckOut?.includes(def.id)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
   if (def.cooldown && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < def.cooldown) return false;
@@ -428,6 +437,12 @@ export function proceed(prev: GameState): GameState {
   s.active = null;
   if (!s.player.alive) return finish(s);
   s.phase = 'running';
+  // 음악 인생을 마무리하기로 했다면 남은 삶은 조용히 흘려보낸다 (에필로그)
+  if (s.flags.careerEndNow) {
+    delete s.flags.careerEndNow;
+    s.cine = [];
+    return fastForward(s);
+  }
   return s;
 }
 
@@ -476,16 +491,49 @@ export function endPeriod(prev: GameState): GameState {
 
   const halfYears = step * 2;
   if (a >= 20) {
-    const cost = livingCost(s, priceIndex(s.time)) * halfYears;
+    const cost = livingCost(s, priceIndex(s.time) * countryOf(p.country).costMul) * halfYears;
     p.money -= cost;
     news.push({ text: `생활비 -${won(cost)}`, tone: 'neutral', delta: true });
   }
   if (p.job === 'office' || p.job === 'teacher' || p.job === 'producer') {
-    const base = { office: 16_000_000, teacher: 15_000_000, producer: 20_000_000 }[p.job] * priceIndex(s.time) * halfYears;
+    const base = { office: 16_000_000, teacher: 15_000_000, producer: 20_000_000 }[p.job] * priceIndex(s.time) * countryOf(p.country).wageMul * halfYears;
     p.money += Math.round(base);
     book(s, Math.round(base), '월급');
     p.stats.stress = clamp(p.stats.stress + (p.job === 'office' ? 6 : 3));
     news.push({ text: `월급 +${won(base)}`, tone: 'good', delta: true });
+  }
+  // ── 대출: 이자가 붙고, 여윳돈이 있으면 자동으로 갚는다 ──
+  if (p.debt > 0) {
+    const interest = Math.round(p.debt * p.debtRate * step);
+    p.debt += interest;
+    news.push({ text: `대출 이자 -${won(interest)} (연 ${(p.debtRate * 100).toFixed(1)}%)`, tone: 'bad', delta: true });
+    const buffer = livingCost(s, priceIndex(s.time)) * 2;
+    if (p.money > buffer) {
+      const pay = Math.min(p.debt, Math.round((p.money - buffer) * 0.5));
+      p.debt -= pay;
+      p.money -= pay;
+      if (pay > 0) news.push({ text: `대출 상환 -${won(pay)} (남은 빚 ${won(p.debt)})`, tone: 'good', delta: true });
+      if (p.debt === 0) {
+        p.debtRate = 0;
+        p.credit = clamp(p.credit + 8);
+        pushFeed(s, { t: s.time, text: '대출을 다 갚았다. 통장 앱 알림이 조용해졌다.', tone: 'good', kind: 'life' });
+      }
+    } else if (p.money < 0) {
+      p.credit = clamp(p.credit - 6 * step * 2);
+      if (p.credit < 35 && !s.flags.delinquent) {
+        s.flags.delinquent = s.time;
+        pushFeed(s, { t: s.time, text: '대출 연체 — 신용점수가 떨어졌다. 은행 문자가 하루에 세 번 온다.', tone: 'bad', kind: 'life' });
+      }
+    }
+  }
+  // 마이너스 통장: 잔고가 음수면 연 8% 이자 [근사 — 시중은행 마이너스통장 금리 수준]
+  if (p.money < 0 && a >= 19) {
+    const od = Math.round(-p.money * 0.08 * step);
+    p.money -= od;
+    if (od >= 10_000) news.push({ text: `마이너스 통장 이자 -${won(od)}`, tone: 'bad', delta: true });
+    p.credit = clamp(p.credit - step * 2);
+  } else if (p.money > 0 && p.debt === 0) {
+    p.credit = clamp(p.credit + step);
   }
   if (p.military === 'serving' && s.time >= p.militaryUntil) {
     p.military = 'done';
@@ -504,6 +552,14 @@ export function endPeriod(prev: GameState): GameState {
   if (p.fans > 0) p.fans = Math.round(p.fans * (1 - 0.035 * halfYears));
   s.peakFans = Math.max(s.peakFans, p.fans);
   for (const line of bandUpkeep(s, rng, halfYears, fansBefore)) news.push({ text: line, tone: 'neutral', delta: true });
+  // 팬은 활동이 없으면 빠르게, 있어도 조금씩 떠난다 — 큰 변화는 기록에 남긴다
+  const fansStart = (s.flags.fansAtPeriodStart as number) ?? fansBefore;
+  const fd = p.fans - fansStart;
+  if (fansStart >= 50 && Math.abs(fd) >= Math.max(20, fansStart * 0.08)) {
+    const why = fd > 0 ? (p.fans > s.peakFans * 0.98 ? '최고 기록 경신' : '새로 생긴 팬들') : s.flags.hiatus ? '활동 중단' : fansStart > 1000 ? '새 노래가 없으면 잊힌다' : '관심이 식었다';
+    pushFeed(s, { t: s.time, text: `팬 ${fd > 0 ? '+' : ''}${fd.toLocaleString()}명 — ${why}`, tone: fd > 0 ? 'good' : 'bad', kind: 'news' });
+  }
+  s.flags.fansAtPeriodStart = p.fans;
 
   for (let i = 0; i < yearsPassed; i++) {
     const ya = a - (yearsPassed - 1 - i);
@@ -522,7 +578,8 @@ export function endPeriod(prev: GameState): GameState {
     news.push(...s.lastResults.splice(before));
     closeLedger(s, Math.floor(s.time) - (yearsPassed - 1 - i) - 1, Math.floor(ya) - 1, t);
     if (ya >= 20 && (ya >= 40 || p.stats.health < 25)) {
-      const q = annualDeathProb(ya, p.stats.health, p.habits.smokeYears);
+      // 기대수명 차이만큼 나이를 옮겨 그 나라의 생명표처럼 [근사]
+      const q = annualDeathProb(ya + (83.5 - countryOf(p.country).lifeExp), p.stats.health, p.habits.smokeYears);
       if (rng.chance(q) || ya >= 104) {
         p.alive = false;
         p.deathAge = Math.floor(ya);
@@ -542,7 +599,13 @@ export function endPeriod(prev: GameState): GameState {
 
   if (!p.alive) {
     chron(s, '마지막 숨. 어딘가에서 내 노래가 흐르고 있었다.', 'big');
-    s.cine.push({ kind: 'death', scene: 'stage_old', kicker: `${p.birthYear + (p.deathAge ?? 0)} · ${p.deathAge}세`, title: '마지막 무대', sub: `${p.name}, ${p.birthYear}–${p.birthYear + (p.deathAge ?? 0)}`, at: s.time });
+    const ce = s.flags.careerEnd as number | undefined;
+    s.cine.push(
+      ce !== undefined
+        ? { kind: 'death', scene: 'home', kicker: `${p.birthYear + (p.deathAge ?? 0)} · ${p.deathAge}세`, title: '에필로그', sub: `${ce}세에 음악을 내려놓고, ${Math.max(0, (p.deathAge ?? ce) - ce)}년을 더 살았다.
+${p.name}, ${p.birthYear}–${p.birthYear + (p.deathAge ?? 0)}`, at: s.time }
+        : { kind: 'death', scene: 'stage_old', kicker: `${p.birthYear + (p.deathAge ?? 0)} · ${p.deathAge}세`, title: '마지막 무대', sub: `${p.name}, ${p.birthYear}–${p.birthYear + (p.deathAge ?? 0)}`, at: s.time },
+    );
     return finish(s);
   }
   s.phase = 'plan';
@@ -626,3 +689,10 @@ function closeLedger(s: GameState, yr: number, ag: number, t: number) {
   }
   s.ledger = { music: 0, cost: 0, other: 0 };
 }
+
+/** 한국에만 있는 제도·문화에 기댄 사건들 (수능·병역·명절·찜질방·광역버스·홍대…) */
+const KOREA_ONLY = new Set(['suneung', 'draft', 'move_out', 'band_boom', 'era_2002', 'life_holiday_nag', 'life_jjimjilbang', 'life_pcbang', 'life_cup_ramen', 'life_school_trip', 'car_survival_show', 'g_showcase']);
+export function isKoreaOnly(id: string) {
+  return KOREA_ONLY.has(id) || /^rg_(seoul|gg|metro|local)_/.test(id);
+}
+export { COUNTRIES };
