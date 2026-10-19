@@ -26,7 +26,7 @@ import { rollFate, rollTalents } from './data/fate';
 import type { Trait } from './types';
 import { narrate, resolvePlan } from './plan';
 import { bandUpkeep } from './bandlife';
-import { eventMinYear, periodText } from './data/anachronism';
+import { eventMinYear, periodText, textMinYear } from './data/anachronism';
 import { historyBetween } from './data/history';
 
 export const SAVE_VERSION = 5;
@@ -211,7 +211,11 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
     const choices = def.choices.map((ch) => {
       const ok = ch.if ? ch.if(c) : true;
       const hint = ch.hint?.(c);
-      return { label: periodText(typeof ch.label === 'function' ? ch.label(c) : ch.label, at, s.player.country), hint: hint ? periodText(hint, at, s.player.country) : hint, disabled: !ok, odds: ok ? ch.odds?.(c) : undefined };
+      const raw = typeof ch.label === 'function' ? ch.label(c) : ch.label;
+      const label = periodText(raw, at, s.player.country);
+      // 선택지 자체가 그 시대에 없던 일이면(예: 1980년의 ‘숏폼에 올린다’) 숨긴다
+      const hidden = !!raw && (!label || textMinYear(raw, s.player.country) > at + 0.5 && !label.trim());
+      return { label, hint: hint ? periodText(hint, at, s.player.country) : hint, disabled: !ok || hidden, hidden, odds: ok && !hidden ? ch.odds?.(c) : undefined };
     });
     if (!choices.some((x) => !x.disabled)) return null;
     return {
@@ -236,7 +240,7 @@ function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if ((s.player.country ?? 'KR') !== 'KR' && isKoreaOnly(def.id)) return false;
   if ((s.player.country ?? 'KR') === 'KR' && def.id.startsWith('ct_')) return false;
   if (s.deckOut?.includes(def.id)) return false;
-  if (s.time < eventMinYear(def) || (def.maxYear !== undefined && s.time > def.maxYear)) return false;
+  if (s.time < eventMinYear(def, s.player.country) || (def.maxYear !== undefined && s.time > def.maxYear)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
   if (def.cooldown && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < def.cooldown) return false;
   const c = new Ctx(s, rng);
@@ -275,10 +279,13 @@ function summarize(lines: ResultLine[]): string | undefined {
 }
 
 function pushFeed(s: GameState, e: FeedEntry) {
-  // 그 시대에 없던 말은 그 시대의 말로
-  const ct = s.player.country ?? 'KR';
-  e.text = periodText(e.text, e.t, ct);
-  if (e.deltas) e.deltas = periodText(e.deltas, e.t, ct);
+  // 그 시대에 없던 말은 그 시대의 말로 (실제 음악사·세상 소식은 원문 그대로)
+  if (e.tone !== 'history' && e.tone !== 'world') {
+    const ct = s.player.country ?? 'KR';
+    e.text = periodText(e.text, e.t, ct);
+    if (e.deltas) e.deltas = periodText(e.deltas, e.t, ct);
+    if (!e.text && !e.deltas) return;
+  }
   s.feed.push(e);
   if (s.feed.length > 400) s.feed.splice(0, s.feed.length - 400);
 }
@@ -332,7 +339,7 @@ export function beginPeriod(prev: GameState): GameState {
   }
   // 그해의 실제 음악 소식 (내 나라 + 세계)
   for (const h of historyBetween(s.time, s.periodEnd, (s.player.country ?? 'KR') as CountryId)) {
-    pushFeed(s, { t: h.y + ((h.m ?? 6) - 0.5) / 12, text: h.text, tone: 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : COUNTRIES[h.c].flag} · ${h.src}`, kind: 'news' });
+    pushFeed(s, { t: h.y + ((h.m ?? 6) - 0.5) / 12, text: h.text, tone: h.kind === 'world' ? 'world' : 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : COUNTRIES[h.c].flag} · ${h.src}`, kind: 'news' });
   }
   for (const line of flavorLines(s, rng)) pushFeed(s, { t: s.time + step * rng.range(0.05, 0.95), text: line, tone: 'flavor', kind: 'flavor' });
   s.feed.sort((a, b) => a.t - b.t);

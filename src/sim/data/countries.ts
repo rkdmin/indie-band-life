@@ -35,7 +35,7 @@ export interface Country {
 
 export const COUNTRIES: Record<CountryId, Country> = {
   KR: {
-    simReach10k: 33,
+    simReach10k: 43,
     id: 'KR', name: '대한민국', flag: '🇰🇷', births: 230_000, lifeExp: 83.5, tfr: 0.72, twinRate: 0.055, immigrantRate: 0.053,
     origins: ['베트남', '중국', '태국', '필리핀', '일본'], marketRank: 7, marketMul: 1.0, wageMul: 1.0, costMul: 1.0, military: true,
     scene: '홍대·합정의 라이브 클럽, 페스티벌로 이어지는 밴드 붐',
@@ -44,7 +44,7 @@ export const COUNTRIES: Record<CountryId, Country> = {
     surnames: [], given: { m: [], f: [] }, westernOrder: false,
   },
   JP: {
-    simReach10k: 44,
+    simReach10k: 53,
     id: 'JP', name: '일본', flag: '🇯🇵', births: 727_000, lifeExp: 84.1, tfr: 1.2, twinRate: 0.02, immigrantRate: 0.03,
     origins: ['중국', '한국', '필리핀', '베트남'], marketRank: 2, marketMul: 1.35, wageMul: 0.95, costMul: 1.0, military: false,
     scene: '시모키타자와·고엔지의 라이브하우스, CD와 투어가 아직 살아 있는 시장',
@@ -55,7 +55,7 @@ export const COUNTRIES: Record<CountryId, Country> = {
     westernOrder: false,
   },
   US: {
-    simReach10k: 43,
+    simReach10k: 64,
     id: 'US', name: '미국', flag: '🇺🇸', births: 3_600_000, lifeExp: 77.5, tfr: 1.62, twinRate: 0.031, immigrantRate: 0.23,
     origins: ['멕시코', '인도', '중국', '필리핀', '엘살바도르'], marketRank: 1, marketMul: 1.6, wageMul: 1.3, costMul: 1.45, military: false,
     scene: '차고에서 시작하는 밴드, 대학가 라디오, 끝없는 투어 밴',
@@ -66,7 +66,7 @@ export const COUNTRIES: Record<CountryId, Country> = {
     westernOrder: true,
   },
   UK: {
-    simReach10k: 53,
+    simReach10k: 43,
     id: 'UK', name: '영국', flag: '🇬🇧', births: 685_000, lifeExp: 81.0, tfr: 1.49, twinRate: 0.015, immigrantRate: 0.3,
     origins: ['인도', '폴란드', '파키스탄', '나이지리아', '루마니아'], marketRank: 3, marketMul: 1.3, wageMul: 1.9, costMul: 1.5, military: false,
     scene: '펍 뒷방 공연장, 음악 언론, 여름 페스티벌 시즌',
@@ -77,7 +77,7 @@ export const COUNTRIES: Record<CountryId, Country> = {
     westernOrder: true,
   },
   DE: {
-    simReach10k: 54,
+    simReach10k: 61,
     id: 'DE', name: '독일', flag: '🇩🇪', births: 693_000, lifeExp: 81.2, tfr: 1.35, twinRate: 0.017, immigrantRate: 0.25,
     origins: ['튀르키예', '폴란드', '시리아', '루마니아', '이탈리아'], marketRank: 4, marketMul: 1.2, wageMul: 1.75, costMul: 1.25, military: false,
     scene: '베를린의 클럽과 스쿼트, 지자체·연방의 탄탄한 예술 지원',

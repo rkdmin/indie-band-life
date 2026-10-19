@@ -255,7 +255,7 @@ export interface PendingRoll {
 export interface FeedEntry {
   t: number;
   text: string;
-  tone: 'good' | 'bad' | 'neutral' | 'big' | 'flavor' | 'history';
+  tone: 'good' | 'bad' | 'neutral' | 'big' | 'flavor' | 'history' | 'world';
   deltas?: string;
   kind?: 'action' | 'event' | 'news' | 'flavor' | 'life';
 }
@@ -282,7 +282,7 @@ export interface ActiveEvent extends PendingEvent {
   title: string;
   text: string;
   scene: SceneId;
-  choices: { label: string; hint?: string; disabled?: boolean; odds?: Odds }[];
+  choices: { label: string; hint?: string; disabled?: boolean; hidden?: boolean; odds?: Odds }[];
   result?: { text: string; lines: ResultLine[]; rolls?: Roll[] };
   pending?: PendingRoll;
   at: number;

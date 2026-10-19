@@ -1,3 +1,5 @@
+import { genreLabel } from '../sim/data/era/genres';
+import { playsText } from '../sim/data/era/media';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, Npc, Song } from '../sim/types';
 import { SKILLS } from '../sim/types';
@@ -74,7 +76,7 @@ export function BandSheet({ s }: { s: GameState }) {
     <>
       {b ? (
         <div className="band-hero">
-          <div className="dim">{GENRE_INFO[b.genre].label} · {b.formedYear}년 결성 · {b.label === 'none' ? '무소속' : b.label === 'indie' ? '인디 레이블' : '대형 기획사'}</div>
+          <div className="dim">{genreLabel(b.genre, s.time, s.player.country)} · {b.formedYear}년 결성 · {b.label === 'none' ? '무소속' : b.label === 'indie' ? '인디 레이블' : '대형 기획사'}</div>
           <h2>{b.name}</h2>
           <div className="row" style={{ marginTop: 8 }}>
             <span className="chip big">팀워크 {Math.round(b.chemistry)}</span>
@@ -87,7 +89,7 @@ export function BandSheet({ s }: { s: GameState }) {
             <Member look={p.look} gender={p.gender} age={s.time - p.birthYear} name={p.name + ' (나)'} inst={INST_LABEL[b.playerInst]} skill={p.skills[b.playerInst]} />
             {b.memberIds.map((id) => {
               const n = s.npcs[id];
-              return n ? <Member key={id} look={n.look} gender={n.gender} age={s.time - n.birthYear} name={n.name} inst={INST_LABEL[n.inst]} skill={n.skill} sat={n.sat ?? 60} genre={GENRE_INFO[n.genre].label} fit={n.genre === b.genre} /> : null;
+              return n ? <Member key={id} look={n.look} gender={n.gender} age={s.time - n.birthYear} name={n.name} inst={INST_LABEL[n.inst]} skill={n.skill} sat={n.sat ?? 60} genre={genreLabel(n.genre, s.time, s.player.country)} fit={n.genre === b.genre} /> : null;
             })}
           </div>
         </div>
@@ -118,7 +120,7 @@ export function BandSheet({ s }: { s: GameState }) {
         <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
           {Object.values(GENRE_INFO).map((g) => (
             <div key={g.id} className="skill-row">
-              <span>{g.label}</span>
+              <span>{genreLabel(g.id, s.time, s.player.country)}</span>
               <div className="bar"><i style={{ width: `${p.genre[g.id]}%`, background: g.color }} /></div>
               <b>{Math.round(p.genre[g.id])}</b>
             </div>
@@ -130,7 +132,7 @@ export function BandSheet({ s }: { s: GameState }) {
           <div className="section-title"><h3>지나간 밴드</h3></div>
           {s.pastBands.map((pb) => (
             <div key={pb.id} className="dim" style={{ marginTop: 6 }}>
-              〈{pb.name}〉 {pb.formedYear}–{pb.endedYear} · {GENRE_INFO[pb.genre].label} · 공연 {pb.gigs}회
+              〈{pb.name}〉 {pb.formedYear}–{pb.endedYear} · {genreLabel(pb.genre, pb.endedYear ?? pb.formedYear, s.player.country)} · 공연 {pb.gigs}회
             </div>
           ))}
         </div>
@@ -185,7 +187,7 @@ export function RecordsSheet({ s }: { s: GameState }) {
           <div style={{ gridColumn: '1 / -1' }}>
             {al.songIds.map((id) => {
               const song = s.songs.find((x) => x.id === id);
-              return song ? <SongRow key={id} song={song} /> : null;
+              return song ? <SongRow key={id} song={song} country={s.player.country} /> : null;
             })}
           </div>
         </div>
@@ -194,7 +196,7 @@ export function RecordsSheet({ s }: { s: GameState }) {
         <div className="card">
           <div className="section-title"><h3>데모 · 미발매</h3><span className="dim">‘녹음·발매’로 세상에 내보내자</span></div>
           {unrel.map((x) => (
-            <SongRow key={x.id} song={x} />
+            <SongRow key={x.id} song={x} country={s.player.country} />
           ))}
         </div>
       )}
@@ -202,7 +204,7 @@ export function RecordsSheet({ s }: { s: GameState }) {
   );
 }
 
-export function SongRow({ song, lyric = true }: { song: Song; lyric?: boolean }) {
+export function SongRow({ song, lyric = true, country }: { song: Song; lyric?: boolean; country?: string }) {
   const [, force] = useState(0);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -232,7 +234,7 @@ export function SongRow({ song, lyric = true }: { song: Song; lyric?: boolean })
           {song.title} {song.hit && <span className="chip big">{song.revival ? '역주행' : 'HIT'}{song.peak ? ` ${song.peak}위` : ''}</span>}
         </div>
         <div className="m">
-          {GENRE_INFO[song.genre].label} · {MOOD_LABEL[song.mood]} · {song.theme} · {song.writtenAge}세{song.released ? ` · ${count(song.streams)}회 재생` : ''}
+          {genreLabel(song.genre, song.releasedYear ?? song.writtenYear, (country ?? 'KR') as CountryId)} · {MOOD_LABEL[song.mood]} · {song.theme} · {song.writtenAge}세{song.released ? ` · ${playsText(song.streams, song.releasedYear, (country ?? 'KR') as CountryId, count)}` : ''}
         </div>
         {playing && lyric && <div className="lyric">{song.lyric.join('\n')}</div>}
       </div>

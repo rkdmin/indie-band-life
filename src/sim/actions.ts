@@ -308,6 +308,18 @@ export const ACTIONS: ActionDef[] = [
     },
   },
   {
+    // SNS 이전 시대의 홍보: 전봇대·클럽 게시판·레코드 가게 유리문
+    id: 'flyer', label: '포스터 붙이기', emoji: '🧷', scene: 'street', energy: 10,
+    desc: (c) => `인쇄비 ${Math.round(c.krw(60000) / 10000) || 1}만원. 전봇대와 레코드 가게 유리문에 공연 포스터를.`,
+    when: (c) => c.age >= 16 && free(c) && c.s.time < 2010 && !!c.band,
+    run: (c) => {
+      c.money(-c.krw(60000), '포스터 인쇄');
+      c.inc('promo');
+      c.fans(Math.round(8 + c.p.fans * 0.015));
+      c.line('다음 발매 화력 +15%', 'good');
+    },
+  },
+  {
     id: 'network', label: '뒤풀이·인맥', emoji: '🍻', scene: 'pub', energy: 14,
     desc: () => '공연 끝난 클럽 뒤풀이. 사람이 곧 기회다.',
     when: (c) => c.age >= 19 && free(c) && c.age < 70,

@@ -1,11 +1,12 @@
 // 실시간으로 흘러가는 인생 화면.
 // 시계는 화면에만 있고, 엔진은 시기(period) 단위로 계산한다. 시계가 사건·연출·시기 끝에 닿으면 멈추고 엔진을 부른다.
 
+import { genreLabel } from '../sim/data/era/genres';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedEntry, GameState, SceneId } from '../sim/types';
 import { autoChoose, beginPeriod, canRetire, choose, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
 import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
-import { GENRE_INFO, INST_LABEL, minWage } from '../sim/data/world';
+import { INST_LABEL, minWage } from '../sim/data/world';
 import { ARTIST_SURVEY, facts } from '../sim/data/reality';
 import { countryOf } from '../sim/data/countries';
 import { count, won } from '../sim/korean';
@@ -423,7 +424,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
             <dt>출생</dt><dd>{p.birthYear} · {countryOf(p.country).flag} {countryOf(p.country).regions[p.region]}</dd>
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
             <dt>작곡</dt><dd>{Math.round(p.skills.compose)}</dd>
-            <dt>밴드</dt><dd>{s.band ? `〈${s.band.name}〉 ${GENRE_INFO[s.band.genre].label}` : '—'}</dd>
+            <dt>밴드</dt><dd>{s.band ? `〈${s.band.name}〉 ${genreLabel(s.band.genre, s.time, s.player.country)}` : '—'}</dd>
             {p.traits?.length > 0 && <><dt>성격</dt><dd>{p.traits.map((t) => TRAIT_LABEL[t]).join(' · ')}</dd></>}
           </dl>
         </div>
@@ -499,8 +500,8 @@ function PlanSheet({ s, onClose, onSave }: { s: GameState; onClose: () => void; 
       <div className="picker-grid">
         {opts.map(({ def, locked }) => (
           <button key={def.id} className={`pick ${!auto && sel.includes(def.id) ? 'on' : ''}`} disabled={!!locked} onClick={() => toggle(def.id)}>
-            {def.label}
-            <small>{locked ? `🔒 ${locked}` : def.desc(c)}</small>
+            {periodText(def.label, s.time, s.player.country)}
+            <small>{periodText(locked ? `🔒 ${locked}` : def.desc(c), s.time, s.player.country)}</small>
           </button>
         ))}
       </div>
@@ -595,7 +596,7 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   if (!res)
     return (
       <div className="choices">
-        {ev.choices.map((ch, i) => (
+        {ev.choices.map((ch, i) => ch.hidden ? null : (
           <button key={i} className="choice" disabled={ch.disabled} onClick={(e) => { e.stopPropagation(); sfx('tap'); onChoose(i); }}>
             <span className="num">{i + 1}</span>
             <span>

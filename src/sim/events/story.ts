@@ -5,6 +5,9 @@ import type { Ctx } from '../ctx';
 import type { Genre, Inst } from '../types';
 import { GENRES } from '../types';
 import { GENRE_INFO, INST_LABEL, REGIONS, VENUES, eraOf, serviceYears } from '../data/world';
+import { GENRE_ERAS, genreLabel } from '../data/era/genres';
+import { hasMedia } from '../data/era/media';
+import type { CountryId } from '../data/countries';
 import { actionById, addWalkIn, disband, formBand, playGig } from '../actions';
 import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
@@ -136,16 +139,20 @@ export const STORY: EventDef[] = [
   {
     id: 'first_live', scene: 'club', title: '인생을 바꾼 무대', priority: 160, once: true, chance: 0.8,
     when: (c) => between(c, 14, 16),
-    text: (c) => `${c.year}년. 우연히 본 한 밴드의 라이브 영상.\n심장이 앰프처럼 울렸다. 그 장르는…`,
+    text: (c) => {
+      const ct = (c.p.country ?? 'KR') as CountryId;
+      const how = hasMedia('youtube', c.year, ct) ? '우연히 본 한 밴드의 라이브 영상' : hasMedia('tv', c.year, ct) && c.rng.chance(0.5) ? '우연히 TV에서 본 한 밴드의 공연 실황' : '라디오에서 우연히 들은 한 밴드의 노래';
+      return `${c.year}년. ${how}.\n심장이 앰프처럼 울렸다. 그 장르는…`;
+    },
     choices: GENRES.map((g: Genre) => ({
-      label: `${GENRE_INFO[g].label} — ${GENRE_INFO[g].desc.split('.')[0]}`,
+      label: (c: Ctx) => `${genreLabel(g, c.year, c.p.country)} — ${GENRE_ERAS[g].pitch}`,
       run: (c: Ctx) => {
         c.genre(g, 22);
         c.set('firstLove', g);
         c.stat('happiness', 6);
         c.chron(`${GENRE_INFO[g].label}에 빠졌다. 인생의 장르가 정해졌다`, 'music');
         if (!c.p.mainInst) c.setInst(g === 'folk' ? 'guitar' : g === 'indiepop' ? 'vocal' : g === 'metal' ? 'drums' : 'guitar');
-        return `그날 밤, 잠들지 못하고 ${GENRE_INFO[g].label} 영상을 새벽까지 돌려 봤다.`;
+        return hasMedia('youtube', c.year, (c.p.country ?? 'KR') as CountryId) ? `그날 밤, 잠들지 못하고 ${GENRE_INFO[g].label} 영상을 새벽까지 돌려 봤다.` : `그날 밤, 잠들지 못하고 그 노래를 머릿속으로 몇 번이고 되감았다.`;
       },
     })),
   },

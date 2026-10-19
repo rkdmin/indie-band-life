@@ -1,5 +1,7 @@
 // 엔딩: 신문 부고면처럼. 일생을 한 문단으로, 대표곡을 틀어 두고.
 
+import { genreLabel } from '../sim/data/era/genres';
+import { sharedStages } from '../sim/events/acts';
 import { useEffect, useMemo, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { GameState } from '../sim/types';
@@ -8,7 +10,7 @@ import { drawPerson } from '../art/pixel';
 import { ENDINGS } from '../sim/endings';
 import { biography } from '../sim/bio';
 import { rarityText } from '../sim/data/fate';
-import { GENRE_INFO, INST_LABEL } from '../sim/data/world';
+import { INST_LABEL } from '../sim/data/world';
 import { count } from '../sim/korean';
 import { playSong, sfx, stopBgm, stopSong } from '../audio/player';
 import { ChronicleSheet, SongRow } from './Sheets';
@@ -103,7 +105,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
             <h1 className="liner-album">{e.title.replace(/^\S+ /, '')}</h1>
             <div className="liner-sub">{e.subtitle}</div>
             <div className="liner-years">
-              {s.player.birthYear} – {s.player.birthYear + deathAge} · {deathAge}세{genre ? ` · ${GENRE_INFO[genre].label}` : ''}
+              {s.player.birthYear} – {s.player.birthYear + deathAge} · {deathAge}세{genre ? ` · ${genreLabel(genre, s.band?.formedYear ?? s.pastBands[0]?.formedYear ?? s.time, s.player.country)}` : ''}
             </div>
             {s.player.rarityLog > 0 && <div className="liner-rarity">약 {rarityText(s.player.rarityLog)}의 확률로 태어난 인생</div>}
             {s.player.fate?.draws?.length > 0 && (
@@ -141,6 +143,21 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
             </div>
           </section>
         )}
+        {sharedStages(s.flags).length > 0 && (
+          <section className="liner-sec">
+            <h4>SHARED STAGES — 같은 무대에 섰던 밴드들</h4>
+            <div className="credits">
+              {sharedStages(s.flags).map((x, i) => (
+                <div key={i}>
+                  <b>{x.year}</b>
+                  <span>
+                    {x.acts} <span className="dim">· {x.where}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         <section className="liner-sec">
           <h4>NOTES</h4>
           <p className="liner-notes">{bio}</p>
@@ -172,7 +189,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
               <div className="lyric">{best.lyric.join('\n')}</div>
             </div>
           </div>
-          <SongRow song={best} lyric={false} />
+          <SongRow song={best} lyric={false} country={s.player.country} />
         </div>
       )}
 

@@ -6,6 +6,8 @@ import type { Rng } from './rng';
 import { age } from './state';
 import { given, josa } from './korean';
 import { textMinYear } from './data/anachronism';
+import { eraLines } from './data/era/life';
+import type { CountryId } from './data/countries';
 
 type Flavor = { when: (s: GameState, a: number) => boolean; lines: string[] };
 
@@ -38,11 +40,13 @@ const FRIEND_LINES: ((f: string) => string)[] = [
 
 export function flavorLines(s: GameState, rng: Rng): string[] {
   const a = age(s);
-  const pool = FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines).filter((l) => textMinYear(l) <= s.time);
+  const pool = FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines).filter((l) => textMinYear(l, s.player.country) <= s.time);
   const out: string[] = [];
   const n = a < 7 ? 2 : rng.chance(0.6) ? 2 : 1;
-  for (let i = 0; i < n && pool.length; i++) {
-    const line = rng.pick(pool);
+  // 그 시대·그 나라에서만 자연스러운 순간 (data/era/life.ts) 이 있으면 자주 섞는다
+  const era = eraLines(s.time, a, (s.player.country ?? 'KR') as CountryId, !!s.band);
+  for (let i = 0; i < n && (pool.length || era.length); i++) {
+    const line = era.length && (rng.chance(0.4) || !pool.length) ? rng.pick(era) : rng.pick(pool);
     if (!out.includes(line)) out.push(line);
   }
   if (a >= 13 && rng.chance(0.25)) {

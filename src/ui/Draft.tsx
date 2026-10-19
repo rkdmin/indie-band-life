@@ -1,8 +1,9 @@
 // 멤버 고르기 카드. 인연과 우연이 섞인 후보 3~4장 중 한 명에게 영입을 제안한다 (제안하면 d20 영입 판정).
 
+import { genreLabel } from '../sim/data/era/genres';
 import type { GameState } from '../sim/types';
 import { Portrait } from '../art/Portrait';
-import { GENRE_INFO, INST_LABEL } from '../sim/data/world';
+import { INST_LABEL } from '../sim/data/world';
 import { TRAIT_LABEL, npcAge } from '../sim/npc';
 import { sfx } from '../audio/player';
 
@@ -43,7 +44,7 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
                   ))}
                 </span>
                 <span className={`mcard-fit ${fit ? 'good' : 'bad'}`}>
-                  {GENRE_INFO[npc.genre].label} {fit ? '· 장르 궁합 ◎' : `· 우리는 ${band ? GENRE_INFO[band.genre].label : ''}`}
+                  {genreLabel(npc.genre, s.time, s.player.country)} {fit ? '· 장르 궁합 ◎' : `· 우리는 ${band ? genreLabel(band.genre, s.time, s.player.country) : ''}`}
                 </span>
                 <span className="mcard-how">
                   {npc.metAge}살 · {npc.metAt}

@@ -10,6 +10,19 @@ import { GENRE_INFO, VENUES } from '../data/world';
 import { HISTORY, activeWave, historyBetween, type HistoryItem } from '../data/history';
 import type { CountryId } from '../data/countries';
 import { playGig } from '../actions';
+import { BILLS } from '../data/era/acts';
+
+const ONE_OFF = new Set(['대학가요제', '부도칸 공연', '라이브 에이드', '우드스톡']);
+
+/** 올해 내 나라에서 처음 열린 페스티벌 — 라인업 데이터가 있는 회차는 a_fest_bill 이, 대학가요제는 h_kr_campus 가 맡는다 */
+function firstFest(c: Ctx): HistoryItem | undefined {
+  const k = (c.p.country ?? 'KR') as CountryId;
+  return HISTORY.find(
+    (h) =>
+      h.kind === 'festival' && !!h.name && h.c === k && Math.floor(c.year) === h.y && !c.flag(`fest:${h.name}`) &&
+      !ONE_OFF.has(h.name) && !HISTORY.some((o) => o.name === h.name && o.y < h.y) && !BILLS.some((b) => b.c === h.c && b.y === h.y),
+  );
+}
 import { clamp } from '../rng';
 import { josa } from '../korean';
 
@@ -27,6 +40,10 @@ function listenPlace(y: number): string {
   return '스트리밍 추천 목록';
 }
 
+function influences(c: Ctx): HistoryItem[] {
+  return historyBetween(c.year - 1.5, c.year + 0.01, (c.p.country ?? 'KR') as CountryId).filter((h) => h.kind === 'release' && h.who && h.genre && !c.flag(`heard:${h.y}:${h.who}`));
+}
+
 function bestSong(c: Ctx) {
   return Math.max(0, ...c.s.songs.map((x) => x.quality));
 }
@@ -35,7 +52,7 @@ export const HISTORY_EVENTS: EventDef[] = [
   // ───────── 영향: 그 해의 명반 ─────────
   {
     id: 'h_influence', scene: 'home', title: (c) => `${item(c).y}년, 그 음반`, cooldown: 2, chance: 0.45,
-    when: (c) => c.age >= 9 && c.age < 32 && !busy(c),
+    when: (c) => c.age >= 9 && c.age < 32 && !busy(c) && influences(c).length > 0,
     bind: (c) => {
       const hits = historyBetween(c.year - 1.5, c.year + 0.01, ct(c)).filter((h) => h.kind === 'release' && h.who && h.genre && !c.flag(`heard:${keyOf(h)}`));
       if (!hits.length) return false;
@@ -157,9 +174,9 @@ export const HISTORY_EVENTS: EventDef[] = [
   // ───────── 현장: 처음 열린 페스티벌 ─────────
   {
     id: 'h_first_fest', scene: 'festival', title: (c) => `제1회 ${item(c).name}`, priority: 125, chance: 0.8, cooldown: 1,
-    when: (c) => c.age >= 15 && c.age < 50 && !busy(c),
+    when: (c) => c.age >= 15 && c.age < 50 && !busy(c) && !!firstFest(c),
     bind: (c) => {
-      const f = HISTORY.find((h) => h.kind === 'festival' && h.name && h.c === ct(c) && Math.floor(c.year) === h.y && !c.flag(`fest:${h.name}`));
+      const f = firstFest(c);
       if (!f) return false;
       c.vars.h = HISTORY.indexOf(f);
       return true;
@@ -261,6 +278,8 @@ export const HISTORY_EVENTS: EventDef[] = [
             c.fans(big ? 8000 : 1500);
             c.rep(big ? 10 : 5);
             c.chron(`${c.year}년 대학가요제 입상`, 'big');
+            const champ = HISTORY.find((h) => h.name === '대학가요제' && h.y === Math.floor(c.year) && h.c === 'KR');
+            if (champ) c.line(`그해 ${champ.text.replace(/^제\d+회 [^.]*\. /, '')}`, 'neutral');
             return big ? '다음 날부터 라디오에서 우리 노래가 나왔다. 동네 레코드 가게 주인이 알아봤다.' : '입상. 학교 게시판에 이름이 붙었다.';
           }
           c.skill('stage', 2);
