@@ -41,7 +41,7 @@ export const TERMS: Term[] = [
   ...(termsJson.data as TermJson[]).map((t) => ({
     re: new RegExp(t.pattern, 'g'),
     y: t.y,
-    yBy: t.media ? MEDIA[t.media].from : undefined,
+    yBy: t.media ? MEDIA[t.media].from : (t as { yBy?: Term["yBy"] }).yBy,
     only: t.only,
     old: t.old,
     intl: t.intl,

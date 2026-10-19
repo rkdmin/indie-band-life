@@ -19,6 +19,7 @@ import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
 import { computeEnding } from './endings';
 import { won } from './korean';
+import ALLOWANCE from '../data/fate/allowance.json';
 import { flavorLines } from './flavor';
 import { COUNTRIES, countryBirthShare, countryOf, type CountryId } from './data/countries';
 import { withFamilyName } from './korean';
@@ -88,7 +89,8 @@ export function newGame(o: NewGameOptions): GameState {
       genre,
       stats: { happiness: 65, stress: 20, health: 72, energy: 80 },
       // 1990년 이전 출생은 그 시절 물가로 줄인다
-      money: Math.round((income === 'high' ? 3_000_000 : income === 'mid' ? 1_000_000 : 300_000) * Math.min(1, priceIndex(o.birthYear) / priceIndex(1990))),
+      // 갓난아기에게 통장은 없다 — 일곱 살부터 용돈, 열아홉 살에 부모님이 모아 둔 돈 (data/fate/allowance.json)
+      money: 0,
       fans: 0,
       globalFans: 0,
       inspiration: 1,
@@ -234,23 +236,33 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
     if (def.queued && def.bind && Object.keys(bind).length === 0 && !def.bind(c)) return null;
     const choices = def.choices.map((ch) => {
       const ok = ch.if ? ch.if(c) : true;
+      // 고를 수 없는 이유: 직접 적은 조건(실력·외모…) 먼저, 그다음 돈
+      const why = ok ? ch.req?.(c) || null : null;
+      const price = ok && !why ? choiceCost(ch, c) : 0;
+      const short = price > 0 && s.player.money < price ? `돈이 부족하다 (필요 ${won(price)} · 통장 ${won(Math.max(0, s.player.money))})` : null;
       const hint = ch.hint?.(c);
       const raw = typeof ch.label === 'function' ? ch.label(c) : ch.label;
       const label = periodText(raw, at, s.player.country);
       // 선택지 자체가 그 시대에 없던 일이면(예: 1980년의 ‘숏폼에 올린다’) 숨긴다
       const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > age(s));
       const card = ch.card?.(c);
+      const lock = why || short || undefined;
       return {
         label,
         hint: hint ? periodText(hint, at, s.player.country) : hint,
-        disabled: !ok || hidden,
+        disabled: !ok || hidden || !!lock,
         hidden,
-        odds: ok && !hidden ? ch.odds?.(c) : undefined,
+        lock,
+        money: !!short && !why,
+        odds: ok && !hidden && !lock ? ch.odds?.(c) : undefined,
         risk: ch.risk,
         range: ch.range?.(c),
         card: card && { ...card, title: periodText(card.title, at, s.player.country), sub: card.sub && periodText(card.sub, at, s.player.country) },
       };
     });
+    // 돈 때문에 모든 길이 막히면(위기 사건 등) 돈 잠금은 풀어 준다 — 빚을 내서라도 고르게
+    if (!choices.some((x) => !x.disabled) && choices.some((x) => x.money)) for (const x of choices) if (x.money) { x.disabled = x.hidden; x.lock = undefined; }
+    for (const x of choices) delete (x as { money?: boolean }).money;
     if (!choices.some((x) => !x.disabled)) return null;
     // ── 선택지를 매번 다르게: 순서를 섞고, 많으면 일부만, 가끔 ‘운에 맡긴다’ ──
     const PASS = /않는다|안 한다|그냥|거절|못 간다|아무도|다음에|지켜본다|넘어간다|둔다$|포기한다/;
@@ -396,8 +408,11 @@ export function beginPeriod(prev: GameState): GameState {
     pushFeed(s, { t: s.time + step * 0.7, text: '무리했다. 몸이 먼저 신호를 보냈다.', tone: 'bad', deltas: '스트레스 +8 · 건강 -1', kind: 'life' });
   }
   // 그해의 실제 음악 소식 (내 나라 + 세계)
+  //  아기·유아의 인생 기록에 ‘○○가 데뷔 앨범을 냈다’가 흐르면 내가 낸 것처럼 읽힌다 — 음악 소식은 열 살부터, 세상 소식은 여섯 살부터
   for (const h of historyBetween(s.time, s.periodEnd, (s.player.country ?? 'KR') as CountryId)) {
-    pushFeed(s, { t: h.y + ((h.m ?? 6) - 0.5) / 12, text: h.text, tone: h.kind === 'world' ? 'world' : 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : COUNTRIES[h.c].flag} · ${h.src}`, kind: 'news' });
+    const at = h.y + ((h.m ?? 6) - 0.5) / 12;
+    if (at - s.player.birthYear < (h.kind === 'world' ? 6 : 10)) continue;
+    pushFeed(s, { t: at, text: h.text, tone: h.kind === 'world' ? 'world' : 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : h.c} · ${h.src}`, kind: 'news' });
   }
   for (const line of flavorLines(s, rng)) pushFeed(s, { t: s.time + step * rng.range(0.05, 0.95), text: line, tone: 'flavor', kind: 'flavor' });
   s.feed.sort((a, b) => a.t - b.t);
@@ -429,6 +444,24 @@ export function openEvent(prev: GameState, at: number): GameState {
 
 export const hasQueuedEvent = (s: GameState) => s.queue.length > 0;
 
+
+// 선택지의 지출 — cost 가 없으면 run 의 앞부분(조건 판정 전)에 있는 첫 지출을 읽는다.
+// 판정 뒤에만 드는 돈(실패하면 수리비 등)은 잠금 기준이 아니다.
+const costCache = new WeakMap<object, number | null>();
+const KRW_RX = /(\w+)\.money\(\s*-\s*\1\.krw\(\s*([0-9_.e]+)\s*\)\s*(?:\/[^,]+)?,/;
+function choiceCost(ch: { run: (c: Ctx) => unknown; cost?: (c: Ctx) => number }, c: Ctx): number {
+  if (ch.cost) return Math.max(0, Math.round(ch.cost(c)));
+  let base = costCache.get(ch);
+  if (base === undefined) {
+    const src = String(ch.run);
+    const m = KRW_RX.exec(src);
+    const gate = src.search(/\bif\s*\(|\?|check\(/);
+    base = m && (gate < 0 || m.index < gate) && !/\/\s*\(/.test(m[0]) ? Number(m[2].replace(/_/g, '')) : null;
+    costCache.set(ch, base);
+  }
+  return base ? c.krw(base) : 0;
+}
+
 export function choose(prev: GameState, idx: number): GameState {
   const s = clone(prev);
   const ev = s.active;
@@ -445,7 +478,7 @@ export function choose(prev: GameState, idx: number): GameState {
   }
   const ch = def.choices[idx];
   const c = new Ctx(s, rng, ev.bind, ev.vars ?? {});
-  if (!ch || (ch.if && !ch.if(c))) return s;
+  if (!ch || (ch.if && !ch.if(c)) || ev.choices[idx]?.disabled) return s;
   // 판정이 있는 선택지는 먼저 주사위만 굴린다 (결과 적용은 resolveRoll)
   if (ch.odds) {
     const o = ch.odds(c);
@@ -630,7 +663,7 @@ export function endPeriod(prev: GameState): GameState {
       p.credit = clamp(p.credit - 6 * step * 2);
       if (p.credit < 35 && !s.flags.delinquent) {
         s.flags.delinquent = s.time;
-        pushFeed(s, { t: s.time, text: '대출 연체 — 신용점수가 떨어졌다. 은행 문자가 하루에 세 번 온다.', tone: 'bad', kind: 'life' });
+        pushFeed(s, { t: s.time, text: '대출 연체 — 신용점수가 떨어졌다. 은행 독촉 전화가 하루에 세 번 온다.', tone: 'bad', kind: 'life' });
       }
     }
   }
@@ -685,6 +718,27 @@ export function endPeriod(prev: GameState): GameState {
     if (p.money > m0) book(s, p.money - m0, '음원 정산');
     news.push(...s.lastResults.splice(before));
     closeLedger(s, Math.floor(s.time) - (yearsPassed - 1 - i) - 1, Math.floor(ya) - 1, t);
+    // 용돈: 일을 하기 전까지 가정 형편·나이·그 해 물가에 맞춰 [근사·가정]
+    {
+      const A = ALLOWANCE.data;
+      const yi = Math.floor(ya);
+      const pi = priceIndex(s.time) * countryOf(p.country).costMul;
+      if (yi >= A.startAge && yi < 19 && (p.job === 'none' || p.job === undefined)) {
+        const band = [...A.monthly].reverse().find(([from]) => yi >= from)!;
+        const ny = (A.newYear as Record<string, number>)[p.country ?? 'KR'] ?? 0;
+        const v = Math.round((band[1] * 12 * A.incomeMul[p.income] + ny * (p.income === 'low' ? 0.6 : 1)) * pi / 1000) * 1000;
+        if (v > 0) {
+          p.money += v;
+          news.push({ text: `용돈 +${won(v)} (1년${ny ? ' · 명절 포함' : ''})`, tone: 'good', delta: true });
+        }
+      }
+      if (yi >= 19 && !s.flags.adultGift) {
+        s.flags.adultGift = true;
+        const g = Math.round(A.adultGift[p.income] * pi / 10000) * 10000;
+        p.money += g;
+        news.push({ text: `부모님이 모아 둔 돈 +${won(g)}`, tone: 'good', delta: true });
+      }
+    }
     if (ya >= 20 && (ya >= 40 || p.stats.health < 25)) {
       // 기대수명 차이만큼 나이를 옮겨 그 나라의 생명표처럼 [근사]
       const q = annualDeathProb(ya + (83.5 - countryOf(p.country).lifeExp), p.stats.health, p.habits.smokeYears);

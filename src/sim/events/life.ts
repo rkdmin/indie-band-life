@@ -94,7 +94,7 @@ export const LIFE: EventDef[] = [
     choices: [
       { label: '먼저 꺼내서 보여 준다', run: (c) => { if (c.p.study >= 50) { c.rel('pa', 6, '성적표를 자랑한 날'); c.stat('happiness', 5); return '저녁 반찬에 계란말이가 하나 더 올라왔다.'; } c.rel('pa', 3); c.stat('stress', 3); return '한숨 한 번, 그리고 “다음엔 잘하자.” 생각보다 짧았다.'; } },
       { label: '“음악 하는 사람은 성적 안 봐.”', run: (c) => { c.rel('pa', -6); c.stat('stress', 5); c.skill(c.p.mainInst ?? 'guitar', 1); return '그날 밤, 방문 너머로 부모님의 낮은 목소리가 오래 들렸다.'; } },
-      { label: '이번 방학엔 학원을 다니겠다고 한다', run: (c) => { c.study(8); c.stat('stress', 6); c.money(-c.krw(200000), '학원비'); c.rel('pa', 4); return '학원 셔틀버스 창가 자리에서, 이어폰으로 연습곡을 들었다.'; } },
+      { label: '이번 방학엔 학원을 다니겠다고 한다', req: (c) => (c.p.income === 'low' ? '학원비가 부담인 걸 안다 — 형편상 어렵다' : null), run: (c) => { c.study(8); c.stat('stress', 6); c.rel('pa', 4); if (c.p.income === 'mid') c.line('학원비 고지서를 보는 엄마의 한숨을 들었다.'); return '학원 셔틀버스 창가 자리에서, 이어폰으로 연습곡을 들었다.'; } },
     ],
   },
   {
@@ -117,6 +117,7 @@ export const LIFE: EventDef[] = [
       { label: '중고 이펙터 페달을 산다', run: (c) => { c.money(-c.krw(80000), '중고 페달'); c.skill('guitar', 3); c.genre('shoegaze', 4); c.stat('happiness', 6); return '발로 밟자마자 소리가 구름처럼 번졌다. 방이 우주가 됐다.'; } },
       { label: '연습용 스틱과 패드를 산다', run: (c) => { c.money(-c.krw(50000), '연습 패드'); c.skill('drums', 4); c.stat('happiness', 4); return '아래층에서 민원이 들어오기 전까지, 일주일은 행복했다.'; } },
       { label: '좋은 이어폰을 산다', run: (c) => { c.money(-c.krw(60000), '이어폰'); c.skill('compose', 2); c.genre('indiepop', 3); return '같은 노래인데 베이스 라인이 처음으로 들렸다.'; } },
+      { label: '저금통은 두고, 부모님께 사 달라고 한다', req: (c) => (c.p.income === 'low' ? '형편이 어려운 걸 안다 — 차마 말을 꺼내지 못했다' : null), run: (c) => { c.skill('guitar', 3); c.stat('happiness', 5); return c.p.income === 'high' ? '“그 정도야 뭐.” 다음 날 택배가 왔다. 저금통은 그대로 남았다.' : '“이번 한 번이다.” 대신 다음 시험은 꼭 잘 봐야 한다.'; } },
       { label: '엄마 생일 선물을 산다', if: (c) => parentAlive(c, 'mom'), run: (c) => { c.money(-c.krw(40000), '선물'); c.stat('happiness', 7); c.theme('family'); return '“이걸 왜 샀어.” 엄마는 그 말을 하면서 세 번이나 웃었다.'; } },
     ],
   },

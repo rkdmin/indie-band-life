@@ -46,3 +46,11 @@
 @keyframes confetti { to { transform: translateY(140px) rotate(540deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .jp-confetti { display: none; } .jackpot, .gcard { animation: none; } }
 .choice.wild { border-style: dashed; background: #fffbe0; }
+
+/* 잠긴 선택지 — 왜 못 고르는지 보여 준다 */
+.choice .lock { display: block; margin-top: 4px; font-family: var(--pixel); font-size: 12px; color: var(--bad); }
+.choice:disabled { opacity: 0.62; background: repeating-linear-gradient(135deg, transparent 0 8px, #00000008 8px 9px), var(--paper2); }
+.choice:disabled .num { color: var(--dim); }
+.gcard:disabled { opacity: 0.55; filter: grayscale(0.7); cursor: not-allowed; position: relative; }
+.gcard-lock { position: absolute; top: 8px; left: 50%; transform: translateX(-50%) rotate(-3deg); z-index: 2; white-space: nowrap; font-family: var(--pixel); font-size: 12px; color: #fff; background: var(--bad); padding: 3px 8px; border-radius: 3px; box-shadow: 2px 2px 0 var(--ink); }
+.gcard { position: relative; }

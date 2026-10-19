@@ -17,7 +17,7 @@ export function RiskTag({ risk }: { risk?: Risk }) {
 export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) => void }) {
   const ev = s.active!;
   const idx = ev.order ?? ev.choices.map((_, i) => i);
-  const items = idx.map((i) => ({ ch: ev.choices[i], i })).filter(({ ch }) => !ch.hidden && !ch.disabled && ch.card);
+  const items = idx.map((i) => ({ ch: ev.choices[i], i })).filter(({ ch }) => !ch.hidden && (!ch.disabled || !!ch.lock) && ch.card);
   const rest = idx.map((i) => ({ ch: ev.choices[i], i })).filter(({ ch }) => !ch.hidden && !ch.disabled && !ch.card);
   useEffect(() => sfx('page'), [ev.id]);
   const armed = useArmed(ev.id, 350);
@@ -34,7 +34,8 @@ export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) 
             const c = ch.card!;
             const pct = ch.odds ? Math.round(ch.odds.p * 100) : null;
             return (
-              <button key={i} className={`gcard gc-${ch.risk ?? 'none'}`} style={{ animationDelay: `${k * 0.1}s` }} onClick={() => { if (!armed) return; sfx('tap'); onChoose(i); }}>
+              <button key={i} className={`gcard gc-${ch.risk ?? 'none'}`} style={{ animationDelay: `${k * 0.1}s` }} disabled={ch.disabled} onClick={() => { if (!armed || ch.disabled) return; sfx('tap'); onChoose(i); }}>
+                {ch.lock && <span className="gcard-lock">🔒 {ch.lock}</span>}
                 <span className="gcard-top">
                   {c.tag && c.tag !== (ch.risk && RISK_LABEL[ch.risk]) && <span className="gcard-tag">{c.tag}</span>}
                   <RiskTag risk={ch.risk} />

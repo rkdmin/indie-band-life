@@ -286,6 +286,10 @@ export interface EventChoice {
   risk?: Risk;
   /** 최선·최악 결과 범위 한 줄 */
   range?: (c: Ctx) => string;
+  /** 지금 고를 수 없는 이유 — 있으면 선택지가 잠긴 채로 보인다 (돈·외모·실력·나이…) */
+  req?: (c: Ctx) => string | null | undefined | false;
+  /** 이 선택에 드는 돈 — 통장보다 크면 ‘돈이 부족하다’로 잠긴다. 없으면 run 의 첫 지출에서 읽는다 */
+  cost?: (c: Ctx) => number;
 }
 
 export interface EventDef {

@@ -628,7 +628,8 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
               {ch.odds && <span className="checktag">[{ch.odds.ability} · 난이도 {ch.odds.dc}]</span>}
               {ch.label}
               {ch.hint && <span className="hint">{ch.hint}</span>}
-              {ch.range && <span className="hint range">{ch.range}</span>}
+              {ch.lock && <span className="lock">🔒 {ch.lock}</span>}
+              {ch.range && !ch.lock && <span className="hint range">{ch.range}</span>}
               {ch.odds && <OddsBar o={ch.odds} />}
             </span>
           </button>
