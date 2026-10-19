@@ -459,7 +459,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
           <div><div className="k">통장</div><div className={`v ${p.money < 0 ? 'neg' : ''}`}>{won(p.money)}</div></div>
           <div><div className="k">팬 (국내{p.globalFans > 0 ? ' · 해외' : ''})</div><div className="v">{count(p.fans)}{p.globalFans > 0 && <span style={{ fontSize: 14 }}> · ✈ {count(p.globalFans)}</span>}</div></div>
           {p.debt > 0 && <div><div className="k">빚 (연 {(p.debtRate * 100).toFixed(1)}%)</div><div className="v neg">{won(p.debt)}</div></div>}
-          <div><div className="k">영감</div><div className="v" style={{ color: 'var(--gold)' }}>{'✦'.repeat(p.inspiration) || '—'}</div></div>
+          <div><div className="k">영감</div><div className="v" style={{ color: 'var(--gold-ink)' }}>{'✦'.repeat(p.inspiration) || '—'}</div></div>
         </div>
       </div>
       <div className="mrz">{mrz}</div>

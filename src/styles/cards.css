@@ -16,13 +16,13 @@
 .gcard-title { font-family: var(--serif); font-size: 20px; line-height: 1.15; }
 .gcard-sub { font-family: var(--hand); font-size: 16px; color: var(--ink2); line-height: 1.2; }
 .gcard-stats { display: grid; gap: 3px; width: 100%; margin-top: 2px; }
-.gcard-stats > span { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; border-bottom: 1px dotted var(--line); padding-bottom: 2px; }
+.gcard-stats > span { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; border-bottom: 1px dotted var(--line); padding-bottom: 2px; }
 .gcard-stats em { font-style: normal; color: var(--sub); }
 .gcard-stats b { font-family: var(--mono); font-weight: 600; text-align: right; }
 .gcard-range { font-size: 12px; font-weight: 700; color: var(--red-ink); line-height: 1.35; }
 .gcard.gc-safe .gcard-range { color: var(--green); }
 .gcard.gc-risky .gcard-range { color: var(--blue); }
-.gcard-data { font-size: 10.5px; color: var(--sub); line-height: 1.35; border-top: 1px dashed var(--line); padding-top: 5px; width: 100%; }
+.gcard-data { font-size: 11px; color: var(--sub); line-height: 1.35; border-top: 1px dashed var(--line); padding-top: 5px; width: 100%; }
 @media (max-width: 520px) { .gdraft .draft-cards { grid-template-columns: 1fr; } .gcard { grid-template-columns: auto 1fr; column-gap: 10px; } .gcard-top, .gcard-stats, .gcard-range, .gcard-data, .mcard-odds, .gcard-sub { grid-column: 1 / -1; } .gcard-icon { font-size: 30px; } }
 
 /* 위험도 태그 */
@@ -99,5 +99,5 @@
 .plan-full { font-family: var(--pixel); font-size: 12px; color: var(--bad); padding: 6px 10px; background: #e2364a14; border-radius: 4px; animation: shake 0.3s; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 .pick { position: relative; }
-.pick-n { position: absolute; top: 6px; right: 8px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-family: var(--pixel); font-size: 11px; background: var(--pink); color: #fff; }
+.pick-n { position: absolute; top: 6px; right: 8px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-family: var(--pixel); font-size: 12px; background: var(--pink); color: #fff; }
 .pick:disabled small { color: var(--bad); }

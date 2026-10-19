@@ -49,7 +49,7 @@
 }
 .tt-needle i::after { content: ''; position: absolute; left: -4px; bottom: -8px; width: 14px; height: 12px; border-radius: 2px; background: #2357e6; }
 .tt-needle.down i, .tt-needle.rest i { transform: rotate(0); }
-.tt-reading { position: absolute; left: 50%; top: 4%; transform: translateX(-50%); font-family: var(--mono); font-size: 13px; color: #fff; background: #0009; padding: 2px 8px; border-radius: 10px; pointer-events: none; }
+.tt-reading { position: absolute; left: 50%; top: 4%; transform: translateX(-50%); font-family: var(--mono); font-size: 12px; color: #fff; background: #0009; padding: 2px 8px; border-radius: 10px; pointer-events: none; }
 .tt-hint { position: absolute; left: 0; right: 0; bottom: -2px; text-align: center; font-family: var(--hand); font-size: 20px; color: #ffe14d; animation: ttBob 2.2s ease-in-out infinite; pointer-events: none; }
 @keyframes ttBob { 50% { transform: translateY(-5px); } }
 .tt-verdict { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font-family: var(--serif); font-size: clamp(38px, 11vw, 64px); letter-spacing: 0.04em; pointer-events: none; animation: ttStamp 0.45s cubic-bezier(.2,1.6,.4,1) both; text-shadow: 0 4px 0 #0008; }
@@ -60,7 +60,7 @@
 @keyframes ttStamp { 0% { transform: translateY(-50%) scale(1.8); opacity: 0; } 100% { transform: translateY(-50%) scale(1); opacity: 1; } }
 @keyframes ttShake { 25%, 75% { margin-left: -8px; } 50% { margin-left: 8px; } }
 
-.tt-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 11.5px; color: #b9b2cc; }
+.tt-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 12px; color: #b9b2cc; }
 .tt-legend .lg::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 .tt-legend .win::before { background: #ff4fa3; }
 .tt-legend .lose::before { background: #ffffff22; }
@@ -68,7 +68,7 @@
 .tt-legend .skip::before { background: #e2364a; }
 
 .tt-mods { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; min-height: 26px; max-width: 520px; }
-.tt-mods .mod { font-family: var(--mono); font-size: 12.5px; padding: 3px 9px; border-radius: 12px; border: 1px solid #ffffff2a; background: #ffffff0a; opacity: 0.55; transition: opacity 0.3s; }
+.tt-mods .mod { font-family: var(--mono); font-size: 12px; padding: 3px 9px; border-radius: 12px; border: 1px solid #ffffff2a; background: #ffffff0a; opacity: 0.55; transition: opacity 0.3s; }
 .tt-mods.show .mod { opacity: 1; }
 .tt-mods .mod.up { color: #7cf0b0; }
 .tt-mods .mod.down { color: #ff9a8a; }

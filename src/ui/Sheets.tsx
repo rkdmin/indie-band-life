@@ -157,7 +157,7 @@ function Member({ look, gender, age, name, inst, skill, sat, genre, fit }: { loo
           <div className="sat" title={`만족도 ${Math.round(sat)}`}>
             <i style={{ width: `${sat}%`, background: sat < 30 ? '#ff6a6a' : sat < 55 ? '#ffd166' : '#73e2c5' }} />
           </div>
-          <div className="dim" style={{ fontSize: 10.5 }}>만족도 {Math.round(sat)}</div>
+          <div className="dim" style={{ fontSize: 11 }}>만족도 {Math.round(sat)}</div>
         </>
       )}
     </div>
