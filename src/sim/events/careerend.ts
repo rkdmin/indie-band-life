@@ -16,6 +16,48 @@ function reasonText(c: Ctx): string {
 
 export const CAREER_END: EventDef[] = [
   {
+    // 현실: 마흔다섯 넘어 팬이 천 명도 안 되면 음악으로 먹고살 길은 사실상 닫힌다 — 취미로 할지, 끝까지 갈지, 내려놓을지
+    id: 'hobby_turn',
+    scene: 'home',
+    title: '음악으로 먹고살 수 있을까',
+    priority: 160,
+    once: true,
+    chance: 0.7,
+    when: (c) => c.age >= 45 && c.age < 80 && c.p.fans < 1500 && !c.flag('hobby') && !c.flag('careerEnd') && (c.band?.label ?? 'none') === 'none' && !!c.p.mainInst,
+    text: (c) => `${c.ageInt}세. 팬은 ${c.p.fans.toLocaleString()}명.\n예술인의 절반이 다른 일을 함께 한다는 통계가 있다. 이 나이에 음악만으로 먹고사는 사람은 훨씬 적다.\n이제 음악을 어떻게 할까?`,
+    choices: [
+      {
+        label: '취미로 한다 — 일은 일대로, 주말엔 밴드',
+        risk: 'safe',
+        run: (c) => {
+          c.set('hobby', c.ageInt);
+          if (c.p.job === 'none') c.p.job = 'part';
+          c.stat('stress', -10);
+          c.stat('happiness', 6);
+          c.chron(`${c.ageInt}세, 음악을 취미로 하기로 했다`, 'life');
+          return '주말 오후 합주실. 돈 걱정 없이 치는 기타가 오랜만에 즐거웠다.';
+        },
+      },
+      {
+        label: '끝까지 전업으로 간다',
+        risk: 'gamble',
+        odds: (c) => c.dc(16, '버티기 판정', [['곡 완성도', c.m(Math.max(0, ...c.s.songs.map((x) => x.quality)))], ['무대', Math.floor(c.m(c.p.skills.stage) / 2)], ['나이', c.age >= 60 ? -3 : c.age >= 52 ? -1 : 0]], '근사', '중년 이후 전업 음악인으로 다시 뜨는 경우는 드물다'),
+        run: (c) => {
+          if (c.check(c.choicesOdds!)) { c.fans(600 + c.p.fans); c.rep(5); c.chron(`${c.ageInt}세, 늦깎이로 다시 주목받았다`, 'big'); return '중년의 목소리가 오히려 사람들을 붙잡았다. 작은 공연장이 다시 찼다.'; }
+          c.set('hobby', c.ageInt);
+          c.stat('stress', 10);
+          c.money(-c.krw(2_000_000), '빚진 생활비');
+          return '1년을 버텼다. 통장은 바닥났고, 결국 낮에는 일을 구했다. 음악은 주말로 옮겨 갔다.';
+        },
+      },
+      {
+        label: '음악을 내려놓는다',
+        risk: 'safe',
+        run: (c) => { c.set('quitMusic'); c.stat('happiness', -4); return '기타를 케이스에 넣고 옷장 위에 올렸다.'; },
+      },
+    ],
+  },
+  {
     id: 'career_end',
     scene: 'stage_old',
     title: '음악 인생의 마지막 페이지',

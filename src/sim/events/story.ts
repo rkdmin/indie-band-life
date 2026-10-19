@@ -12,7 +12,7 @@ import { actionById, addWalkIn, disband, formBand, playGig } from '../actions';
 import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
 import { clamp } from '../rng';
-import { CAREER_LABEL } from '../npc';
+import { careerLabel } from '../npc';
 
 const between = (c: Ctx, a: number, b: number) => c.age >= a && c.age < b;
 const mom = (c: Ctx) => c.s.npcs[c.s.flags.mom as string];
@@ -413,8 +413,8 @@ export const STORY: EventDef[] = [
   },
   // ───────── 발매 갈림길 (곡이 쌓이면) ─────────
   {
-    id: 'release_ready', scene: 'recording', title: '곡이 쌓였다', priority: 118, cooldown: 2, chance: (c) => (unreleased(c.s).length >= 4 ? 0.9 : 0.5),
-    when: (c) => c.age >= 16 && c.p.military !== 'serving' && unreleased(c.s).length >= 2,
+    id: 'release_ready', scene: 'recording', title: '곡이 쌓였다', priority: 118, cooldown: 6, chance: (c) => (unreleased(c.s).length >= 6 ? 0.8 : 0.4),
+    when: (c) => c.age >= 16 && c.p.military !== 'serving' && unreleased(c.s).length >= 3 && c.s.time - Number(c.s.flags.lastRelease ?? -99) >= 2.5,
     text: (c) => {
       const songs = bestUnreleased(c, 7);
       return `노트북 속 데모 폴더에 ${unreleased(c.s).length}곡이 쌓였다.\n제일 자신 있는 건 〈${songs[0].title}〉(완성도 ${songs[0].quality}).\n${c.band && c.band.label !== 'none' ? '레이블이 녹음비를 대 준다.' : `녹음비는 싱글 ${won(c.krw(1_200_000))}, EP ${won(c.krw(4_000_000))}, 정규 ${won(c.krw(9_000_000))}.`}`;
@@ -511,7 +511,7 @@ export const STORY: EventDef[] = [
     bind: (c) => c.bindFrom('f', (n) => (n.career === 'producer' || n.career === 'label') && n.affinity >= 5),
     text: (c) => {
       const n = c.npc('f');
-      return `${n.metAge}살 때 ${n.metAt}에서 만난 ${n.name}. 지금은 ${CAREER_LABEL[n.career]}.\n“너 같은 사람이 필요해. 우리 스튜디오에서 같이 일하자. 신인들 곡도 봐 주고.”`;
+      return `${n.metAge}살 때 ${n.metAt}에서 만난 ${n.name}. 지금은 ${careerLabel(n, c.s.time - n.birthYear)}.\n“너 같은 사람이 필요해. 우리 스튜디오에서 같이 일하자. 신인들 곡도 봐 주고.”`;
     },
     choices: [
       { label: '프로듀서의 길로', run: (c) => { c.p.job = 'producer'; c.set('mentor'); c.skill('compose', 6); c.rel('f', 10, '같이 일하기 시작한 날'); c.chron(`${c.n('f')}의 스튜디오에서 프로듀서로 일하기 시작했다`, 'music', 'f'); return '다른 사람의 첫 곡을 들으며, 내 첫 곡을 떠올렸다.'; } },

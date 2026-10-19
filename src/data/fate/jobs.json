@@ -1,0 +1,113 @@
+{
+  "about": "생계 직업 카드. pay=최저시급 대비 시급 배수 [근사], hours=주당 시간, music=음악에 남는 여력(0~3), need=조건(실력·학업), from/to=그 직업이 흔했던 시대. job=엔진의 직업 분류.",
+  "data": [
+    {
+      "id": "shop",
+      "title": "편의점 야간 알바",
+      "icon": "🏪",
+      "job": "part",
+      "pay": 1.0,
+      "hours": 30,
+      "music": 2,
+      "from": 1989,
+      "to": 2200,
+      "c": ["KR", "JP"],
+      "note": "새벽 계산대에서 가사를 쓴다"
+    },
+    {"id": "store", "title": "동네 가게 점원", "icon": "🛒", "job": "part", "pay": 1.0, "hours": 36, "music": 2, "from": 1900, "to": 2200, "note": "단골들이 공연을 보러 와 준다"},
+    {"id": "news", "title": "신문 배달", "icon": "🗞", "job": "part", "pay": 0.9, "hours": 18, "music": 3, "from": 1900, "to": 2005, "note": "새벽에 끝나니 낮은 전부 음악"},
+    {
+      "id": "rider",
+      "title": "배달 라이더",
+      "icon": "🛵",
+      "job": "part",
+      "pay": 1.4,
+      "hours": 35,
+      "music": 1,
+      "from": 2015,
+      "to": 2200,
+      "note": "건당 수입 — 비 오는 날 많이 번다, 위험하다"
+    },
+    {"id": "factory", "title": "공장 생산직", "icon": "🏭", "job": "office", "pay": 1.3, "hours": 48, "music": 0, "from": 1900, "to": 2200, "note": "안정적이지만 손이 굳는다"},
+    {
+      "id": "office",
+      "title": "사무직 회사원",
+      "icon": "🏢",
+      "job": "office",
+      "pay": 1.6,
+      "hours": 45,
+      "music": 0,
+      "need": {"study": 50},
+      "from": 1900,
+      "to": 2200,
+      "note": "월급날이 있다. 대신 합주는 주말뿐"
+    },
+    {
+      "id": "lesson",
+      "title": "음악 학원 강사",
+      "icon": "🎹",
+      "job": "teacher",
+      "pay": 1.3,
+      "hours": 25,
+      "music": 2,
+      "need": {"skill": 45},
+      "from": 1960,
+      "to": 2200,
+      "note": "가르치면서 기본기가 단단해진다"
+    },
+    {
+      "id": "session",
+      "title": "세션 연주자",
+      "icon": "🎸",
+      "job": "session",
+      "pay": 1.8,
+      "hours": 20,
+      "music": 3,
+      "need": {"skill": 62},
+      "from": 1960,
+      "to": 2200,
+      "note": "남의 음반에서 내 실력을 판다. 일감은 들쭉날쭉"
+    },
+    {
+      "id": "engineer",
+      "title": "녹음실 엔지니어 보조",
+      "icon": "🎚",
+      "job": "producer",
+      "pay": 1.2,
+      "hours": 40,
+      "music": 2,
+      "need": {"compose": 40},
+      "from": 1975,
+      "to": 2200,
+      "note": "녹음 기술이 는다. 밤샘이 잦다"
+    },
+    {
+      "id": "dabang",
+      "title": "음악다방 DJ",
+      "icon": "📀",
+      "job": "part",
+      "pay": 1.0,
+      "hours": 30,
+      "music": 2,
+      "from": 1960,
+      "to": 1990,
+      "c": ["KR"],
+      "note": "신청곡을 걸며 음악을 귀에 담는다"
+    },
+    {
+      "id": "army_club",
+      "title": "미군 클럽 밴드맨",
+      "icon": "🎺",
+      "job": "session",
+      "pay": 2.0,
+      "hours": 30,
+      "music": 3,
+      "need": {"skill": 50},
+      "from": 1957,
+      "to": 1975,
+      "c": ["KR"],
+      "note": "매일 밤 팝 레퍼토리를 연주한다"
+    },
+    {"id": "busker", "title": "거리 공연으로 버티기", "icon": "🪕", "job": "none", "pay": 0.5, "hours": 20, "music": 3, "from": 1900, "to": 2200, "note": "수입은 모자를 열어 봐야 안다"}
+  ]
+}

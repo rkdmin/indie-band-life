@@ -1,0 +1,47 @@
+/* ═══════════ 카드 고르기 · 위험도 · 대박/쪽박 ═══════════ */
+.gcard {
+  position: relative; display: grid; justify-items: start; align-content: start; gap: 6px; text-align: left;
+  padding: 14px 12px 12px; border-radius: 10px; border: 2.5px solid var(--ink); background: var(--card); color: var(--ink);
+  box-shadow: 5px 5px 0 var(--pink); animation: cardDeal 0.45s cubic-bezier(.2,1.4,.4,1) both; transition: transform 0.18s, box-shadow 0.18s;
+}
+.gcard:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: 8px 10px 0 var(--yellow); }
+.gcard.gc-safe { box-shadow: 5px 5px 0 #0f8a6a; }
+.gcard.gc-risky { box-shadow: 5px 5px 0 var(--blue); }
+.gcard.gc-gamble { box-shadow: 5px 5px 0 var(--pink); background: linear-gradient(160deg, #fff7fb, var(--card) 55%); }
+.gcard.gc-gamble::after { content: ''; position: absolute; inset: 0; border-radius: 8px; pointer-events: none; background: repeating-linear-gradient(135deg, transparent 0 14px, #ff4fa30d 14px 16px); }
+@keyframes cardDeal { from { transform: translateY(30px) rotate(4deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.gcard-top { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
+.gcard-tag { font-family: var(--serif); font-size: 13px; padding: 1px 9px; border-radius: 3px; background: var(--yellow); border: 1.5px solid var(--ink); }
+.gcard-icon { font-size: 40px; line-height: 1.1; filter: drop-shadow(2px 2px 0 #0002); }
+.gcard-title { font-family: var(--serif); font-size: 20px; line-height: 1.15; }
+.gcard-sub { font-family: var(--hand); font-size: 16px; color: var(--ink2); line-height: 1.2; }
+.gcard-stats { display: grid; gap: 3px; width: 100%; margin-top: 2px; }
+.gcard-stats > span { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; border-bottom: 1px dotted var(--line); padding-bottom: 2px; }
+.gcard-stats em { font-style: normal; color: var(--sub); }
+.gcard-stats b { font-family: var(--mono); font-weight: 600; text-align: right; }
+.gcard-range { font-size: 12px; font-weight: 700; color: var(--red-ink); line-height: 1.35; }
+.gcard.gc-safe .gcard-range { color: var(--green); }
+.gcard.gc-risky .gcard-range { color: var(--blue); }
+.gcard-data { font-size: 10.5px; color: var(--sub); line-height: 1.35; border-top: 1px dashed var(--line); padding-top: 5px; width: 100%; }
+@media (max-width: 520px) { .gdraft .draft-cards { grid-template-columns: 1fr; } .gcard { grid-template-columns: auto 1fr; column-gap: 10px; } .gcard-top, .gcard-stats, .gcard-range, .gcard-data, .mcard-odds, .gcard-sub { grid-column: 1 / -1; } .gcard-icon { font-size: 30px; } }
+
+/* 위험도 태그 */
+.risk { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; padding: 1px 7px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; border: 1.5px solid currentColor; }
+.risk-safe { color: #0f8a6a; }
+.risk-risky { color: var(--blue); }
+.risk-gamble { color: #fff; background: var(--pink); border-color: var(--pink); }
+.hint.range { color: var(--red-ink); font-weight: 600; }
+
+/* 대박·쪽박 */
+.jackpot { position: relative; display: grid; justify-items: center; gap: 2px; margin: 4px 0 12px; padding: 14px 10px; border-radius: 10px; overflow: hidden; animation: jpIn 0.5s cubic-bezier(.2,1.6,.4,1) both; }
+.jackpot-fans, .jackpot-money { background: radial-gradient(circle at 50% 40%, #ffe14d, #ff4fa3 120%); color: #1a1830; box-shadow: 0 0 0 3px #1a1830, 6px 6px 0 var(--blue); }
+.jackpot-bust { background: repeating-linear-gradient(135deg, #2a2236 0 10px, #241d30 10px 20px); color: #ff8a9a; box-shadow: 0 0 0 3px #ff5a6a; animation: jpIn 0.5s both, ttShake 0.4s 0.5s; }
+.jp-label { font-family: var(--serif); font-size: 18px; letter-spacing: 0.1em; }
+.jp-value { font-family: var(--mono); font-weight: 800; font-size: clamp(28px, 8vw, 44px); line-height: 1.05; }
+@keyframes jpIn { from { transform: scale(0.4) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.jp-confetti { position: absolute; inset: 0; pointer-events: none; }
+.jp-confetti i { position: absolute; top: -10px; width: 7px; height: 12px; background: #2357e6; animation: confetti 1.4s ease-in both; }
+.jp-confetti i:nth-child(3n) { background: #fff; }
+.jp-confetti i:nth-child(3n + 1) { background: #1a1830; }
+@keyframes confetti { to { transform: translateY(140px) rotate(540deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .jp-confetti { display: none; } .jackpot, .gcard { animation: none; } }

@@ -166,7 +166,8 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
     newFans += reach * share * 0.035 * qMul * gi.loyalty / songs.length * 1.6;
   }
   // 바이럴은 앨범당 한 번, 가장 좋은 곡만 노린다: 품질·장르 도달력·숏폼 시대
-  const viralP = sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 3.2);
+  // 취미 음악인의 곡이 터질 일은 훨씬 드물다 (홍보·유통이 없다)
+  const viralP = (sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 3.2)) * (s.flags.hobby ? 0.3 : 1);
   const viral = rng.chance(viralP);
   s.lastResults.push({ text: `🎲 ${viralWhere(s)} 입소문 ${Math.max(1, Math.round(viralP * 100))}% → ${viral ? '터졌다' : '불발'}`, tone: viral ? 'big' : 'neutral', delta: true });
   if (viral) {
@@ -185,7 +186,8 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
     p.globalFans += g;
     if (g > 50) s.lastResults.push({ text: `해외 팬 +${count(g)}`, tone: 'good', delta: true });
   }
-  p.fans += newFans;
+  // 취미 음악인의 발매는 지인·단골 중심으로만 퍼진다
+  p.fans += s.flags.hobby && !s.flags.revivalHit ? Math.round(newFans * 0.35) : newFans;
   p.rep = clamp(p.rep + ((avgQ - 40) / 25) * (kind === 'full' ? 3 : kind === 'ep' ? 1.8 : 0.8) * fatigue);
 
   const album: Album = {

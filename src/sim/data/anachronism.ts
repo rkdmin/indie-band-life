@@ -5,6 +5,7 @@
 
 import type { CountryId } from './countries';
 import { TERMS, applies, termYear, type Term } from './era/terms';
+import ageJson from '../../data/era/age_rules.json';
 
 export { TERMS };
 
@@ -73,4 +74,33 @@ export function periodText(text: string, year: number, country?: string): string
     .filter(Boolean)
     .join('\n')
     .trim();
+}
+
+// ── 나이 규칙 (data/era/age_rules.json) ──
+interface AgeRule { re: RegExp; minAge: Record<string, number>; why: string }
+const AGE_RULES: AgeRule[] = (ageJson.data as { pattern: string; minAge: Record<string, number>; why: string }[]).map((r) => ({ re: new RegExp(r.pattern), minAge: r.minAge, why: r.why }));
+
+/** 이 문장이 자연스러운 가장 어린 나이 (술·담배·출입 제한·계약·결혼) */
+export function textMinAge(text: string, country?: string): number {
+  const ct = asCountry(country);
+  let a = 0;
+  for (const r of AGE_RULES) if (r.re.test(text)) a = Math.max(a, r.minAge[ct] ?? 19);
+  return a;
+}
+
+const ageCache = new Map<string, number>();
+/** 사건이 나올 수 있는 가장 어린 나이 — 제목·본문에 술·담배·계약 같은 말이 있으면 */
+export function eventMinAge(def: { id: string; title: unknown; text: unknown }, country?: string): number {
+  const key = `${def.id}:${asCountry(country)}`;
+  const hit = ageCache.get(key);
+  if (hit !== undefined) return hit;
+  const a = textMinAge([def.title, def.text].map((x) => String(x)).join('\n'), country);
+  ageCache.set(key, a);
+  return a;
+}
+
+/** 미성년자에게 어울리지 않는 장면은 바꾼다 */
+export function ageScene<T extends string>(scene: T, age: number): T {
+  if (age < 19 && scene === 'pub') return 'street' as T;
+  return scene;
 }

@@ -74,6 +74,8 @@ export interface Player {
   parentTaste: ParentTaste;
   instrumentAtHome: boolean;
   look: number; // 외형 시드
+  /** 부모에게서 물려받은 외모 (없으면 look 에서 계산) */
+  app?: import('./appearance').Appearance;
   skills: Record<Skill, number>;
   mainInst: Inst | null;
   genre: Record<Genre, number>; // 친숙도 0~100
@@ -121,6 +123,11 @@ export type NpcCareer =
   | 'journalist'
   | 'promoter'
   | 'cafe'
+  | 'factory'
+  | 'farm'
+  | 'shop'
+  | 'driver'
+  | 'pro'
   | 'gone';
 
 export interface Npc {
@@ -282,11 +289,36 @@ export interface ActiveEvent extends PendingEvent {
   title: string;
   text: string;
   scene: SceneId;
-  choices: { label: string; hint?: string; disabled?: boolean; hidden?: boolean; odds?: Odds }[];
-  result?: { text: string; lines: ResultLine[]; rolls?: Roll[] };
+  choices: { label: string; hint?: string; disabled?: boolean; hidden?: boolean; odds?: Odds; card?: CardInfo; risk?: Risk; range?: string }[];
+  /** 선택지를 카드로 펼쳐 보여 준다 */
+  cards?: boolean;
+  kicker?: string;
+  result?: { text: string; lines: ResultLine[]; rolls?: Roll[]; jackpot?: Jackpot };
   pending?: PendingRoll;
   at: number;
   big: boolean;
+}
+
+/** 선택지의 위험도 — 안정(결과가 거의 정해짐) · 모험(오르내림) · 도박(대박 아니면 쪽박) */
+export type Risk = 'safe' | 'risky' | 'gamble';
+
+/** 카드로 보여 줄 선택지 정보 */
+export interface CardInfo {
+  title: string;
+  sub?: string;
+  icon?: string;
+  tag?: string;
+  stats?: [string, string][];
+  /** 근거 데이터 한 줄 (출처 표시) */
+  data?: string;
+  face?: { look: number; gender: 'm' | 'f'; age: number };
+}
+
+/** 결과가 크게 터졌을 때 화면이 축하(또는 위로)하도록 */
+export interface Jackpot {
+  kind: 'fans' | 'money' | 'bust';
+  amount: number;
+  label: string;
 }
 
 export type Phase = 'plan' | 'running' | 'event' | 'ending';

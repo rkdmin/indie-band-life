@@ -84,12 +84,12 @@ function tryJoin(c: Ctx, id: string): string {
     c.chron(`${n.name}, ${INST_LABEL[n.inst]}로 〈${c.band.name}〉 합류`, 'band');
     // 3인조가 될 때까지는 다음 카드를 계속 뽑는다
     const round = Number(c.vars.round ?? 1);
-    if (c.members.length < 2 && round < 4) c.queue(c.vars.src === 'walkin' ? 'pick_member' : 'pick_member', {}, { src: 'more', round: round + 1 });
+    if (c.members.length < 2 && round < 3) c.queue('pick_member', {}, { src: 'more', round: round + 1 });
     return n.affinity >= 50 ? `“네가 하자는데 당연하지.” ${josa(given(n.name), '이/가')} 웃었다.` : '첫 합주 날짜를 잡았다. 새 사람의 소리가 들어오자 곡이 달라졌다.';
   }
   n.affinity = clamp(n.affinity - 3, -100, 100);
   const round = Number(c.vars.round ?? 1);
-  if (c.members.length < 2 && round < 4) c.queue('pick_member', {}, { src: 'more', round: round + 1 });
+  if (c.members.length < 2 && round < 3) c.queue('pick_member', {}, { src: 'more', round: round + 1 });
   return c.pick(['“조금만 생각해 볼게요.” 연락은 오지 않았다.', '“다른 팀 일정이랑 겹쳐서요. 미안해요.”', '“장르가 좀… 저랑은 안 맞는 것 같아요.”']);
 }
 

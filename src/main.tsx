@@ -5,6 +5,10 @@ import { CrashGuard } from './ui/Crash';
 import { initBackButton, isNative } from './platform';
 import './styles.css';
 import './theme.css';
+import './styles/turntable.css';
+import './styles/deck.css';
+import './styles/cards.css';
+import './styles/data.css';
 
 initBackButton();
 

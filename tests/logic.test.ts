@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { newGame, runPeriodAuto } from '../src/sim/engine';
 import type { CountryId } from '../src/sim/data/countries';
 import type { GameState } from '../src/sim/types';
+import { textMinAge } from '../src/sim/data/anachronism';
 
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
 const N = Number(env.LOGIC_N ?? 48);
@@ -57,6 +58,14 @@ describe('논리 모순', () => {
         if (b.formedYear - by < 10) bad.push(`${ct}${by} ${b.formedYear - by}세에 밴드 결성`);
         if (b.endedYear !== null && b.endedYear < b.formedYear) bad.push(`${ct}${by} 밴드가 결성 전에 해체`);
       }
+      // 미성년자의 기록에 술·담배·계약·결혼이 없다
+      for (const e of s.feed) {
+        if (e.tone === 'history' || e.tone === 'world') continue;
+        const ag = e.t - by;
+        if (ag >= 0 && ag < textMinAge(e.text, ct) - 0.5) bad.push(`${ct}${by} ${Math.floor(ag)}세: ${e.text.slice(0, 60)}`);
+      }
+      // 취미로 돌아선 뒤엔 팬이 동네 규모를 크게 넘지 않는다
+      if (s.flags.hobby && !s.flags.revivalHit && !s.songs.some((x) => x.hit && (x.releasedYear ?? 0) - by >= Number(s.flags.hobby)) && p.fans > 5000) bad.push(`${ct}${by} 취미인데 팬 ${p.fans}`);
       // 군 복무는 한국 남성만
       if (p.military === 'done' && (ct !== 'KR' || p.gender !== 'm')) bad.push(`${ct}${by} ${p.gender} 병역`);
       // 음반 형태: CD 이전 시대에 ‘CD’, 카세트 이전에 ‘카세트’가 기록에 남지 않는다 (시대어 사전이 바꿔 둔다)

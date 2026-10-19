@@ -20,7 +20,10 @@ import type { PixelPerson } from '../art/pixel';
 import { playBgm, sfx } from '../audio/player';
 import { Cinematic } from './Cinematic';
 import { OddsBar } from './Odds';
-import { DiceScreen } from './Dice';
+import { TurntableScreen } from './Turntable';
+import { Console, TapeCounter, TapeReels } from './Deck';
+import { CardPick, JackpotBurst, RiskTag } from './Cards';
+import { DataSheet } from './DataSheet';
 import { MemberDraft } from './Draft';
 import { AchievementToast, Coach, GoalsCard, StatPops, feedIcon, useAchievementToasts, useStatPops } from './Juice';
 import { periodText } from '../sim/data/anachronism';
@@ -30,9 +33,11 @@ import { BandSheet, ChronicleSheet, PeopleSheet, RecordsSheet } from './Sheets';
 import { Settings } from './Settings';
 import { useBackButton } from '../platform';
 import type { Meta } from './save';
+import { npcAppearance, playerAppearance } from '../sim/appearance';
+import { charmWord, heightAt } from '../sim/appearance';
 
 type Speed = 0 | 1 | 2 | 4 | 8;
-type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'settings' | 'plan';
+type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'data' | 'settings' | 'plan';
 
 /**
  * 1배속에서 1년이 몇 초인가 — ‘약 1시간’ 설정 기준.
@@ -75,6 +80,8 @@ function peopleFor(s: GameState, id: SceneId, extraIds: string[] = []): PixelPer
     mood: s.player.stats.happiness,
     military: s.player.military === 'serving',
     inst: stageLike ? s.band?.playerInst ?? s.player.mainInst : null,
+    app: playerAppearance({ ...s.player, country: s.player.country }),
+    style: s.band?.genre ?? null,
   };
   if (age(s) < 0) return [];
   const out: PixelPerson[] = [me];
@@ -83,7 +90,7 @@ function peopleFor(s: GameState, id: SceneId, extraIds: string[] = []): PixelPer
   for (const nid of ids) {
     const n = s.npcs[nid];
     if (!n || !n.alive) continue;
-    out.push({ look: n.look, gender: n.gender, age: Math.max(0, s.time - n.birthYear), mood: 50 + n.affinity / 2, inst: stageLike ? n.inst : null });
+    out.push({ look: n.look, gender: n.gender, age: Math.max(0, s.time - n.birthYear), mood: 50 + n.affinity / 2, inst: stageLike ? n.inst : null, app: npcAppearance(n, s.player.country), style: n.inBand ? s.band?.genre ?? n.genre : n.career === 'musician' ? n.genre : null });
   }
   return out;
 }
@@ -250,14 +257,15 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           <div>
             <div className="brand">인디밴드 <em>키우기</em></div>
             <div className="agebig">
-              {a < 0 ? '태아' : Math.floor(a)}
+              {a < 0 ? '태아' : <TapeCounter value={a} />}
               {a >= 0 && <small>세</small>}
             </div>
           </div>
+          <TapeReels s={s} clock={clock} playing={!paused && s.phase === 'running'} />
           <div className="datebar">
             {Math.floor(clock)}년 {month}월 · {SEASON[month - 1]}
             <br />
-            {s.player.military === 'serving' ? '군 복무 중' : STAGE_LABEL[stage]}
+            {s.player.military === 'serving' ? '군 복무 중' : s.flags.hobby ? '취미로 음악' : STAGE_LABEL[stage]}
             {s.band ? ` · 〈${s.band.name}〉` : ''}
           </div>
           <div className="speed" role="group" aria-label="배속">
@@ -311,6 +319,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             <button onClick={() => setTab('band')}>밴드</button>
             <button onClick={() => setTab('records')}>음반<span className="n">{s.songs.length}</span></button>
             <button onClick={() => setTab('chron')}>연대기</button>
+            <button onClick={() => setTab('data')}>데이터</button>
           </nav>
         </div>
         <div className="life-right">
@@ -322,13 +331,14 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             </div>
           </div>
           <div className="pops-anchor"><StatPops pops={pops} /></div>
-          <StatusStrip s={s} />
+          <Console s={s} />
           <Feed entries={visible} birthYear={s.player.birthYear} paused={paused} />
         </div>
       </div>
 
       {!coach && ev && isDraft(ev.id) && !ev.result && !ev.pending && <MemberDraft s={s} onChoose={onChoose} />}
-      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
+      {!coach && ev && ev.cards && !ev.result && !ev.pending && <CardPick s={s} onChoose={onChoose} />}
+      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && !(ev.cards && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
       {!coach && ev && ev.big && (
         <Cinematic
           key={`${ev.id}-${ev.at}`}
@@ -343,7 +353,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
         </Cinematic>
       )}
       {!coach && ev?.pending && (
-        <DiceScreen
+        <TurntableScreen
           key={`${ev.id}-${ev.pending.rerolled ? 'r' : 'f'}`}
           pending={ev.pending}
           inspiration={s.player.inspiration}
@@ -384,6 +394,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
       {tab === 'band' && <Sheet title="밴드 · 실력" onClose={() => setTab(null)}><BandSheet s={s} /></Sheet>}
       {tab === 'records' && <Sheet title="디스코그래피" onClose={() => setTab(null)}><RecordsSheet s={s} /></Sheet>}
       {tab === 'chron' && <Sheet title="연대기 · 음악사" onClose={() => setTab(null)}><ChronicleSheet s={s} /></Sheet>}
+      {tab === 'data' && <Sheet title="데이터로 본 내 인생" onClose={() => setTab(null)}><DataSheet s={s} /></Sheet>}
       {tab === 'settings' && (
         <Sheet title="설정" onClose={() => setTab(null)}>
           <PaceSetting s={s} onChange={commit} />
@@ -416,12 +427,14 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
       </div>
       <div className="idcard-body">
         <div className="portrait">
-          <Portrait person={{ look: p.look, gender: p.gender, age: a, mood: st.happiness, military: p.military === 'serving' }} />
+          <Portrait person={{ look: p.look, gender: p.gender, age: a, mood: st.happiness, military: p.military === 'serving', app: playerAppearance({ ...p, country: p.country }), style: s.band?.genre ?? null }} />
         </div>
         <div>
           <div className="idname">{p.name}</div>
           <dl className="idfields">
             <dt>출생</dt><dd>{p.birthYear} · {countryOf(p.country).flag} {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
+            <dt>외모</dt><dd>{heightAt(playerAppearance({ ...p, country: p.country }), a, p.gender)}cm · {charmWord(playerAppearance({ ...p, country: p.country }).charm)}</dd>
+            {a >= 18 && <><dt>직업</dt><dd>{String(s.flags.jobTitle ?? JOB_LABEL[p.job] ?? '—')}</dd></>}
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
             <dt>작곡</dt><dd>{Math.round(p.skills.compose)}</dd>
             <dt>밴드</dt><dd>{s.band ? `〈${s.band.name}〉 ${genreLabel(s.band.genre, s.time, s.player.country)}` : '—'}</dd>
@@ -557,7 +570,7 @@ function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear:
       <div className="feed-list">
         {rows.map((r, i) =>
           'head' in r ? (
-            <div key={`h${r.head}`} className="entry yearhead"><span>{r.head}</span></div>
+            <div key={`h${r.head}`} className="entry yearhead"><span data-side={parseInt(r.head, 10) < 40 ? 'A' : 'B'}>{r.head}</span></div>
           ) : (
             <div key={r.key} className={`entry ${r.tone} ${r.kind ?? ''}`}>
               <span className="when">{Math.min(12, Math.floor((r.t - Math.floor(r.t)) * 12) + 1)}월</span>
@@ -600,9 +613,11 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
           <button key={i} className="choice" disabled={ch.disabled} onClick={(e) => { e.stopPropagation(); sfx('tap'); onChoose(i); }}>
             <span className="num">{i + 1}</span>
             <span>
+              <RiskTag risk={ch.risk} />
               {ch.odds && <span className="checktag">[{ch.odds.ability} · 난이도 {ch.odds.dc}]</span>}
               {ch.label}
               {ch.hint && <span className="hint">{ch.hint}</span>}
+              {ch.range && <span className="hint range">{ch.range}</span>}
               {ch.odds && <OddsBar o={ch.odds} />}
             </span>
           </button>
@@ -611,6 +626,7 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
     );
   return (
     <div>
+      {revealed && res.jackpot && <JackpotBurst j={res.jackpot} />}
       {revealed && (res.text || notes?.length) && (
         <div className="fork-result">
           {res.text}
@@ -700,45 +716,6 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
 }
 
 // ───────────────────────── 휴대폰용 한 줄 상태 ─────────────────────────
-function StatusStrip({ s }: { s: GameState }) {
-  const st = s.player.stats;
-  const items: [string, number, string, boolean][] = [
-    ['건강', st.health, 'var(--green)', st.health < 35],
-    ['행복', st.happiness, 'var(--gold)', st.happiness < 30],
-    ['스트레스', st.stress, 'var(--bad)', st.stress > 75],
-    ['컨디션', st.energy, 'var(--blue)', st.energy < 25],
-  ];
-  return (
-    <div className="status-strip mobile-only">
-      <div className="ss-bars">
-        {items.map(([l, v, c, warn]) => (
-          <div key={l} className={`ss ${warn ? 'warn' : ''}`}>
-            <span>
-              {l} <b>{Math.round(v)}</b>
-            </span>
-            <div className="bar">
-              <i style={{ width: `${v}%`, background: c }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="ss-money">
-        <span className={s.player.money < 0 ? 'neg' : ''}>{won(s.player.money)}</span>
-        <span>
-          팬 {count(s.player.fans)}
-          {s.player.globalFans > 0 ? ` · ✈${count(s.player.globalFans)}` : ''}
-        </span>
-        <span style={{ color: 'var(--gold)' }}>{'✦'.repeat(s.player.inspiration)}</span>
-      </div>
-      {s.player.debt > 0 && (
-        <div className="ss-debt">
-          빚 {won(s.player.debt)} · 연 {(s.player.debtRate * 100).toFixed(1)}% · 신용 {Math.round(s.player.credit)}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** 사건에 얽힌 사람들 — 대화 상대의 얼굴을 보여 준다 */
 function WhoBar({ s }: { s: GameState }) {
   const ev = s.active!;
@@ -749,7 +726,7 @@ function WhoBar({ s }: { s: GameState }) {
       {ppl.map((n) => (
         <div key={n.id} className="who-p">
           <div className="who-face">
-            <Portrait person={{ look: n.look, gender: n.gender, age: Math.max(0, s.time - n.birthYear), mood: 50 + n.affinity / 2 }} />
+            <Portrait person={{ look: n.look, gender: n.gender, age: Math.max(0, s.time - n.birthYear), mood: 50 + n.affinity / 2, app: npcAppearance(n, s.player.country), style: n.inBand ? s.band?.genre ?? n.genre : null }} />
           </div>
           <div>
             <b>{n.name}</b>
@@ -760,5 +737,7 @@ function WhoBar({ s }: { s: GameState }) {
     </div>
   );
 }
+
+const JOB_LABEL: Record<string, string> = { none: '음악만', part: '아르바이트', office: '회사원', teacher: '음악 강사', producer: '프로듀서', session: '세션 연주자', owner: '가게 사장' };
 
 const isDraft = (id: string) => id === 'pick_member' || id === 'member_walkin';

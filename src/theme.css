@@ -38,7 +38,7 @@ body::before {
 
 /* 제목은 굵은 포스터체 — 판이 살짝 어긋난 리소 인쇄처럼 */
 .logo, .cert-name, .idname, .feed-head h3, .fork h2, .section-title h3, .obit-name, .ending-title, .agebig, .counter b,
-.money-row .v, .numbers b, .rank, .sheet-head h3, .band-hero h2, .dice-ability, .past b, .person .nm, .goal-l, .roll-res, .verdict, .dice-total, .d20-num {
+.money-row .v, .numbers b, .rank, .sheet-head h3, .band-hero h2, .past b, .person .nm, .goal-l, .roll-res, .verdict, .tt-total b {
   font-weight: 400 !important;
   letter-spacing: -0.01em;
 }
@@ -48,7 +48,7 @@ body::before {
 .cine-title { font-weight: 400; text-shadow: 3px 3px 0 #f0378f99, -2px -1px 0 #2357e699, 0 4px 30px #000; }
 
 /* 손글씨 메모 */
-.bio, .lyric, .entry.flavor .what, .person .mem, .epitaph, .hero-cap, .goal-d, .dice-note, .table-hint, .liner-notes {
+.bio, .lyric, .entry.flavor .what, .person .mem, .epitaph, .hero-cap, .goal-d, .tt-note, .tt-hint, .liner-notes {
   font-family: var(--hand) !important;
   font-style: normal !important;
 }
@@ -344,11 +344,6 @@ body::before {
 .crash code { display: block; font-size: 11px; color: var(--dim); background: var(--paper2); padding: 6px 8px; margin: 10px 0 14px; overflow-wrap: anywhere; }
 .crash-actions { display: flex; flex-direction: column; gap: 8px; }
 
-/* 주사위 화면 가독성: 손글씨는 작으면 안 읽힌다, 보정치는 던지기 전에도 흐리게 보여 준다 */
-.table-hint { font-size: 18px; color: #e3c27a; }
-.dice-note { font-size: 17px; color: #d6c8a8; line-height: 1.35; padding: 0 12px; }
-.dice-mods .mod { opacity: 0.5; transform: none; }
-.dice-mods.show .mod { opacity: 1; }
 .entry .deltas.solo { display: inline; margin: 0 0 0 2px; font-size: 12px; }
 .entry.world { margin: 4px 10px; padding: 8px 10px; border: 1.5px dashed var(--ink2); border-radius: 2px; background: #fffdf6; grid-template-columns: 46px 1fr; }
 .entry.world .what::before { content: '그해 세상 소식'; display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--red-ink); margin-bottom: 2px; }

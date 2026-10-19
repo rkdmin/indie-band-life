@@ -398,51 +398,14 @@ canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; display
 .roll.ok { border-color: var(--green); }
 .roll.no { border-color: var(--bad); }
 
-/* ───────── d20 판정 화면 (발더스 게이트식) ───────── */
-.dice-screen { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px 16px; color: #efe6d2; background: radial-gradient(ellipse at 50% 45%, #2b2418 0, #0d0b08 62%, #050403 100%); animation: fade 0.25s both; overflow-y: auto; }
-.dice-top { text-align: center; display: grid; justify-items: center; gap: 6px; }
-.dice-ability { font-family: var(--serif); font-weight: 800; font-size: 22px; letter-spacing: 0.04em; color: #e9c77b; text-shadow: 0 0 18px #e9c77b55; }
-.dc-shield { width: 92px; height: 96px; display: grid; place-content: center; text-align: center; background: linear-gradient(#2e2719, #19150e); border: 2px solid #c9a45c; clip-path: polygon(50% 0, 100% 16%, 100% 62%, 50% 100%, 0 62%, 0 16%); }
-.dc-shield span { font-size: 11px; letter-spacing: 0.2em; color: #c9a45c; }
-.dc-shield b { font-family: var(--serif); font-size: 40px; line-height: 1; color: #fff3d6; }
-.dice-chance { font-family: var(--mono); font-size: 12px; color: #b9ad94; }
-.dice-chance em { color: #9fe0b4; font-style: normal; }
-.dice-row { display: flex; gap: 18px; margin: 10px 0 4px; }
-.dice-table { position: relative; width: min(100%, 640px); height: min(46vh, 380px); border: 1px solid #c9a45c44; border-radius: 10px; background: radial-gradient(ellipse at 50% 40%, #3b2f1c 0, #1d170f 70%); box-shadow: inset 0 0 60px #000a, 0 0 0 6px #0d0a06, 0 0 0 7px #c9a45c33; overflow: hidden; touch-action: none; }
-.table-hint { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; color: #c9a45c; letter-spacing: 0.05em; animation: idleFloat 2.4s ease-in-out infinite; pointer-events: none; }
-.dice-table .verdict { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; }
-.d20 { position: absolute; left: 0; top: 0; filter: drop-shadow(0 6px 16px #000c) drop-shadow(0 0 18px #e9c77b33); will-change: transform; touch-action: none; user-select: none; }
-.d20.grab { cursor: grab; }
-.d20.grab:active { cursor: grabbing; }
-.d20 svg { width: 100%; height: 100%; display: block; }
-.d20-num { font-family: var(--serif); font-weight: 800; font-size: 46px; fill: #fff3d6; }
 @keyframes idleFloat { 50% { transform: translateY(-6px) rotate(3deg); } }
-@keyframes d20spin { 0% { transform: rotate(0) scale(1.05); } 50% { transform: rotate(180deg) scale(0.95); } 100% { transform: rotate(360deg) scale(1.05); } }
-.d20.crit-success { filter: drop-shadow(0 0 30px #ffd76a); }
-.d20.crit-success .d20-num { fill: #ffd76a; }
-.d20.crit-fail { filter: drop-shadow(0 0 30px #ff5a4a); }
-.d20.crit-fail .d20-num { fill: #ff8a7a; }
-.d20.dim { opacity: 0.35; }
 @keyframes pop { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
-.dice-mods { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; min-height: 28px; max-width: 520px; }
-.dice-mods .mod { font-family: var(--mono); font-size: 12.5px; padding: 3px 9px; border-radius: 3px; border: 1px solid #c9a45c55; background: #ffffff08; opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; }
-.dice-mods.show .mod { opacity: 1; transform: none; }
-.dice-mods .mod.up { color: #9fe0b4; }
-.dice-mods .mod.down { color: #ff9a8a; }
-.dice-total { font-family: var(--serif); font-weight: 800; font-size: 30px; color: #fff3d6; opacity: 0; transition: opacity 0.3s; min-height: 1.3em; }
-.dice-total.show { opacity: 1; }
-.dice-total .vs { font-size: 18px; color: #b9ad94; }
 .verdict { font-family: var(--serif); font-weight: 800; font-size: clamp(40px, 11vw, 72px); letter-spacing: 0.06em; animation: stamp 0.45s cubic-bezier(.2,1.6,.4,1) both; }
 .verdict.ok { color: #7fe0a0; text-shadow: 0 0 28px #7fe0a055; }
 .verdict.no { color: #ff7a6a; text-shadow: 0 0 28px #ff7a6a55; }
 .verdict.ok.crit { color: #ffd76a; text-shadow: 0 0 36px #ffd76a88; }
 @keyframes stamp { from { transform: scale(2.2) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
-.dice-note { max-width: 460px; text-align: center; font-size: 13px; color: #b9ad94; font-style: italic; margin: 4px 0; }
-.dice-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
-.dice-screen .btn { background: #efe6d2; color: #14110c; border-color: #efe6d2; box-shadow: none; }
-.dice-screen .btn.primary { background: #c9a45c; border-color: #c9a45c; color: #14110c; }
-.dice-insp { font-size: 12px; color: #8f846f; }
 .checktag { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600; color: #8a6a1c; border: 1px solid #c9a45c88; background: #c9a45c18; padding: 0 6px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 .cine .checktag { color: #e9c77b; border-color: #e9c77b66; background: #e9c77b14; }
 
@@ -496,11 +459,7 @@ canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; display
   .fork h2 { font-size: 23px; }
   .choice { padding: 13px 12px; min-height: 48px; }
   .sheet { max-height: 92vh; }
-  .dice-screen { justify-content: flex-start; padding-top: calc(16px + env(safe-area-inset-top)); gap: 6px; }
-  .dice-table { height: 40vh; }
-  .dc-shield { width: 76px; height: 80px; }
-  .dc-shield b { font-size: 32px; }
-  .cine-text { margin-top: -3vh; padding: 0 16px calc(32px + env(safe-area-inset-bottom)); }
+      .cine-text { margin-top: -3vh; padding: 0 16px calc(32px + env(safe-area-inset-bottom)); }
   .cine-title { font-size: clamp(34px, 11vw, 52px); }
   .cine-sub { font-size: 15px; }
   .cine-frame canvas.pixel { max-height: 52vh; }

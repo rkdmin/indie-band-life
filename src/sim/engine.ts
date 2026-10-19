@@ -6,7 +6,7 @@
 //   phase 'event'   → choose() → proceed() → 다시 'running'
 //   시계가 시기 끝에 닿으면 endPeriod() → 다음 시기 'plan' (또는 'ending')
 
-import type { ActionPick, ActiveEvent, FeedEntry, Odds, PendingRoll, GameState, Gender, Genre, Income, ParentTaste, Region, ResultLine } from './types';
+import type { ActionPick, ActiveEvent, FeedEntry, Jackpot, Odds, PendingRoll, GameState, Gender, Genre, Income, ParentTaste, Region, ResultLine } from './types';
 import { GENRES } from './types';
 import { Rng, clamp, hashStr } from './rng';
 import { Ctx, book, type EventDef } from './ctx';
@@ -26,8 +26,11 @@ import { rollFate, rollTalents } from './data/fate';
 import type { Trait } from './types';
 import { narrate, resolvePlan } from './plan';
 import { bandUpkeep } from './bandlife';
-import { eventMinYear, periodText, textMinYear } from './data/anachronism';
+import { ageScene, eventMinAge, eventMinYear, periodText, textMinAge, textMinYear } from './data/anachronism';
 import { historyBetween } from './data/history';
+import { inheritAppearance, npcAppearance } from './appearance';
+import { parentJobsFor } from './data/fate';
+import type { NpcCareer } from './types';
 
 export const SAVE_VERSION = 5;
 
@@ -143,6 +146,8 @@ export function newGame(o: NewGameOptions): GameState {
   dad.name = withFamilyName(o.name, dad.name); // 아버지의 성을 따른다
   s.flags.mom = mom.id;
   s.flags.dad = dad.id;
+  // 외모는 부모님에게서 물려받는다 (키는 부모 평균으로 회귀)
+  s.player.app = inheritAppearance(s.player.look, o.gender, o.birthYear, o.country, npcAppearance(mom, o.country), npcAppearance(dad, o.country));
 
   // ── 사건 덱: 일반 사건의 약 45%를 이번 인생에서 뺀다 → 인생마다 겪는 일이 달라진다 ──
   s.deckOut = EVENTS.filter((e) => !e.queued && (e.priority ?? 0) < 100 && /^(life_|car_)/.test(e.id) && rng.chance(0.45)).map((e) => e.id);
@@ -183,6 +188,14 @@ export function newGame(o: NewGameOptions): GameState {
   if (fate.younger) s.flags.youngerLeft = fate.younger;
   if (fate.grandparents) s.flags.grandparents = true;
   s.flags.parentJob = fate.parentJob;
+  // 부모님 직업 — 주 수입원은 운명 카드의 직업, 다른 한 분은 그 시대 분포에서
+  {
+    const map: Record<string, NpcCareer> = { office: 'office', pro: 'pro', shop: 'shop', factory: 'factory', farm: 'farm', driver: 'driver' };
+    dad.career = map[fate.parentJob] ?? 'office';
+    const other = rng.weighted(parentJobsFor(o.birthYear), (x) => x[1])!;
+    mom.career = rng.chance(o.birthYear < 1990 ? 0.45 : 0.25) ? 'shop' : map[other[0]] ?? 'office';
+    if (rng.chance(0.5)) [dad.career, mom.career] = [mom.career, dad.career];
+  }
   if (fate.pet) s.flags.pet = 1;
   if (fate.perfectPitch) s.flags.perfectPitch = true;
   if (fate.lefty) s.flags.lefty = true;
@@ -214,8 +227,18 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       const raw = typeof ch.label === 'function' ? ch.label(c) : ch.label;
       const label = periodText(raw, at, s.player.country);
       // 선택지 자체가 그 시대에 없던 일이면(예: 1980년의 ‘숏폼에 올린다’) 숨긴다
-      const hidden = !!raw && (!label || textMinYear(raw, s.player.country) > at + 0.5 && !label.trim());
-      return { label, hint: hint ? periodText(hint, at, s.player.country) : hint, disabled: !ok || hidden, hidden, odds: ok && !hidden ? ch.odds?.(c) : undefined };
+      const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > age(s));
+      const card = ch.card?.(c);
+      return {
+        label,
+        hint: hint ? periodText(hint, at, s.player.country) : hint,
+        disabled: !ok || hidden,
+        hidden,
+        odds: ok && !hidden ? ch.odds?.(c) : undefined,
+        risk: ch.risk,
+        range: ch.range?.(c),
+        card: card && { ...card, title: periodText(card.title, at, s.player.country), sub: card.sub && periodText(card.sub, at, s.player.country) },
+      };
     });
     if (!choices.some((x) => !x.disabled)) return null;
     return {
@@ -224,8 +247,10 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       vars: c.vars,
       title: periodText(evTitle(def, c), at, s.player.country),
       text: periodText(def.text(c), at, s.player.country),
-      scene: typeof def.scene === 'function' ? def.scene(c) : def.scene,
+      scene: ageScene(typeof def.scene === 'function' ? def.scene(c) : def.scene, age(s)),
       choices,
+      cards: def.cards,
+      kicker: def.kicker,
       at,
       big: CINEMATIC.has(id),
     };
@@ -240,6 +265,7 @@ function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if ((s.player.country ?? 'KR') !== 'KR' && isKoreaOnly(def.id)) return false;
   if ((s.player.country ?? 'KR') === 'KR' && def.id.startsWith('ct_')) return false;
   if (s.deckOut?.includes(def.id)) return false;
+  if (age(s) < eventMinAge(def, s.player.country)) return false;
   if (s.time < eventMinYear(def, s.player.country) || (def.maxYear !== undefined && s.time > def.maxYear)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
   if (def.cooldown && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < def.cooldown) return false;
@@ -318,17 +344,19 @@ export function beginPeriod(prev: GameState): GameState {
   const c = new Ctx(s, rng);
   let energyUsed = 0;
   const cineBefore = s.cine.length;
+  // 최근 기록에 나온 문장은 이번에 다시 쓰지 않는다
+  const recent = new Set(s.feed.slice(-80).map((e) => e.text));
   picks.forEach((pick, i) => {
     const def = actionById(pick.id);
     if (!def || !def.when(c) || def.locked?.(c)) return;
     const before = c.lines.length;
     const sayBefore = s.lastResults.length;
-    s.lastScene = def.scene;
+    s.lastScene = ageScene(def.scene, age(s));
     def.run(c, pick.param);
     energyUsed += def.energy;
     const lines = [...c.lines.slice(before), ...s.lastResults.splice(sayBefore)];
     s.lastResults.push(...lines);
-    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), narrate(def.id, rng));
+    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), narrate(def.id, rng, { age: age(s), year: s.time, band: !!s.band, recent }) || undefined);
   });
   for (const cn of s.cine.slice(cineBefore)) cn.at = s.time + step * 0.4;
   s.player.stats.energy = clamp(s.player.stats.energy - energyUsed);
@@ -412,6 +440,17 @@ export function reroll(prev: GameState): GameState {
 }
 
 /** 굴린 결과를 확정하고 선택지를 적용한다 */
+/** 한 번의 선택으로 크게 터졌나 — 팬이 크게 늘거나, 한 달 생활비의 몇 배가 들어오거나 날아갔을 때 */
+function jackpotOf(s: GameState, fans0: number, money0: number): Jackpot | undefined {
+  const df = s.player.fans - fans0;
+  const dm = s.player.money - money0;
+  const month = Math.max(300_000 * priceIndex(s.time), livingCost(s, priceIndex(s.time)) / 6);
+  if (df >= Math.max(1500, fans0 * 0.6)) return { kind: 'fans', amount: df, label: '팬 폭발' };
+  if (dm >= month * 6) return { kind: 'money', amount: dm, label: '대박' };
+  if (dm <= -month * 6) return { kind: 'bust', amount: dm, label: '쪽박' };
+  return undefined;
+}
+
 export function resolveRoll(prev: GameState): GameState {
   const pd = prev.active?.pending;
   if (!pd) return prev;
@@ -428,12 +467,14 @@ function applyChoice(s: GameState, idx: number, pd?: PendingRoll): GameState {
   c.choicesOdds = pd?.odds ?? ch.odds?.(c);
   c.preset = pd ?? null;
   const sayBefore = s.lastResults.length;
+  const fans0 = s.player.fans;
+  const money0 = s.player.money;
   const text = periodText(ch.run(c) || '', ev.at, s.player.country);
   for (const l of c.lines) l.text = periodText(l.text, ev.at, s.player.country);
   c.lines.push(...s.lastResults.splice(sayBefore));
   for (const cn of s.cine.slice(cineBefore)) cn.at = ev.at;
   for (const r of c.rolls) c.lines.push({ text: `🎲 ${r.label} d20(${r.nat2 !== undefined ? `${r.nat}·${r.nat2}` : r.nat})${r.mod >= 0 ? '+' : ''}${r.mod} vs 난이도 ${r.dc} → ${r.crit === 'success' ? '대성공' : r.crit === 'fail' ? '대실패' : r.ok ? '성공' : '실패'}`, tone: r.ok ? 'good' : 'bad', delta: true });
-  s.active = { ...ev, pending: undefined, bind: c.bind, result: { text, lines: c.lines, rolls: c.rolls } };
+  s.active = { ...ev, pending: undefined, bind: c.bind, result: { text, lines: c.lines, rolls: c.rolls, jackpot: jackpotOf(s, fans0, money0) } };
   const label = typeof ch.label === 'function' ? ch.label(c) : ch.label;
   pushFeed(s, { t: ev.at, text: `${ev.title} — ${label}`, tone: ev.big ? 'big' : 'neutral', kind: 'event' });
   linesToFeed(s, c.lines, ev.at + 0.002, text || undefined, 'event');
@@ -516,13 +557,16 @@ export function endPeriod(prev: GameState): GameState {
     p.money -= cost;
     news.push({ text: `생활비 -${won(cost)}`, tone: 'neutral', delta: true });
   }
-  if (p.job === 'office' || p.job === 'teacher' || p.job === 'producer') {
-    const base = { office: 16_000_000, teacher: 15_000_000, producer: 20_000_000 }[p.job] * priceIndex(s.time) * countryOf(p.country).wageMul * halfYears;
+  if (p.job === 'office' || p.job === 'teacher' || p.job === 'producer' || p.job === 'session') {
+    // 세션 일은 들쭉날쭉하다
+    const base = { office: 16_000_000, teacher: 15_000_000, producer: 20_000_000, session: rng.range(6_000_000, 22_000_000) }[p.job] * priceIndex(s.time) * countryOf(p.country).wageMul * halfYears;
     p.money += Math.round(base);
     book(s, Math.round(base), '월급');
     p.stats.stress = clamp(p.stats.stress + (p.job === 'office' ? 6 : 3));
     news.push({ text: `월급 +${won(base)}`, tone: 'good', delta: true });
   }
+  // 취미로 음악을 하면 팬은 동네 단골 규모로 천천히 줄어든다
+  if (s.flags.hobby && !s.flags.revivalHit && p.fans > 300) p.fans = Math.max(300, Math.round(p.fans * 0.9));
   // ── 대출: 이자가 붙고, 여윳돈이 있으면 자동으로 갚는다 ──
   if (p.debt > 0) {
     const interest = Math.round(p.debt * p.debtRate * step);

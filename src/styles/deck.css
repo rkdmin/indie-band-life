@@ -1,0 +1,79 @@
+/* ═══════════ 인생 화면 — 카세트 데크와 믹싱 콘솔 ═══════════ */
+
+/* 나이: 기계식 테이프 카운터 */
+.agebig { display: flex; align-items: flex-end; gap: 4px; text-shadow: none; }
+.counter-digits { display: inline-flex; gap: 2px; padding: 3px; background: #1a1830; border-radius: 4px; box-shadow: inset 0 2px 4px #000a, 2px 2px 0 var(--pink); }
+.counter-digits i {
+  font-style: normal; font-family: var(--mono); font-weight: 700; font-size: 26px; line-height: 1;
+  width: 0.78em; text-align: center; padding: 3px 0 2px; color: #f5f0e6;
+  background: linear-gradient(#2d2a48 0%, #1a1830 48%, #0f0e1f 52%, #23203c 100%); border-radius: 2px;
+}
+.counter-digits i:first-child { color: #9e98bf; }
+@media (max-width: 720px) { .counter-digits i { font-size: 21px; } }
+
+/* 인생 테이프 릴 */
+.reels { width: 104px; flex: none; align-self: center; }
+.reels svg { width: 100%; display: block; }
+.reel-shell { fill: #1a1830; stroke: #ff4fa3; stroke-width: 1.5; }
+.reel-window { fill: #2d2a48; }
+.reel-tape { stroke: #6b4a2f; stroke-width: 1.4; fill: none; }
+.reel-wound { fill: #5a3d27; stroke: #3a2616; stroke-width: 0.6; }
+.reel-hub circle { fill: #f5f0e6; }
+.reel-hub rect { fill: #1a1830; }
+.reel-hub.spin { animation: reelSpin 1.6s linear infinite; }
+@keyframes reelSpin { to { transform: rotate(360deg); } }
+@media (max-width: 720px) { .reels { width: 74px; } }
+@media (prefers-reduced-motion: reduce) { .reel-hub.spin { animation: none; } }
+
+/* 믹싱 콘솔: 페이더 4개 + 숫자판 */
+.console {
+  display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: stretch;
+  padding: 10px 12px; border-radius: 6px;
+  background: linear-gradient(180deg, #24213a, #17152a); color: #f5f0e6;
+  box-shadow: 4px 4px 0 var(--pink), inset 0 1px 0 #ffffff1a;
+}
+.faders { display: grid; grid-template-columns: repeat(4, 44px); gap: 4px; }
+.fader { display: grid; justify-items: center; gap: 4px; }
+.fader b { font-family: var(--mono); font-size: 13px; color: #fff; }
+.fader span { font-size: 10.5px; color: #b9b2cc; white-space: nowrap; }
+.fader.warn b { color: #ff7a8a; animation: warnBlink 1s steps(2) infinite; }
+@keyframes warnBlink { 50% { opacity: 0.35; } }
+.fader .slot { position: relative; width: 8px; height: 72px; border-radius: 4px; background: #0b0a14; box-shadow: inset 0 1px 3px #000; }
+.fader .lvl { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; opacity: 0.85; transition: height 0.5s; }
+.fader .knob { position: absolute; left: -9px; width: 26px; height: 12px; border-radius: 3px; background: linear-gradient(#f5f0e6, #a9a2c2); box-shadow: 0 2px 3px #0008; transition: bottom 0.5s; }
+.fader .knob::after { content: ''; position: absolute; left: 3px; right: 3px; top: 5px; height: 2px; background: #1a1830; }
+.readouts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: center; }
+.ro { background: #0b0a14; border-radius: 4px; padding: 5px 8px; box-shadow: inset 0 1px 3px #000; min-width: 0; }
+.ro span { display: block; font-size: 10px; letter-spacing: 0.1em; color: #8f88a6; }
+.ro b { display: block; font-family: var(--mono); font-size: 15px; color: #7cf0b0; text-shadow: 0 0 6px #7cf0b066; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ro small { font-family: var(--mono); font-size: 10.5px; color: #9fd0ff; }
+.ro.neg b { color: #ff7a8a; text-shadow: 0 0 6px #ff7a8a66; }
+.ro b.insp { color: #ffe14d; text-shadow: 0 0 6px #ffe14d66; letter-spacing: 2px; }
+@media (max-width: 720px) {
+  .console { order: 2; grid-template-columns: 1fr; gap: 8px; padding: 8px 10px; }
+  .faders { grid-template-columns: repeat(4, 1fr); }
+  .fader .slot { width: 100%; height: 6px; }
+  .fader { grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; justify-items: stretch; }
+  .fader b { order: 3; font-size: 12px; }
+  .fader span { order: 1; }
+  .fader .slot { order: 2; }
+  .fader .lvl { top: 0; bottom: 0; height: 100% !important; width: var(--w); }
+  .fader .knob { display: none; }
+  .faders { grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  .readouts { grid-template-columns: repeat(3, 1fr); }
+  .ro b { font-size: 13px; }
+}
+
+/* 인생 기록: 테이프에 붙인 셋리스트 종이 */
+.feed { background: #fffdf7; background-image: repeating-linear-gradient(0deg, transparent 0 27px, #2357e612 27px 28px); position: relative; }
+.feed::before { content: ''; position: absolute; top: -9px; left: 50%; width: 90px; height: 20px; transform: translateX(-50%) rotate(-2deg); background: #ffe14dcc; box-shadow: 0 1px 2px #0002; z-index: 1; }
+.entry.yearhead span::before { content: 'SIDE ' attr(data-side) ' · '; }
+.entry.event .ico { color: var(--pink); }
+.cert-grid .wide { grid-column: 1 / -1; }
+
+/* 초상화는 24×28 도트 — 비율을 지켜 크게 */
+.person .av { width: 54px; height: 63px; flex: none; }
+.mcard-face { width: 72px; height: 84px; }
+.who-face { width: 36px; height: 42px; }
+.mcard-look { font-size: 11.5px; color: var(--ink2); line-height: 1.35; }
+.mcard-job { font-size: 12px; font-weight: 700; color: var(--blue); }

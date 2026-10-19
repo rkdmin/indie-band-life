@@ -1,6 +1,6 @@
 // 이벤트·행동이 상태를 바꿀 때 쓰는 도우미. 모든 변화는 결과 줄(ResultLine)로 남아 화면에 보인다.
 
-import type { ChronicleEntry, GameState, Genre, Inst, Npc, Odds, PendingRoll, ResultLine, Roll, SceneId, Skill, Stats } from './types';
+import type { ChronicleEntry, GameState, Genre, Inst, Npc, Odds, PendingRoll, ResultLine, Roll, SceneId, Skill, Stats, CardInfo, Risk } from './types';
 import { Rng, clamp, prob } from './rng';
 import { addGenre, addSkill, addStat, age, ageInt, chron, flag, mainSkill, setFlag, stageOf, year } from './state';
 import { createNpc, relDelta, remember, type NpcSpec } from './npc';
@@ -158,7 +158,8 @@ export class Ctx {
     return Math.round(base2026 * this.price);
   }
   fans(d: number) {
-    const v = Math.round(d);
+    // 취미로 음악을 하면 새 팬은 잘 늘지 않는다 (동네 단골·지인 위주)
+    const v = Math.round(d > 0 && this.s.flags.hobby && !this.s.flags.revivalHit ? d * 0.35 : d);
     if (!v) return;
     this.p.fans = Math.max(0, this.p.fans + v);
     this.lines.push({ text: `팬 ${v > 0 ? '+' : ''}${count(v)}`, tone: v > 0 ? 'good' : 'bad', delta: true });
@@ -279,6 +280,12 @@ export interface EventChoice {
   odds?: (c: Ctx) => Odds;
   if?: (c: Ctx) => boolean;
   run: (c: Ctx) => string | void;
+  /** 카드로 보여 줄 정보 (EventDef.cards 일 때) */
+  card?: (c: Ctx) => CardInfo;
+  /** 위험도 표시 */
+  risk?: Risk;
+  /** 최선·최악 결과 범위 한 줄 */
+  range?: (c: Ctx) => string;
 }
 
 export interface EventDef {
@@ -299,6 +306,9 @@ export interface EventDef {
   bind?: (c: Ctx) => boolean;
   text: (c: Ctx) => string;
   choices: EventChoice[];
+  /** 선택지를 카드로 펼쳐 보여 준다 */
+  cards?: boolean;
+  kicker?: string;
   /** 이 해보다 이르면 나오지 않는다 (전제가 그 시대에 없던 사건) */
   minYear?: number;
   maxYear?: number;

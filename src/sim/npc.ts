@@ -43,8 +43,23 @@ export const CAREER_LABEL: Record<NpcCareer, string> = {
   journalist: '음악 기자',
   promoter: '공연 기획자',
   cafe: '카페 사장',
+  factory: '공장 기술자',
+  farm: '농어업',
+  shop: '자영업',
+  driver: '운전·물류',
+  pro: '전문직',
   gone: '연락 두절',
 };
+
+/** 나이에 맞는 직업 이름 — 스물넷 넘은 ‘학생’은 직장인, 예순다섯 넘으면 은퇴 */
+export function careerLabel(n: Npc, age: number): string {
+  if (n.career === 'gone') return CAREER_LABEL.gone;
+  if (age < 7) return '아이';
+  if (age >= 65 && n.career !== 'musician') return `은퇴 (전 ${CAREER_LABEL[n.career === 'student' ? 'office' : n.career]})`;
+  if (n.career === 'student' && age >= 24) return '직장인';
+  if (n.career === 'student' && age < 13) return '초등학생';
+  return CAREER_LABEL[n.career];
+}
 
 export interface NpcSpec {
   gender?: Gender;

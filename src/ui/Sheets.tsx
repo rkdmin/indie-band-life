@@ -5,7 +5,7 @@ import type { GameState, Npc, Song } from '../sim/types';
 import { SKILLS } from '../sim/types';
 import { Portrait } from '../art/Portrait';
 import { Cover } from '../art/Cover';
-import { CAREER_LABEL, TRAIT_LABEL, npcAge, relationLabel } from '../sim/npc';
+import { TRAIT_LABEL, careerLabel, npcAge, relationLabel } from '../sim/npc';
 import { GENRE_INFO, INST_LABEL, MOOD_LABEL, SKILL_LABEL } from '../sim/data/world';
 import { count } from '../sim/korean';
 import { getAnalyser, nowPlaying, onPlaybackChange, playSong, renderWav, stopSong } from '../audio/player';
@@ -13,6 +13,7 @@ import { saveFile } from '../platform';
 import { FanGraph } from './FanGraph';
 import { WAVES, historyBetween } from '../sim/data/history';
 import { COUNTRIES, type CountryId } from '../sim/data/countries';
+import { npcAppearance } from '../sim/appearance';
 
 // ───────────────────────── 사람들 ─────────────────────────
 export function PeopleSheet({ s }: { s: GameState }) {
@@ -41,14 +42,14 @@ function PersonRow({ s, n }: { s: GameState; n: Npc }) {
   return (
     <div className="person" style={{ opacity: n.alive ? 1 : 0.5 }}>
       <div className="av">
-        <Portrait person={{ look: n.look, gender: n.gender, age: Math.max(0, a), mood: 50 + n.affinity / 2 }} />
+        <Portrait person={{ look: n.look, gender: n.gender, age: Math.max(0, a), mood: 50 + n.affinity / 2, app: npcAppearance(n, s.player.country), style: n.inBand ? s.band?.genre ?? n.genre : n.career === 'musician' ? n.genre : null }} />
       </div>
       <div>
         <div className="nm">
           {n.name} {!n.alive && '🕊️'} <span className="chip">{relationLabel(n)}</span>
         </div>
         <div className="meta">
-          {a}세 · {n.role === 'parent' ? '가족' : `${INST_LABEL[n.inst]} ${Math.round(n.skill)}`} · {CAREER_LABEL[n.career]}
+          {a}세 · {n.role === 'parent' ? '가족' : `${INST_LABEL[n.inst]} ${Math.round(n.skill)}`} · {careerLabel(n, a)}
           <br />
           {n.metAge}세 때 {n.metAt}에서 · {n.traits.map((t) => TRAIT_LABEL[t]).join(', ')}
         </div>

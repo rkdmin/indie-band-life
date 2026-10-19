@@ -8,6 +8,7 @@ import { Rng } from './rng';
 import { ACTIONS, availableActions, venuesFor } from './actions';
 import { actionSlots, age, favoriteGenre } from './state';
 import { availableThemes } from './songs';
+import narrationJson from '../data/text/narration.json';
 
 /** 계획에 넣을 수 없는 행동 (발매는 ‘곡이 쌓였을 때’ 갈림길로 묻는다) */
 export const PLAN_EXCLUDED = new Set(['release']);
@@ -90,32 +91,14 @@ function autoParam(s: GameState, c: Ctx, kind: string | undefined, rng: Rng): st
 }
 
 /** 계획 행동을 이야기 문장으로 */
-const NARR: Record<string, string[]> = {
-  play: ['친구들과 해가 질 때까지 놀았다.', '놀이터와 떡볶이집을 오가며 계절을 보냈다.'],
-  lesson: ['음악 학원을 꾸준히 다녔다.', '학원 연습실에서 같은 마디를 백 번 반복했다.'],
-  listen: ['라디오와 플레이리스트에 귀를 기울였다.', '형 누나들의 음악을 몰래 훔쳐 들었다.'],
-  study: ['책상 앞에 앉아 시간을 보냈다.', '문제집 한 권을 끝냈다.'],
-  sports: ['운동으로 땀을 흘렸다.', '아침마다 동네를 달렸다.'],
-  practice: ['손끝에 굳은살이 박이도록 연습했다.', '메트로놈과 씨름했다.', '같은 프레이즈를 될 때까지 반복했다.'],
-  compose: ['밤마다 노트에 가사를 적었다.', '녹음 앱에 데모를 쌓았다.'],
-  rehearse: ['합주실에서 멤버들과 소리를 맞췄다.', '주 2회 합주를 빠지지 않았다.'],
-  gig: ['무대에 섰다.', '공연을 했다.'],
-  busking: ['거리에서 노래했다.', '공원 앞에서 버스킹을 했다.'],
-  cover: ['커버 영상을 찍어 올렸다.'],
-  promo: ['SNS에 공연 소식을 열심히 알렸다.'],
-  network: ['공연 뒤풀이에 빠지지 않았다.'],
-  hangout: ['오랜 친구를 만났다.'],
-  parttime: ['아르바이트로 생활비를 벌었다.', '알바와 음악 사이를 오갔다.'],
-  teach: ['레슨으로 생활비를 벌었다.'],
-  rest: ['아무것도 하지 않고 쉬었다.', '푹 자고, 천천히 먹고, 멍하니 지냈다.'],
-  form_band: ['밴드를 만들기로 했다.'],
-  recruit: ['멤버 모집 공고를 올렸다.'],
-  checkup: ['건강검진을 받았다.'],
-  duty: ['하루하루 복무했다.'],
-  write_letter: ['바깥으로 편지를 썼다.'],
-};
+type NarrLine = string | { t: string; age?: [number, number]; from?: number; to?: number; band?: boolean };
+const NARR = narrationJson.data as Record<string, NarrLine[]>;
 
-export function narrate(id: string, rng: Rng): string {
-  const pool = NARR[id];
-  return pool ? rng.pick(pool) : '';
+/** 행동 한 줄 — 나이·시대·밴드 조건이 맞고, 최근 기록에 없는 줄 중에서. 다 썼으면 비워 둔다(반복보다 침묵이 낫다) */
+export function narrate(id: string, rng: Rng, o: { age?: number; year?: number; band?: boolean; recent?: Set<string> } = {}): string {
+  const pool = (NARR[id] ?? [])
+    .map((l) => (typeof l === 'string' ? { t: l } : l))
+    .filter((l) => (!l.age || ((o.age ?? 0) >= l.age[0] && (o.age ?? 0) < l.age[1])) && (!l.from || (o.year ?? 9999) >= l.from) && (!l.to || (o.year ?? 0) <= l.to) && (!l.band || o.band));
+  const fresh = pool.filter((l) => !o.recent?.has(l.t));
+  return fresh.length ? rng.pick(fresh).t : '';
 }

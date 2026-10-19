@@ -9,6 +9,7 @@ import { favoriteGenre } from './state';
 import { randomBandName } from './names';
 import { given, josa } from './korean';
 import { clamp } from './rng';
+import { playerAppearance } from './appearance';
 
 export type ParamKind = 'inst' | 'genre' | 'compose' | 'venue' | 'release' | 'friend';
 
@@ -44,7 +45,7 @@ export function gigScore(c: Ctx): number {
 export function venuesFor(c: Ctx): (Venue & { locked: string | null })[] {
   return VENUES.filter((v) => v.id !== 'local_fest' && v.id !== 'big_fest').map((v) => ({
     ...v,
-    locked: c.p.fans < v.minFans ? `팬 ${v.minFans.toLocaleString()}명 이상` : v.cost > 0 && c.p.money < c.krw(v.cost) * 0.3 ? '대관비 부족' : null,
+    locked: c.flag('hobby') && v.minFans >= 400 ? '취미 밴드는 동네 무대에서' : c.p.fans < v.minFans ? `팬 ${v.minFans.toLocaleString()}명 이상` : v.cost > 0 && c.p.money < c.krw(v.cost) * 0.3 ? '대관비 부족' : null,
   }));
 }
 
@@ -97,7 +98,8 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
     c.stat('stress', 6);
     if (c.band) c.band.chemistry = clamp(c.band.chemistry - 3);
   }
-  c.fans(fanGain);
+  // 무대 비주얼(매력)은 아주 조금 — 50이 기준, 90이면 +7% [가정]
+  c.fans(fanGain * (0.92 + playerAppearance({ ...c.p, country: c.p.country }).charm / 600));
   c.skill('stage', grade === 'bad' ? 1.5 : 2.5);
   const members = c.members.length + 1;
   if (fest) {
@@ -224,10 +226,19 @@ export const ACTIONS: ActionDef[] = [
         m.lastSeenTurn = c.s.turn;
       }
       band.chemistry = clamp(band.chemistry + 4 + c.rng.next() * 3);
-      c.line(`팀워크 ${Math.round(band.chemistry)}`, 'good');
-      if (c.roll(0.25)) {
+      c.lines.push({ text: `팀워크 ${Math.round(band.chemistry)}`, tone: 'good', delta: true });
+      if (c.roll(0.2)) {
         c.skill('compose', 2);
-        c.line('합주 중 즉흥 리프가 하나 나왔다', 'good');
+        const who = c.members.length ? c.pick(c.members) : null;
+        c.line(
+          c.pick([
+            '합주 중 즉흥 리프가 하나 나왔다.',
+            who ? `${who.name.slice(-2)}가 장난처럼 친 프레이즈가 새 곡의 시작이 됐다.` : '혼자 치던 프레이즈가 새 곡의 시작이 됐다.',
+            '다 같이 틀린 박자가 오히려 멋있었다. 그대로 곡에 넣기로 했다.',
+            '쉬는 시간에 흥얼거린 멜로디를 다들 따라 했다.',
+          ]),
+          'good',
+        );
       }
     },
   },
@@ -400,7 +411,10 @@ export const ACTIONS: ActionDef[] = [
     id: 'recruit', label: '멤버 모집', emoji: '📋', scene: 'studio', energy: 10,
     desc: (c) => `지금 ${c.members.length + 1}인조. 비어 있는 자리: ${missingInst(c).map((i) => INST_LABEL[i]).join(', ') || '없음'}`,
     when: (c) => !!c.band && c.members.length < 4 && free(c),
+    // 공고는 한 번 내면 1년은 기다린다 (카드가 끝없이 반복되지 않게)
+    locked: (c) => (c.s.time - Number(c.s.flags.lastRecruit ?? -99) < 1 ? '공고를 낸 지 얼마 안 됐다' : null),
     run: (c) => {
+      c.s.flags.lastRecruit = c.s.time;
       recruit(c);
     },
   },

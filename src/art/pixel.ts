@@ -2,7 +2,8 @@
 // 모든 그림은 시드로 결정된다 — 같은 인물은 평생 같은 머리·옷·피부색으로 나이 든다.
 
 import { Rng } from '../sim/rng';
-import type { Gender, SceneId } from '../sim/types';
+import type { Gender, Genre, SceneId } from '../sim/types';
+import type { Appearance } from '../sim/appearance';
 
 export const PW = 240;
 export const PH = 135;
@@ -16,6 +17,10 @@ export interface PixelPerson {
   military?: boolean;
   inst?: 'vocal' | 'guitar' | 'bass' | 'drums' | 'keys' | null;
   lead?: boolean;
+  /** 외모 (키·체형·머리 색·결·피부) */
+  app?: Appearance;
+  /** 옷차림을 정하는 장르 */
+  style?: Genre | null;
 }
 
 export interface SceneOpts {
@@ -118,19 +123,57 @@ function notes(g: G, rng: Rng, n: number, t: number, color: string) {
 
 // ───────────────────────── 인물 ─────────────────────────
 
+const APP_SKIN = ['#f6d3b3', '#efc29c', '#e3ae84', '#d39a6c', '#bd8257', '#8f5f3e'];
+const APP_HAIR: Record<string, string> = { black: '#1a1414', darkbrown: '#3b2a20', brown: '#6b4428', blond: '#d9b65f', red: '#a8462a' };
+/** 장르별 무대 옷: [윗옷, 아랫도리, 포인트] */
+const STYLE_WEAR: Record<Genre, [string, string, string]> = {
+  indierock: ['#3d6fb6', '#2b3142', '#f5f0e6'],
+  punk: ['#1b1b20', '#1d1d23', '#e2364a'],
+  shoegaze: ['#c9b7e8', '#4a5a78', '#f5f0e6'],
+  folk: ['#9b4a2e', '#5b4636', '#e8d6a8'],
+  metal: ['#151518', '#1d1d23', '#bdbdc6'],
+  indiepop: ['#ffe14d', '#2f5bd8', '#ff4fa3'],
+};
+
 function lookOf(p: PixelPerson) {
   const r = new Rng(p.look);
-  return {
+  const base = {
     skin: r.pick(SKIN),
     hair: r.pick(HAIR),
     dye: r.pick(DYE),
-    dyed: r.chance(0.18),
+    dyed: r.chance(p.style === 'punk' || p.style === 'indiepop' ? 0.4 : 0.15),
     shirt: r.pick(SHIRT),
     pants: r.pick(PANTS),
+    accent: '',
     style: r.int(0, 3),
     glasses: r.chance(0.2),
     beard: r.chance(0.3),
+    leg: 0,
+    curly: false,
+    wide: 0,
   };
+  const a = p.app;
+  if (a) {
+    base.skin = APP_SKIN[a.skin] ?? base.skin;
+    base.hair = APP_HAIR[a.hairColor] ?? base.hair;
+    base.style = a.hairStyle % 4;
+    base.curly = a.hairTex === 'curly';
+    // 키: 평균보다 크면 다리가 한 칸 길고, 작으면 한 칸 짧다
+    const avg = p.gender === 'm' ? 172 : 160;
+    base.leg = a.height >= avg + 6 ? 1 : a.height <= avg - 7 ? -1 : 0;
+    base.wide = a.build === 'broad' ? 1 : 0;
+  }
+  if (p.style && p.age >= 15) {
+    const [top, bottom, acc] = STYLE_WEAR[p.style];
+    base.shirt = top;
+    base.pants = bottom;
+    base.accent = acc;
+  } else if (p.age >= 7 && p.age < 19) {
+    base.shirt = '#2a3550'; // 교복
+    base.pants = '#1f2840';
+    base.accent = '#f5f0e6';
+  }
+  return base;
 }
 
 /** (x, 발끝 y) 에 인물을 그린다. 폭 10px 기준 */
@@ -143,7 +186,7 @@ export function drawPerson(g: G, x: number, feet: number, p: PixelPerson, t: num
   const hair = p.military ? '#2b2b2b' : a >= 70 ? '#e6e3dc' : a >= 55 ? '#a9a49b' : L.dyed && a >= 17 && a < 40 ? L.dye : L.hair;
   const bob = onStage ? (Math.sin(t * 9 + p.look) > 0 ? 1 : 0) : Math.sin(t * 2 + p.look) > 0.95 ? 1 : 0;
   const bodyH = baby ? 3 : kid ? 5 : 7;
-  const legH = baby ? 0 : kid ? 4 : 6;
+  const legH = baby ? 0 : kid ? 4 : 6 + (a >= 16 ? L.leg : 0);
   const top = feet - (6 + bodyH + legH + 1) - bob + (old ? 1 : 0);
   // 다리·신발
   if (legH) {
@@ -154,7 +197,8 @@ export function drawPerson(g: G, x: number, feet: number, p: PixelPerson, t: num
   }
   // 몸
   const shirt = p.military ? '#56663f' : baby ? '#f3e7c9' : L.shirt;
-  px(g, x + 1, top + 6, 8, bodyH, shirt);
+  px(g, x + 1 - L.wide, top + 6, 8 + L.wide * 2, bodyH, shirt);
+  if (L.accent && !p.military && !baby) px(g, x + 4, top + 6, 2, Math.min(3, bodyH), L.accent);
   px(g, x, top + 7, 1, Math.max(2, bodyH - 2), L.skin);
   px(g, x + 9, top + 7, 1, Math.max(2, bodyH - 2), L.skin);
   // 머리
@@ -164,6 +208,7 @@ export function drawPerson(g: G, x: number, feet: number, p: PixelPerson, t: num
   if (p.military) px(g, x + 2, top, 6, 1, hair);
   else if (baby) px(g, x + 4, top, 2, 1, hair);
   else if (!bald) {
+    if (L.curly) px(g, x + 1, top - 2, 8, 2, hair);
     px(g, x + 2, top - 1, 6, 2, hair);
     px(g, x + 1, top, 1, 3, hair);
     px(g, x + 8, top, 1, 3, hair);

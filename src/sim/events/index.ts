@@ -14,8 +14,9 @@ import { COUNTRY_EVENTS } from './country';
 import { HISTORY_EVENTS } from './history';
 import { ACT_EVENTS } from './acts';
 import { ERA_EVENTS } from './era';
+import { CARD_EVENTS } from './cards';
 
-export const EVENTS: EventDef[] = [...STORY, ...LIFE, ...CAREER, ...GLOBAL, ...FATE, ...REGION_GENRE, ...PERSON, ...DRAFT, ...BAND_CRISIS, ...CAREER_END, ...FAMILY_MONEY, ...COUNTRY_EVENTS, ...HISTORY_EVENTS, ...ACT_EVENTS, ...ERA_EVENTS];
+export const EVENTS: EventDef[] = [...STORY, ...LIFE, ...CAREER, ...GLOBAL, ...FATE, ...REGION_GENRE, ...PERSON, ...DRAFT, ...BAND_CRISIS, ...CAREER_END, ...FAMILY_MONEY, ...COUNTRY_EVENTS, ...HISTORY_EVENTS, ...ACT_EVENTS, ...ERA_EVENTS, ...CARD_EVENTS];
 
 const byId = new Map(EVENTS.map((e) => [e.id, e]));
 export const eventById = (id: string) => byId.get(id);

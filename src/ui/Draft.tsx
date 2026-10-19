@@ -4,8 +4,9 @@ import { genreLabel } from '../sim/data/era/genres';
 import type { GameState } from '../sim/types';
 import { Portrait } from '../art/Portrait';
 import { INST_LABEL } from '../sim/data/world';
-import { TRAIT_LABEL, npcAge } from '../sim/npc';
+import { TRAIT_LABEL, careerLabel, npcAge } from '../sim/npc';
 import { sfx } from '../audio/player';
+import { charmWord, describe, npcAppearance } from '../sim/appearance';
 
 export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: number) => void }) {
   const ev = s.active!;
@@ -31,7 +32,7 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
               <button key={npc.id} className={`mcard ${known ? 'known' : 'stranger'}`} style={{ animationDelay: `${k * 0.12}s` }} disabled={ch.disabled} onClick={() => { sfx('tap'); onChoose(i); }}>
                 <span className="mcard-tag">{known ? '인연' : '우연'}</span>
                 <span className="mcard-face">
-                  <Portrait person={{ look: npc.look, gender: npc.gender, age: npcAge(s, npc), mood: 50 + npc.affinity / 2 }} />
+                  <Portrait person={{ look: npc.look, gender: npc.gender, age: npcAge(s, npc), mood: 50 + npc.affinity / 2, app: npcAppearance(npc, s.player.country), style: npc.genre }} />
                 </span>
                 <span className="mcard-name">{npc.name}</span>
                 <span className="mcard-inst">
@@ -46,6 +47,8 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
                 <span className={`mcard-fit ${fit ? 'good' : 'bad'}`}>
                   {genreLabel(npc.genre, s.time, s.player.country)} {fit ? '· 장르 궁합 ◎' : `· 우리는 ${band ? genreLabel(band.genre, s.time, s.player.country) : ''}`}
                 </span>
+                <span className="mcard-look">{describe(npcAppearance(npc, s.player.country), npcAge(s, npc), npc.gender)}</span>
+                <span className="mcard-job">{npcAge(s, npc)}세 · {careerLabel(npc, npcAge(s, npc))} · {charmWord(npcAppearance(npc, s.player.country).charm)}</span>
                 <span className="mcard-how">
                   {npc.metAge}살 · {npc.metAt}
                   {npc.affinity >= 25 && <> · 친밀도 {Math.round(npc.affinity)}</>}

@@ -7,6 +7,8 @@ import { countryOf, hasMinWage, lifeExpAt, successStars } from '../sim/data/coun
 import { TALENTS, TALENT_LABEL, rarityText, stars } from '../sim/data/fate';
 import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
+import { playerAppearance } from '../sim/appearance';
+import { describe, npcAppearance } from '../sim/appearance';
 
 const TASTE: Record<string, string> = {
   classical: '클래식 라디오', trot: '트로트', ballad: '발라드', none: '음악보다 뉴스', folk: '통기타 포크',
@@ -24,6 +26,11 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
   const era20 = eraOf(y + 20, ct.id);
   const mom = s.npcs[s.flags.mom as string];
   const dad = s.npcs[s.flags.dad as string];
+  // 외모: 아빠·엄마 키에서 예상 키를 보여 준다 (키는 부모 평균으로 회귀)
+  const app = playerAppearance({ ...p, country: p.country });
+  const momApp = mom ? npcAppearance(mom, p.country) : null;
+  const dadApp = dad ? npcAppearance(dad, p.country) : null;
+  const inherited = `${momApp && dadApp ? `아빠 ${dadApp.height}cm · 엄마 ${momApp.height}cm → ` : ''}다 크면 약 ${app.height}cm · ${describe(app, 30, p.gender).split(' · ').slice(1).join(' · ')}`;
   const month = 1 + (s.seed % 12);
   return (
     <div className="cert-wrap">
@@ -41,7 +48,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
           </div>
           <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
             <div className="portrait" style={{ width: 70, height: 84 }}>
-              <Portrait person={{ look: p.look, gender: p.gender, age: 0, mood: 80 }} />
+              <Portrait person={{ look: p.look, gender: p.gender, age: 0, mood: 80, app: playerAppearance({ ...p, country: p.country }) }} />
             </div>
             <div className="grow">
               <span className="label">이름</span>
@@ -77,6 +84,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div><span className="label">가정 형편</span><div className="v"><span className="dots">{INCOME_DOTS[p.income]}</span></div></div>
             <div><span className="label">부모님 음악</span><div className="v">{TASTE[p.parentTaste] ?? '—'}</div></div>
             <div><span className="label">집의 악기</span><div className="v">{p.instrumentAtHome ? '있음' : '없음'}</div></div>
+            <div className="wide"><span className="label">물려받은 외모</span><div className="v">{inherited}</div></div>
             <div><span className="label">기대수명</span><div className="v">{lifeExpAt(ct, y)}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
             <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
