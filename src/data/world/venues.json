@@ -1,0 +1,12 @@
+{
+  "about": "[가정] 공연장 사다리. 금액은 2026년 원화 기준. 실제 공연장 이름은 쓰지 않는다.",
+  "data": [
+    {"id": "openmic", "label": "클럽 오픈마이크", "capacity": 40, "minFans": 0, "cost": 0, "ticket": 0, "scene": "club", "energy": 15},
+    {"id": "club_group", "label": "라이브클럽 합동공연", "capacity": 120, "minFans": 40, "cost": 150000, "ticket": 20000, "scene": "club", "energy": 20},
+    {"id": "club_solo", "label": "라이브클럽 단독공연", "capacity": 250, "minFans": 400, "cost": 1200000, "ticket": 30000, "scene": "club", "energy": 28},
+    {"id": "hall", "label": "소극장 단독공연", "capacity": 700, "minFans": 2000, "cost": 6000000, "ticket": 44000, "scene": "club", "energy": 32},
+    {"id": "local_fest", "label": "지역 록 페스티벌", "capacity": 3000, "minFans": 6000, "cost": 0, "ticket": 0, "scene": "festival", "energy": 30},
+    {"id": "big_fest", "label": "대형 페스티벌 메인 스테이지", "capacity": 25000, "minFans": 30000, "cost": 0, "ticket": 0, "scene": "festival", "energy": 35},
+    {"id": "arena", "label": "아레나 단독 콘서트", "capacity": 12000, "minFans": 90000, "cost": 400000000, "ticket": 110000, "scene": "arena", "energy": 45}
+  ]
+}

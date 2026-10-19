@@ -8,7 +8,7 @@ import { autoChoose, beginPeriod, canRetire, choose, endPeriod, fastForward, ope
 import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
 import { INST_LABEL, minWage } from '../sim/data/world';
 import { ARTIST_SURVEY, facts } from '../sim/data/reality';
-import { countryOf } from '../sim/data/countries';
+import { countryOf, hasMinWage } from '../sim/data/countries';
 import { count, won } from '../sim/korean';
 import { actionById } from '../sim/actions';
 import { planOptions, recommendedPlan } from '../sim/plan';
@@ -318,7 +318,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             <div className="stage-view"><PixelScene id={sceneId} people={people} crowd={Math.min(1, ((s.flags.lastGigAudience as number) || 40) / 300)} night={month >= 9 || month <= 2 || sceneId === 'rooftop'} seed={s.seed + s.turn} label={SCENE_LABEL[sceneId]} /></div>
             <div className="stage-cap">
               <span><b>{SCENE_LABEL[sceneId]}</b> · {SEASON[month - 1]}</span>
-              <span className="dim">{countryOf(s.player.country).flag} {countryOf(s.player.country).regions[s.player.region]}</span>
+              <span className="dim">{countryOf(s.player.country).flag} {periodText(countryOf(s.player.country).regions[s.player.region], s.time, s.player.country)}</span>
             </div>
           </div>
           <div className="pops-anchor"><StatPops pops={pops} /></div>
@@ -421,7 +421,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
         <div>
           <div className="idname">{p.name}</div>
           <dl className="idfields">
-            <dt>출생</dt><dd>{p.birthYear} · {countryOf(p.country).flag} {countryOf(p.country).regions[p.region]}</dd>
+            <dt>출생</dt><dd>{p.birthYear} · {countryOf(p.country).flag} {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
             <dt>작곡</dt><dd>{Math.round(p.skills.compose)}</dd>
             <dt>밴드</dt><dd>{s.band ? `〈${s.band.name}〉 ${genreLabel(s.band.genre, s.time, s.player.country)}` : '—'}</dd>
@@ -684,7 +684,7 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
           {last.other > last.music ? ' — 음악만으론 못 산다' : last.music - last.cost > 0 ? ' — 음악이 생계였다' : ''}
         </div>
       )}
-      <div className="dim" style={{ marginTop: 4 }}>예술인 {Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. {(s.player.country ?? 'KR') === 'KR' && yr < 1988 ? '알바 시급(추정)' : '최저시급'} {Math.round(minWage(yr) * countryOf(s.player.country).wageMul).toLocaleString()}원.</div>
+      <div className="dim" style={{ marginTop: 4 }}>예술인 {Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. {hasMinWage(countryOf(s.player.country), yr) ? '최저시급' : '알바 시급(추정)'} {Math.round(minWage(yr) * countryOf(s.player.country).wageMul).toLocaleString()}원.</div>
       {open && (
         <ul className="facts">
           {facts(yr, minWage(yr)).map((f) => (

@@ -108,7 +108,7 @@ export const HISTORY_EVENTS: EventDef[] = [
     },
     choices: [
       {
-        label: '물결에 올라탄다 — 쇼케이스 공연',
+        label: '물결에 올라탄다 — 단독 공연을 연다',
         odds: (c) => {
           const w = activeWave(ct(c), c.year, c.band!.genre)!;
           return c.dc(15, '무대 판정', [['무대', c.m(c.p.skills.stage)], ['곡 완성도', c.m(bestSong(c))], ['밴드 합', (c.band?.chemistry ?? 50) >= 65 ? 2 : 0], ['물결의 힘', 2]], '가정', `${w.ref} 같은 밴드가 주목받던 시기 — 비슷한 소리를 찾는 사람이 많았다`);

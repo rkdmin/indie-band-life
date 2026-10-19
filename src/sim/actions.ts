@@ -49,7 +49,7 @@ export function venuesFor(c: Ctx): (Venue & { locked: string | null })[] {
 }
 
 export function playGig(c: Ctx, v: Venue, fest = false) {
-  const era = eraOf(c.s.time);
+  const era = eraOf(c.s.time, c.p.country);
   const base = gigScore(c);
   const gi = GENRE_INFO[c.band?.genre ?? favoriteGenre(c.s)];
   const draw = fest ? v.capacity : Math.min(v.capacity, Math.round((c.p.fans * 0.08 + 15) * era.gigMul * (0.7 + c.rng.next() * 0.6)));
@@ -102,7 +102,7 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   const members = c.members.length + 1;
   if (fest) {
     c.money((festivalFee(c.p.fans) * c.country.marketMul) / members, '출연료');
-  } else if (c.country.id === 'JP' && (v.id === 'club_group' || v.id === 'club_solo') && draw < 25) {
+  } else if (c.country.id === 'JP' && c.year >= 1985 && (v.id === 'club_group' || v.id === 'club_solo') && draw < 25) {
     // 일본 라이브하우스 ‘노르마’: 팔지 못한 할당 티켓 값을 밴드가 메운다 [근사]
     const short = (25 - draw) * c.krw(22_000);
     c.money(-short / members, '노르마(티켓 할당) 자부담');

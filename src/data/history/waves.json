@@ -1,0 +1,205 @@
+{
+  "about": "음악의 물결: 그 나라·그 기간·그 장르의 밴드에게 ‘제2의 ref’ 기회가 온다. ref 는 언론이 비교할 실제 선배(사실로만 언급).",
+  "data": [
+    {"id": "kr_folk", "c": "KR", "from": 1969, "to": 1975, "genres": ["folk"], "name": "통기타 포크", "ref": "김민기", "text": "청바지와 통기타. 음악다방과 대학가에서 포크 가수들이 쏟아져 나온다."},
+    {
+      "id": "kr_campus",
+      "c": "KR",
+      "from": 1977,
+      "to": 1984,
+      "genres": ["indierock", "folk"],
+      "name": "캠퍼스 그룹사운드",
+      "ref": "샌드페블즈",
+      "text": "대학가요제가 전국에 생중계되면서 대학 밴드가 하룻밤 새 스타가 된다."
+    },
+    {
+      "id": "kr_metal",
+      "c": "KR",
+      "from": 1986,
+      "to": 1990,
+      "genres": ["metal", "indierock"],
+      "name": "헤비메탈 붐",
+      "ref": "시나위",
+      "text": "긴 머리와 빠른 기타 솔로. 록 밴드들이 다시 무대를 채우고 있다."
+    },
+    {
+      "id": "chosunpunk",
+      "c": "KR",
+      "from": 1995,
+      "to": 1999,
+      "genres": ["punk", "indierock"],
+      "name": "조선 펑크",
+      "ref": "크라잉넛",
+      "text": "홍대 앞 클럽에서 펑크 밴드들이 쏟아져 나온다. 거리 공연과 몸싸움 같은 슬램."
+    },
+    {
+      "id": "kr_modern",
+      "c": "KR",
+      "from": 1997,
+      "to": 2001,
+      "genres": ["indierock", "indiepop", "shoegaze"],
+      "name": "모던 록",
+      "ref": "델리스파이스",
+      "text": "‘모던 록’이라는 말이 유행이다. 클럽 공연이 끝나면 데모 카세트가 팔려 나간다."
+    },
+    {
+      "id": "indie2",
+      "c": "KR",
+      "from": 2008,
+      "to": 2011,
+      "genres": ["folk", "indierock", "indiepop"],
+      "name": "인디 2세대",
+      "ref": "장기하와 얼굴들",
+      "text": "인디 음반이 1만 장을 넘게 팔렸다. 방송국이 다시 인디 밴드를 찾는다."
+    },
+    {"id": "us_folk", "c": "US", "from": 1960, "to": 1965, "genres": ["folk"], "name": "포크 리바이벌", "ref": "밥 딜런", "text": "뉴욕 그리니치빌리지 커피하우스마다 통기타를 든 젊은이들이 줄을 선다."},
+    {
+      "id": "british_inv",
+      "c": "US",
+      "from": 1964,
+      "to": 1966,
+      "genres": ["indierock"],
+      "name": "브리티시 인베이전",
+      "ref": "비틀스",
+      "text": "영국 밴드들이 미국 차트를 점령했다. 동네마다 머리를 기른 밴드가 생긴다."
+    },
+    {
+      "id": "cbgb",
+      "c": "US",
+      "from": 1975,
+      "to": 1978,
+      "genres": ["punk", "indierock"],
+      "name": "뉴욕 펑크",
+      "ref": "라몬스",
+      "text": "뉴욕의 작은 클럽 CBGB 무대에서 짧고 빠른 노래들이 터져 나온다."
+    },
+    {"id": "thrash", "c": "US", "from": 1983, "to": 1988, "genres": ["metal"], "name": "스래시 메탈", "ref": "메탈리카", "text": "더 빠르고 더 무겁게. 캘리포니아 차고에서 스래시 메탈이 폭발한다."},
+    {
+      "id": "grunge",
+      "c": "US",
+      "from": 1990,
+      "to": 1993,
+      "genres": ["indierock", "punk"],
+      "name": "그런지 붐",
+      "ref": "너바나",
+      "text": "시애틀에서 시작된 거친 기타 소리가 미국을 뒤집고 있다. 레이블들이 비슷한 소리를 내는 밴드를 찾아 클럽을 뒤진다."
+    },
+    {
+      "id": "garage",
+      "c": "US",
+      "from": 2001,
+      "to": 2004,
+      "genres": ["indierock", "punk"],
+      "name": "개러지 록 리바이벌",
+      "ref": "스트록스",
+      "text": "청바지와 낡은 기타, 3분짜리 노래. 뉴욕발 개러지 록이 다시 유행이다."
+    },
+    {
+      "id": "uk_beat",
+      "c": "UK",
+      "from": 1963,
+      "to": 1966,
+      "genres": ["indierock"],
+      "name": "비트 붐",
+      "ref": "비틀스",
+      "text": "리버풀에서 시작된 비트 음악. 동네 클럽마다 네 명짜리 밴드가 넘쳐난다."
+    },
+    {"id": "punk_uk", "c": "UK", "from": 1976, "to": 1979, "genres": ["punk"], "name": "런던 펑크", "ref": "섹스 피스톨스", "text": "찢어진 옷과 안전핀. 런던 펑크가 영국을 발칵 뒤집었다."},
+    {"id": "nwobhm", "c": "UK", "from": 1979, "to": 1983, "genres": ["metal"], "name": "영국 헤비메탈 신물결", "ref": "아이언 메이든", "text": "작은 독립 레이블들이 영국 헤비메탈 밴드의 싱글을 쏟아낸다."},
+    {
+      "id": "uk_indie",
+      "c": "UK",
+      "from": 1983,
+      "to": 1987,
+      "genres": ["indierock", "indiepop"],
+      "name": "영국 인디 기타 팝",
+      "ref": "더 스미스",
+      "text": "독립 레이블과 대학 라디오가 기타 밴드들을 키운다."
+    },
+    {
+      "id": "shoegaze",
+      "c": "UK",
+      "from": 1989,
+      "to": 1992,
+      "genres": ["shoegaze"],
+      "name": "슈게이즈의 물결",
+      "ref": "마이 블러디 밸런타인",
+      "text": "발밑의 이펙터만 보며 노이즈의 벽을 쌓는 밴드들이 영국 음악 언론을 사로잡았다."
+    },
+    {
+      "id": "madchester",
+      "c": "UK",
+      "from": 1989,
+      "to": 1991,
+      "genres": ["indierock", "indiepop"],
+      "name": "매드체스터",
+      "ref": "스톤 로지스",
+      "text": "맨체스터의 기타와 댄스 비트. 클럽과 밴드가 한 덩어리가 됐다."
+    },
+    {
+      "id": "britpop",
+      "c": "UK",
+      "from": 1993,
+      "to": 1997,
+      "genres": ["indierock", "indiepop"],
+      "name": "브릿팝",
+      "ref": "오아시스",
+      "text": "영국 기타 팝이 차트를 점령했다. 언론은 매주 ‘다음 대형 밴드’를 찾는다."
+    },
+    {
+      "id": "netbuzz",
+      "c": "UK",
+      "from": 2005,
+      "to": 2007,
+      "genres": ["indierock", "indiepop"],
+      "name": "인터넷 입소문 밴드",
+      "ref": "아크틱 몽키스",
+      "text": "레이블보다 인터넷이 먼저 밴드를 알아보는 시대가 왔다."
+    },
+    {
+      "id": "jp_bandboom",
+      "c": "JP",
+      "from": 1987,
+      "to": 1991,
+      "genres": ["indierock", "punk"],
+      "name": "밴드 붐",
+      "ref": "BOØWY",
+      "text": "TV 밴드 오디션 프로그램과 라이브하우스가 들끓는다. 일본 전역이 밴드 붐이다."
+    },
+    {"id": "xjapan", "c": "JP", "from": 1989, "to": 1993, "genres": ["metal"], "name": "비주얼 메탈 열풍", "ref": "X JAPAN", "text": "화려한 무대와 빠른 메탈이 일본 음악 시장을 휩쓸고 있다."},
+    {"id": "shibuyakei", "c": "JP", "from": 1993, "to": 1997, "genres": ["indiepop"], "name": "시부야계", "ref": "피치카토 파이브", "text": "도쿄 시부야의 레코드 가게에서 세련된 팝이 쏟아져 나온다."},
+    {
+      "id": "krautrock",
+      "c": "DE",
+      "from": 1970,
+      "to": 1975,
+      "genres": ["shoegaze", "indierock"],
+      "name": "크라우트록",
+      "ref": "캔",
+      "text": "반복되는 리듬과 끝없는 즉흥. 독일 밴드들이 영미권과 다른 록을 만든다."
+    },
+    {"id": "ndw", "c": "DE", "from": 1980, "to": 1983, "genres": ["indiepop", "punk"], "name": "노이에 도이체 벨레", "ref": "네나", "text": "독일어로 부르는 신물결 팝이 차트를 휩쓴다."},
+    {"id": "ndh", "c": "DE", "from": 1995, "to": 1999, "genres": ["metal"], "name": "독일어 인더스트리얼 메탈", "ref": "람슈타인", "text": "독일어로 부르는 육중한 메탈이 국경을 넘고 있다."},
+    {
+      "id": "tropicalia",
+      "c": "BR",
+      "from": 1967,
+      "to": 1969,
+      "genres": ["folk", "indierock"],
+      "name": "트로피칼리아",
+      "ref": "오스 무탄치스",
+      "text": "전기 기타와 삼바, 시와 풍자. 브라질 음악이 뒤집히고 있다."
+    },
+    {
+      "id": "brock",
+      "c": "BR",
+      "from": 1982,
+      "to": 1987,
+      "genres": ["indierock", "punk"],
+      "name": "브라질 록 붐",
+      "ref": "레지앙 우르바나",
+      "text": "민정 이양을 앞두고 젊은 록 밴드들이 쏟아져 나온다."
+    },
+    {"id": "brmetal", "c": "BR", "from": 1991, "to": 1996, "genres": ["metal"], "name": "브라질 메탈의 세계 진출", "ref": "세풀투라", "text": "브라질 메탈 밴드들이 유럽 페스티벌 무대에 서기 시작했다."}
+  ]
+}

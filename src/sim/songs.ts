@@ -1,3 +1,5 @@
+import { hasMedia } from './data/era/media';
+import type { CountryId } from './data/countries';
 import type { Album, GameState, Genre, Mood, Song } from './types';
 import { Rng, clamp, sigmoid } from './rng';
 import { ageInt, chron, favoriteGenre, say, year } from './state';
@@ -113,6 +115,15 @@ export function writeSong(s: GameState, rng: Rng, themeKey: string, mood: Mood):
   return song;
 }
 
+/** 노래가 갑자기 퍼지는 곳 — 그 시대의 매체 (data/era/media.json) */
+function viralWhere(s: GameState): string {
+  const k = (s.player.country ?? 'KR') as CountryId;
+  if (hasMedia('shortform', s.time, k)) return '숏폼';
+  if (hasMedia('youtube', s.time, k)) return '동영상 사이트';
+  if (hasMedia('music_tv', s.time, k)) return 'TV 음악 프로그램';
+  return '라디오';
+}
+
 export const unreleased = (s: GameState) => s.songs.filter((x) => !x.released);
 
 export function bestSong(s: GameState): Song | null {
@@ -128,7 +139,7 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   const kind: Album['kind'] = songs.length >= 7 ? 'full' : songs.length >= 3 ? 'ep' : 'single';
   const genre = s.band?.genre ?? favoriteGenre(s);
   const gi = GENRE_INFO[genre];
-  const era = eraOf(s.time);
+  const era = eraOf(s.time, s.player.country);
   const avgQ = songs.reduce((a, x) => a + x.quality, 0) / songs.length;
   const p = s.player;
   const labelMul = s.band?.label === 'major' ? 2.2 : s.band?.label === 'indie' ? 1.4 : 1;
@@ -157,7 +168,7 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   // 바이럴은 앨범당 한 번, 가장 좋은 곡만 노린다: 품질·장르 도달력·숏폼 시대
   const viralP = sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 3.2);
   const viral = rng.chance(viralP);
-  s.lastResults.push({ text: `🎲 숏폼 바이럴 ${Math.max(1, Math.round(viralP * 100))}% → ${viral ? '터졌다' : '불발'}`, tone: viral ? 'big' : 'neutral', delta: true });
+  s.lastResults.push({ text: `🎲 ${viralWhere(s)} 입소문 ${Math.max(1, Math.round(viralP * 100))}% → ${viral ? '터졌다' : '불발'}`, tone: viral ? 'big' : 'neutral', delta: true });
   if (viral) {
     best.hit = true;
     const burst = rng.range(1.5, 6) * 1_000_000 * gi.reach * era.streamMul;
@@ -199,7 +210,7 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   s.cine.push({ kind: hit ? 'hit' : 'release', scene: hit ? 'arena' : 'recording', kicker: `${year(s)} · ${ageInt(s)}세 · ${kindLabel}`, title: hit ? `〈${hit.title}〉 차트 ${hit.peak}위` : `〈${title}〉`, sub: hit ? '숏폼에서 터졌다. 모르는 사람들이 우리 노래를 부른다.' : `${album.bandName}의 ${kindLabel}이 세상에 나왔다.`, songId: (hit ?? best).id, albumId: album.id, at: s.time });
   if (hit) {
     chron(s, `〈${hit.title}〉 차트 ${hit.peak}위 — 인생이 바뀐 날`, 'big');
-    say(s, `〈${hit.title}〉${josa(hit.title, '이/가').slice(hit.title.length)} 숏폼에서 터졌다! 차트 ${hit.peak}위`, 'big');
+    say(s, `〈${hit.title}〉${josa(hit.title, '이/가').slice(hit.title.length)} ${viralWhere(s)}에서 터졌다! 차트 ${hit.peak}위`, 'big');
     s.flags.hadHit = ((s.flags.hadHit as number) || 0) + 1;
   }
   s.flags.promo = 0;
@@ -208,7 +219,7 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
 
 /** 해마다 발매곡이 조금씩 계속 재생된다. 아주 드물게 역주행. */
 export function yearlyStreams(s: GameState, rng: Rng) {
-  const era = eraOf(s.time);
+  const era = eraOf(s.time, s.player.country);
   let newStreams = 0;
   for (const song of s.songs) {
     if (!song.released) continue;

@@ -1,8 +1,9 @@
 import type { GameState } from '../sim/types';
-import { REGIONS, birthsIn, eraOf, lifeExpectancy, minWage } from '../sim/data/world';
+import { REGIONS, birthsIn, eraOf, minWage } from '../sim/data/world';
 import { Portrait } from '../art/Portrait';
 import { given, josa } from '../sim/korean';
-import { countryOf, successStars } from '../sim/data/countries';
+import { periodText } from '../sim/data/anachronism';
+import { countryOf, hasMinWage, lifeExpAt, successStars } from '../sim/data/countries';
 import { TALENTS, TALENT_LABEL, rarityText, stars } from '../sim/data/fate';
 import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
@@ -17,10 +18,10 @@ const INCOME_DOTS = { low: '●○○○○', mid: '●●●○○', high: '●
 export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () => void; onReroll: () => void }) {
   const p = s.player;
   const y = p.birthYear;
-  const region = { ...REGIONS.find((r) => r.id === p.region)!, label: countryOf(p.country).regions[p.region] };
+  const region = { ...REGIONS.find((r) => r.id === p.region)!, label: periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country) };
   const ct = countryOf(p.country);
   const births = birthsIn(y);
-  const era20 = eraOf(y + 20);
+  const era20 = eraOf(y + 20, ct.id);
   const mom = s.npcs[s.flags.mom as string];
   const dad = s.npcs[s.flags.dad as string];
   const month = 1 + (s.seed % 12);
@@ -36,7 +37,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div className="tape-label">{p.name} — 첫 번째 트랙</div>
             <div className="tape-window"><span className="reel" /><span className="reel" /></div>
             <div className="tape-side">SIDE A</div>
-            <div className="tape-time">{y} · {ct.id === 'KR' ? lifeExpectancy(y) : ct.lifeExp}Y</div>
+            <div className="tape-time">{y} · {lifeExpAt(ct, y)}Y</div>
           </div>
           <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
             <div className="portrait" style={{ width: 70, height: 84 }}>
@@ -55,12 +56,12 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
           <div className="country-box">
             <span className="cflag">{ct.flag}</span>
             <div className="grow">
-              <b>{ct.name}</b>
-              <div className="dim">{ct.id === 'KR' && y + 20 < 2015 ? `스무 살 무렵: ${eraOf(y + 20).desc}` : ct.scene}</div>
+              <b>{periodText(ct.name, y, ct.id)}</b>
+              <div className="dim">{y + 20 < 2015 ? `스무 살 무렵: ${era20.desc}` : periodText(ct.scene, y + 20, ct.id)}</div>
               <div className="country-stats">
                 <span>음악 시장 세계 <b>{ct.marketRank}위</b>{y < 2000 ? ' (2024)' : ''}</span>
-                <span>기대수명 <b>{ct.id === 'KR' ? lifeExpectancy(y) : ct.lifeExp}세</b></span>
-                <span>{y + 16 < 1988 ? '시급(추정)' : '최저시급'} 약 <b>{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</b></span>
+                <span>기대수명 <b>{lifeExpAt(ct, y)}세</b></span>
+                <span>{hasMinWage(ct, y + 16) ? '최저시급' : '시급(추정)'} 약 <b>{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</b></span>
                 <span>생활비 <b>×{ct.costMul}</b></span>
               </div>
               <div className="country-stars">
@@ -76,9 +77,9 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div><span className="label">가정 형편</span><div className="v"><span className="dots">{INCOME_DOTS[p.income]}</span></div></div>
             <div><span className="label">부모님 음악</span><div className="v">{TASTE[p.parentTaste] ?? '—'}</div></div>
             <div><span className="label">집의 악기</span><div className="v">{p.instrumentAtHome ? '있음' : '없음'}</div></div>
-            <div><span className="label">기대수명</span><div className="v">{ct.id === 'KR' ? lifeExpectancy(y) : ct.lifeExp}세</div></div>
+            <div><span className="label">기대수명</span><div className="v">{lifeExpAt(ct, y)}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
-            <div><span className="label">16세 알바 시급{y + 16 < 1988 ? ' (추정)' : ''}</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
+            <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
           </div>
           <div className="fate-box">
             <div className="fate-rarity">

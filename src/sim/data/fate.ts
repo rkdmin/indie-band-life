@@ -3,6 +3,9 @@
 //   [통계] 공식 통계 값 / [근사] 통계를 단순화한 값 / [가정] 게임 설계값
 
 import type { Rng } from '../rng';
+import tables from '../../data/fate/tables.json';
+import originsJson from '../../data/fate/origins.json';
+import parentJobsJson from '../../data/fate/parent_jobs.json';
 
 export interface FateDraw {
   id: string;
@@ -29,25 +32,15 @@ function lerpTable(t: [number, number][], y: number): number {
 }
 
 // [통계] 합계출산율 (통계청 인구동향조사). 1990·2005·2020 은 반올림 근사
-export const TFR: [number, number][] = [[1955, 6.3], [1960, 6.0], [1970, 4.53], [1975, 3.43], [1980, 2.82], [1983, 2.06], [1985, 1.66], [1990, 1.57], [1995, 1.63], [2000, 1.48], [2005, 1.08], [2010, 1.23], [2015, 1.24], [2018, 0.98], [2020, 0.84], [2021, 0.81], [2023, 0.72], [2024, 0.75], [2025, 0.8], [2030, 0.85]];
+export const TFR: [number, number][] = tables.data.tfr.table as never;
 // [근사] 다태아 출생 비중 — 2023년 5.5%(통계청). 이전 연도는 시험관 시술 확산 추세로 근사
-const GRAND: [number, number][] = [[1950, 0.3], [1970, 0.23], [1980, 0.17], [1990, 0.125], [2000, 0.084], [2010, 0.062], [2020, 0.045], [2030, 0.04]];
-const TWIN: [number, number][] = [[1950, 0.01], [1985, 0.01], [1995, 0.012], [2000, 0.019], [2010, 0.027], [2015, 0.037], [2020, 0.054], [2023, 0.055], [2030, 0.057]];
+const GRAND: [number, number][] = tables.data.grandparents.table as never;
+const TWIN: [number, number][] = tables.data.twin.table as never;
 // [근사] 다문화 가정 출생 비중 — 2023년 5.3%(통계청 다문화 인구동태). 이전 연도는 추세 근사
-const MULTI: [number, number][] = [[1950, 0.001], [1985, 0.003], [2000, 0.01], [2008, 0.029], [2012, 0.047], [2015, 0.045], [2020, 0.06], [2023, 0.053], [2030, 0.055]];
+const MULTI: [number, number][] = tables.data.multicultural.table as never;
 
 // [통계] 다문화 혼인 외국인 아내 출신국 순위(베트남·중국·태국 순)를 반영한 가중치
-const ORIGINS: [string, number, string][] = [
-  ['베트남', 30, '베트남 민요'],
-  ['중국', 20, '중국 전통 가요'],
-  ['태국', 8, '태국 룩퉁'],
-  ['필리핀', 7, '필리핀 OPM 발라드'],
-  ['일본', 7, '일본 시티팝'],
-  ['미국', 6, '미국 컨트리'],
-  ['캄보디아', 4, '캄보디아 전통 음악'],
-  ['몽골', 3, '몽골 흐미'],
-  ['우즈베키스탄', 3, '우즈베크 전통 음악'],
-];
+const ORIGINS: [string, number, string][] = originsJson.data as never;
 
 function poisson(rng: Rng, lambda: number): number {
   const L = Math.exp(-lambda);
@@ -66,15 +59,13 @@ const poissonTail = (k: number, l: number) => Math.max(0, 1 - Array.from({ lengt
 
 export type ParentJob = 'office' | 'pro' | 'shop' | 'factory' | 'farm' | 'driver';
 
-// [근사] 직업별 취업자 비중(통계청 경제활동인구조사)을 여섯 묶음으로 단순화
-export const PARENT_JOBS: [ParentJob, number, string][] = [
-  ['office', 0.2, '회사원'],
-  ['pro', 0.2, '전문직·기술직'],
-  ['shop', 0.22, '자영업·서비스직'],
-  ['factory', 0.22, '공장·현장 기술자'],
-  ['driver', 0.1, '운전·물류'],
-  ['farm', 0.06, '농어업'],
-];
+/** [근사] 출생 연도별 부모님 직업 분포 — data/fate/parent_jobs.json (1960년대엔 절반 넘게 농어업) */
+export function parentJobsFor(birthYear: number): [ParentJob, number, string][] {
+  const rows = parentJobsJson.data;
+  const row = [...rows].reverse().find((r) => birthYear >= r.from) ?? rows[0];
+  const labels = parentJobsJson.labels as Record<ParentJob, string>;
+  return (Object.entries(row.weights) as [ParentJob, number][]).map(([id, w]) => [id, w, labels[id]]);
+}
 
 export interface FateResult {
   draws: FateDraw[];
@@ -116,8 +107,8 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
   });
 
   // 부모님 직업 (집안의 주 수입원)
-  const job = rng.weighted(PARENT_JOBS, (x) => x[1])!;
-  add({ id: 'parentjob', label: `부모님: ${job[2]}`, p: job[1], src: '직업별 취업자 비중 (통계청 경제활동인구조사)을 여섯 묶음으로 근사', kind: '근사' });
+  const job = rng.weighted(parentJobsFor(birthYear), (x) => x[1])!;
+  add({ id: 'parentjob', label: `부모님: ${job[2]}`, p: job[1], src: `${birthYear}년 무렵 산업별 취업자 비중 (통계청 경제활동인구조사 추세)을 여섯 묶음으로 근사`, kind: '근사' });
 
   // 쌍둥이
   const twinRate = country && country.id !== 'KR' ? country.twinRate : lerpTable(TWIN, birthYear);

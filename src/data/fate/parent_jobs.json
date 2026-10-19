@@ -1,0 +1,30 @@
+{
+  "about": "[근사] 부모님(집안의 주 수입원) 직업 분포 — 출생 연도별. 통계청 경제활동인구조사의 산업별 취업자 비중 추세를 여섯 묶음으로 단순화했다. 1960년대 한국은 취업자의 절반 이상이 농림어업이었고, 1970~80년대 제조업이 늘었다.",
+  "labels": {"office": "회사원", "pro": "전문직·기술직", "shop": "자영업·서비스직", "factory": "공장·현장 기술자", "driver": "운전·물류", "farm": "농어업"},
+  "data": [
+    {
+      "from": 1950,
+      "weights": {"office": 0.04, "pro": 0.04, "shop": 0.14, "factory": 0.1, "driver": 0.03, "farm": 0.65}
+    },
+    {
+      "from": 1965,
+      "weights": {"office": 0.07, "pro": 0.06, "shop": 0.18, "factory": 0.16, "driver": 0.04, "farm": 0.49}
+    },
+    {
+      "from": 1975,
+      "weights": {"office": 0.11, "pro": 0.08, "shop": 0.21, "factory": 0.23, "driver": 0.06, "farm": 0.31}
+    },
+    {
+      "from": 1985,
+      "weights": {"office": 0.15, "pro": 0.11, "shop": 0.23, "factory": 0.26, "driver": 0.07, "farm": 0.18}
+    },
+    {
+      "from": 1995,
+      "weights": {"office": 0.18, "pro": 0.15, "shop": 0.24, "factory": 0.23, "driver": 0.09, "farm": 0.11}
+    },
+    {
+      "from": 2010,
+      "weights": {"office": 0.2, "pro": 0.2, "shop": 0.22, "factory": 0.22, "driver": 0.1, "farm": 0.06}
+    }
+  ]
+}

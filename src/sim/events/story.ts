@@ -377,7 +377,7 @@ export const STORY: EventDef[] = [
   {
     id: 'label_indie', scene: 'office', title: '레이블에서 온 메일', priority: 130, cooldown: 6, chance: 0.6,
     when: (c) => !!c.band && c.band.label === 'none' && c.p.fans >= 2500 && c.p.rep >= 18,
-    text: (c) => `“${c.band!.name} 공연 잘 봤습니다. 저희 레이블과 함께하시겠어요?”\n소규모 인디 레이블. 녹음비와 유통, 공연 섭외를 맡아 준다고 한다.\n계약금 ${won(c.krw(10_000_000))}. 수익 배분은 5:5.`,
+    text: (c) => `“${c.band!.name} 공연 잘 봤습니다. 저희랑 함께하시겠어요?”\n소규모 인디 레이블. 녹음비와 유통, 공연 섭외를 맡아 준다고 한다.\n계약금 ${won(c.krw(10_000_000))}. 수익 배분은 5:5.`,
     choices: [
       { label: '계약한다', run: (c) => { c.band!.label = 'indie'; c.money(c.krw(10_000_000) / (c.members.length + 1), '계약금'); c.rep(6); c.chron(`인디 레이블과 계약`, 'band'); return '녹음비 걱정 없는 첫 앨범. 사인하는 손이 떨렸다.'; } },
       { label: '자유가 더 중요하다', run: (c) => { c.rep(1); c.set('diy'); return 'DIY 정신. 우리가 직접 한다.'; } },
@@ -395,7 +395,7 @@ export const STORY: EventDef[] = [
   // ───────── 페스티벌 ─────────
   {
     id: 'fest_local', scene: 'festival', title: '페스티벌 섭외', priority: 110, cooldown: 3, chance: 0.45,
-    when: (c) => !!c.band && c.p.fans >= 6000 && c.p.fans < 30000 && c.p.military !== 'serving' && eraOf(c.s.time).gigMul > 0.5,
+    when: (c) => !!c.band && c.p.fans >= 6000 && c.p.fans < 30000 && c.p.military !== 'serving' && eraOf(c.s.time, c.p.country).gigMul > 0.5,
     text: (c) => `지역 록 페스티벌에서 연락이 왔다.\n낮 2시 서브 스테이지. 출연료는 적지만, 관객은 3천 명.`,
     choices: [
       { label: '간다!', run: (c) => { const v = VENUES.find((x) => x.id === 'local_fest')!; playGig(c, v, true); c.theme('dream'); c.stat('energy', -15); } },
@@ -404,7 +404,7 @@ export const STORY: EventDef[] = [
   },
   {
     id: 'fest_big', scene: 'festival', title: '메인 스테이지', priority: 115, cooldown: 3, chance: 0.5,
-    when: (c) => !!c.band && c.p.fans >= 30000 && c.p.military !== 'serving' && eraOf(c.s.time).gigMul > 0.5,
+    when: (c) => !!c.band && c.p.fans >= 30000 && c.p.military !== 'serving' && eraOf(c.s.time, c.p.country).gigMul > 0.5,
     text: (c) => `대형 페스티벌 메인 스테이지, 해 질 녘 슬롯.\n2만 5천 명. ${c.band!.gigs}번째 공연.`,
     choices: [
       { label: '무대에 오른다', run: (c) => { const v = VENUES.find((x) => x.id === 'big_fest')!; const g = playGig(c, v, true); if (g === 'great') c.chron('대형 페스티벌 메인 스테이지 — 노을 아래 2만 5천 명의 떼창', 'big'); c.stat('energy', -15); } },

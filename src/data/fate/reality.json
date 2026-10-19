@@ -1,0 +1,14 @@
+{
+  "about": "게임 안에서 그대로 보여 주는 ‘현실의 숫자’와 출처.",
+  "data": {
+    "artistSurvey": {"year": 2023, "avgArtIncomeAll": 10550000, "avgArtIncomeMusic": 9010000, "sideJobRate": 0.475, "vsNational": 0.41, "src": "문화체육관광부 「2024 예술인 실태조사」(2023년 기준)"},
+    "overseasSupport": {
+      "maxPerTeam": 10000000,
+      "teams": 5,
+      "requirement": "해외 페스티벌 공식 초청장 · 앨범 발매 경력 · 1시간 이상 단독 공연 가능",
+      "covers": "왕복 항공료 · 현지 숙박비 · 악기 임차료 · 해외 운송료",
+      "src": "한국콘텐츠진흥원 해외 페스티벌 참가지원 공고 (2024)"
+    },
+    "stream": {"perPlayRights": 7.2, "performerShare": 0.43, "indieSelfReleased": 3, "src": "저작권료 분배 구조 보도(2015) · 문체부 징수규정 개정(2019, 권리자 몫 60→65%)"}
+  }
+}

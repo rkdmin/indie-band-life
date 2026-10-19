@@ -1,21 +1,27 @@
-// 나라별 음악사 데이터셋을 하나로 모은다. 게임 속 시간이 흐르면 그해의 실제 소식이 인생 기록에 흘러나오고,
-// 같은 시대·같은 장르의 ‘물결’에 올라타면 내 밴드가 그 시대의 주인공이 될 기회가 온다.
+// 나라별 음악사 데이터셋(src/data/history/*.json)을 하나로 모은다. 게임 속 시간이 흐르면 그해의 실제 소식이
+// 인생 기록에 흘러나오고, 같은 시대·같은 장르의 ‘물결’에 올라타면 내 밴드가 그 시대의 주인공이 될 기회가 온다.
 
 import type { Genre } from '../../types';
 import type { CountryId } from '../countries';
-import { KR_HISTORY, KR_WAVES } from './kr';
-import { US_HISTORY, US_WAVES } from './us';
-import { UK_HISTORY, UK_WAVES } from './uk';
-import { BR_HISTORY, DE_HISTORY, GLOBAL_HISTORY, JP_HISTORY, OTHER_WAVES } from './others';
 import type { HistoryItem, Wave } from './types';
+import kr from '../../../data/history/kr.json';
+import us from '../../../data/history/us.json';
+import uk from '../../../data/history/uk.json';
+import jp from '../../../data/history/jp.json';
+import de from '../../../data/history/de.json';
+import br from '../../../data/history/br.json';
+import global from '../../../data/history/global.json';
+import waves from '../../../data/history/waves.json';
 
 export type { HistoryItem, Wave } from './types';
 
-export const HISTORY: HistoryItem[] = [...GLOBAL_HISTORY, ...KR_HISTORY, ...US_HISTORY, ...UK_HISTORY, ...JP_HISTORY, ...DE_HISTORY, ...BR_HISTORY].sort(
-  (a, b) => a.y + (a.m ?? 6) / 12 - (b.y + (b.m ?? 6) / 12),
-);
+const files = [global, kr, us, uk, jp, de, br] as { data: HistoryItem[] }[];
 
-export const WAVES: Wave[] = [...KR_WAVES, ...US_WAVES, ...UK_WAVES, ...OTHER_WAVES];
+export const HISTORY: HistoryItem[] = files
+  .flatMap((f) => f.data)
+  .sort((a, b) => a.y + (a.m ?? 6) / 12 - (b.y + (b.m ?? 6) / 12));
+
+export const WAVES: Wave[] = waves.data as Wave[];
 
 /** (from, to] 사이에 일어난 사건 — 내 나라 + 세계적 사건 + 영미권 대형 음반(전 세계가 들었다) */
 export function historyBetween(from: number, to: number, country: CountryId): HistoryItem[] {

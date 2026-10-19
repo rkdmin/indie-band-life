@@ -1,7 +1,10 @@
 // 한 사람의 일생을 부고 기사처럼 한 문단으로. 연대기에서 결정적 장면만 골라 이어 붙인다.
 
 import type { GameState } from './types';
-import { REGIONS, INST_LABEL, GENRE_INFO } from './data/world';
+import { INST_LABEL } from './data/world';
+import { countryOf } from './data/countries';
+import { genreLabel } from './data/era/genres';
+import { periodText } from './data/anachronism';
 import { given, josa } from './korean';
 
 const INCOME = { low: '넉넉하지 않은', mid: '평범한', high: '여유 있는' };
@@ -10,17 +13,18 @@ const pj = (w: string, pair: Parameters<typeof josa>[1]) => josa(w, pair).slice(
 
 export function biography(s: GameState): string {
   const p = s.player;
-  const region = REGIONS.find((r) => r.id === p.region)!.label;
+  // 출생지는 그 나라·그 해의 이름으로 (1995년 전 한국 ‘광역시’는 ‘직할시’)
+  const region = periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country);
   const parts: string[] = [];
   parts.push(`${p.birthYear}년 ${region}의 ${INCOME[p.income]} 집에서 태어났습니다.`);
-  if (p.mainInst) parts.push(`${INST_LABEL[p.mainInst]}${p.mainInst === 'vocal' ? '을' : '를'} 평생의 악기로 삼았습니다.`);
+  if (p.mainInst) parts.push(`${josa(periodText(INST_LABEL[p.mainInst], p.birthYear + 15, p.country), '을/를')} 평생의 악기로 삼았습니다.`);
   const bands = [...s.pastBands, ...(s.band ? [s.band] : [])];
   if (bands.length) {
     const first = bands[0];
     const members = first.memberIds.map((id) => s.npcs[id]).filter(Boolean);
     const old = members.find((m) => m.metAge < 16);
     parts.push(
-      `${first.formedYear - p.birthYear}세에 ${GENRE_INFO[first.genre].label} 밴드 〈${first.name}〉${josa(first.name, '을/를').slice(first.name.length)} 결성했습니다${old ? ` — ${old.metAge}살 때 ${old.metAt}에서 만난 ${given(old.name)}${pj(given(old.name), '과/와')} 함께였습니다` : ''}.`,
+      `${first.formedYear - p.birthYear}세에 ${genreLabel(first.genre, first.formedYear, p.country)} 밴드 〈${first.name}〉${josa(first.name, '을/를').slice(first.name.length)} 결성했습니다${old ? ` — ${old.metAge}살 때 ${old.metAt}에서 만난 ${given(old.name)}${pj(given(old.name), '과/와')} 함께였습니다` : ''}.`,
     );
     if (bands.length > 1) parts.push(`평생 ${bands.length}개의 밴드를 거쳤습니다.`);
   } else parts.push('끝내 밴드를 만들지는 않았습니다.');

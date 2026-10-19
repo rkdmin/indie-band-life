@@ -536,7 +536,7 @@ export const CAREER: EventDef[] = [
   },
   {
     id: 'car_survival_show', scene: 'arena', title: '밴드 서바이벌 섭외', cooldown: 10,
-    chance: (c) => (eraOf(c.year).from === 2010 ? 0.25 : 0.07),
+    chance: (c) => (eraOf(c.year, c.p.country).name === '오디션의 시대' ? 0.25 : 0.07),
     when: (c) => free(c) && !!c.band && c.p.fans >= 300 && c.p.fans < 40000 && c.age >= 18 && c.age < 40,
     text: () => `방송국 작가에게서 연락이 왔다.\n밴드 서바이벌 프로그램 〈지하에서 무대로〉 새 시즌 섭외.\n“캐릭터가 확실하셔서요. 갈등 장면도 좀… 자연스럽게 나오면 좋고요.”`,
     choices: [

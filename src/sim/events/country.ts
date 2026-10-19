@@ -28,7 +28,7 @@ export const COUNTRY_EVENTS: EventDef[] = [
   },
   // ───────── 일본: 라이브하우스와 노르마 ─────────
   {
-    id: 'ct_jp_noruma', scene: 'club', title: '노르마', once: true, chance: 0.4,
+    id: 'ct_jp_noruma', scene: 'club', title: '노르마', once: true, chance: 0.4, minYear: 1985,
     when: (c) => is(c, 'JP') && !!c.band && c.p.fans < 400 && c.age >= 17,
     text: () => '라이브하우스 점장이 말했다. “출연 조건은 노르마 25장. 못 팔면 남은 표 값은 밴드가 내는 거고.”\n도쿄 무명 밴드라면 누구나 지나는 길이다.',
     choices: [
@@ -75,7 +75,7 @@ export const COUNTRY_EVENTS: EventDef[] = [
   },
   // ───────── 독일: 예술 지원금 ─────────
   {
-    id: 'ct_de_grant', scene: 'office', title: '음악가 지원 프로그램', cooldown: 6, chance: 0.3,
+    id: 'ct_de_grant', scene: 'office', title: '음악가 지원 프로그램', cooldown: 6, chance: 0.3, minYear: 1983,
     when: (c) => is(c, 'DE') && c.age >= 19 && c.age < 60 && c.s.songs.length >= 2,
     text: () => '연방·주 정부의 음악가 지원 프로그램 공고가 났다. 앨범 제작과 투어 비용을 보조해 준다.\n서류는 독일어로 열두 쪽.',
     choices: [
@@ -95,7 +95,8 @@ export const COUNTRY_EVENTS: EventDef[] = [
   },
   {
     id: 'ct_any_festival', scene: 'festival', title: '큰 페스티벌의 신인 무대', cooldown: 6, chance: 0.3,
-    when: (c) => !is(c, 'KR') && !!c.band && c.p.fans >= 2000 && c.p.fans < 30000 && c.p.military !== 'serving',
+    // 그 나라에 대형 여름 페스티벌이 생긴 뒤에만 (우드스톡 1969, 글래스턴베리 1970, 록 인 리우 1985, 록 암 링 1985, 후지록 1997)
+    when: (c) => !is(c, 'KR') && !!c.band && c.p.fans >= 2000 && c.p.fans < 30000 && c.p.military !== 'serving' && c.year >= ({ US: 1969, UK: 1970, BR: 1985, DE: 1985, JP: 1997 } as Record<string, number>)[c.p.country ?? 'KR'],
     text: (c) => `${c.country.name}에서 손꼽히는 여름 페스티벌의 신인 무대 섭외가 왔다.`,
     choices: [
       { label: '선다', run: (c) => { playGig(c, VENUES.find((v) => v.id === 'local_fest')!, true); } },

@@ -1,3 +1,4 @@
+import realityJson from '../../data/fate/reality.json';
 // 게임 안에서 플레이어에게 그대로 보여 주는 ‘현실의 숫자’. 출처와 기준 시점을 함께 적는다.
 // 값이 바뀌면 docs/probability-sources.md 도 같이 고친다.
 
@@ -10,31 +11,13 @@ export interface Fact {
 }
 
 /** [통계] 문화체육관광부·한국문화관광연구원 「2024 예술인 실태조사」(2023년 기준, 2025.3 발표) */
-export const ARTIST_SURVEY = {
-  year: 2023,
-  avgArtIncomeAll: 10_550_000, // 예술인 1인당 예술활동 연평균 수입
-  avgArtIncomeMusic: 9_010_000, // 음악 분야
-  sideJobRate: 0.475, // 겸업 예술인 비율 (전체)
-  vsNational: 0.41, // 국민 평균 소득 대비
-  src: '문화체육관광부 「2024 예술인 실태조사」(2023년 기준)',
-};
+export const ARTIST_SURVEY = realityJson.data.artistSurvey;
 
 /** [통계] 한국콘텐츠진흥원 해외 페스티벌 참가지원 (2024 공고 기준) */
-export const OVERSEAS_SUPPORT = {
-  maxPerTeam: 10_000_000,
-  teams: 5,
-  requirement: '해외 페스티벌 공식 초청장 · 앨범 발매 경력 · 1시간 이상 단독 공연 가능',
-  covers: '왕복 항공료 · 현지 숙박비 · 악기 임차료 · 해외 운송료',
-  src: '한국콘텐츠진흥원 해외 페스티벌 참가지원 공고 (2024)',
-};
+export const OVERSEAS_SUPPORT = realityJson.data.overseasSupport;
 
 /** [근사] 스트리밍 1회당 권리자 몫 — 2015년 보도 기준 약 7.2원, 그중 실연자 약 0.43원. 직접 제작·작곡한 인디 밴드는 제작자·저작권자·실연자 몫을 함께 받는다 */
-export const STREAM = {
-  perPlayRights: 7.2,
-  performerShare: 0.43,
-  indieSelfReleased: 3, // 게임에서 쓰는 값: 유통 수수료를 떼고 제작·작곡·실연 몫을 합친 근사
-  src: '저작권료 분배 구조 보도(2015) · 문체부 징수규정 개정(2019, 권리자 몫 60→65%)',
-};
+export const STREAM = realityJson.data.stream;
 
 export function facts(year: number, minWage: number): Fact[] {
   return [

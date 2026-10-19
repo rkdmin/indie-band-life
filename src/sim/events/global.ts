@@ -31,7 +31,7 @@ const gainFans = (c: Ctx, n: number) => {
 
 export const GLOBAL: EventDef[] = [
   {
-    id: 'g_showcase', scene: 'club', title: '국제 음악 마켓 쇼케이스', chance: 0.22, cooldown: 6,
+    id: 'g_showcase', scene: 'club', title: '국제 음악 마켓 쇼케이스', chance: 0.22, cooldown: 6, minYear: 2008,
     when: (c) => !!c.band && free(c) && c.age >= 19 && c.age < 55 && c.s.albums.length >= 1 && c.p.rep >= 15 && !c.flag('g_invite_pending'),
     text: (c) =>
       `해외 페스티벌 디렉터와 바이어들이 서울에 모이는 국제 음악 마켓.\n쇼케이스 무대에 설 국내 팀을 뽑는다는 공고가 떴다.\n〈${c.band!.name}〉의 ${GENRE_INFO[c.band!.genre].label}이 바다 건너에서도 통할까?`,
@@ -172,7 +172,7 @@ export const GLOBAL: EventDef[] = [
     ],
   },
   {
-    id: 'g_asia_tour', scene: 'airport', title: '아시아 클럽 투어 제안', priority: 112, cooldown: 6, chance: 0.45,
+    id: 'g_asia_tour', scene: 'airport', title: '아시아 클럽 투어 제안', priority: 112, cooldown: 6, chance: 0.45, minYear: 2000,
     when: (c) => !!c.band && free(c) && c.p.globalFans >= 1500 && c.age < 60,
     text: (c) => `해외 팬 ${count(c.p.globalFans)}명. 현지 기획사에서 연락이 왔다.\n도쿄·오사카·타이베이·방콕, 열흘 동안 네 도시.\n티켓 수익은 나누지만 항공과 숙박은 우리 몫이다.`,
     choices: [

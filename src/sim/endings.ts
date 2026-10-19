@@ -3,7 +3,7 @@
 import type { EndingResult, GameState } from './types';
 import { bestSong } from './songs';
 import { count, given, josa } from './korean';
-import { GENRE_INFO } from './data/world';
+import { genreLabel } from './data/era/genres';
 
 export interface EndingDef {
   id: string;
@@ -123,7 +123,7 @@ export function computeEnding(s: GameState): EndingResult {
     .sort((a, b) => b.affinity - a.affinity)[0];
   const epitaphParts = [
     `${s.player.birthYear}–${s.player.birthYear + deathAge(s)}`,
-    genre ? `${GENRE_INFO[genre].label} 음악가` : '음악을 사랑한 사람',
+    genre ? `${genreLabel(genre, (s.band ?? s.pastBands[0])!.formedYear, s.player.country)} 음악가` : '음악을 사랑한 사람',
     best ? `대표곡 〈${best.title}〉` : null,
     closest ? `가장 가까운 사람: ${given(closest.name)}` : null,
   ].filter(Boolean);

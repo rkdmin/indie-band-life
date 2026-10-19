@@ -1,0 +1,77 @@
+{
+  "about": "[가정] 장르별 색·도달·충성도·핵심 기술.",
+  "data": {
+    "indierock": {
+      "id": "indierock",
+      "label": "인디록",
+      "color": "#ff7a59",
+      "color2": "#ffd166",
+      "path": "클럽 → 페스티벌",
+      "reach": 1,
+      "loyalty": 1,
+      "keySkill": ["guitar", "drums", "stage"],
+      "moods": ["bright", "wistful", "epic"],
+      "desc": "라이브 입소문으로 크는 장르. 무대가 곧 명함이다."
+    },
+    "punk": {
+      "id": "punk",
+      "label": "펑크",
+      "color": "#ff3d68",
+      "color2": "#1d1d1d",
+      "path": "DIY 공연 → 소규모 투어",
+      "reach": 0.7,
+      "loyalty": 1.4,
+      "keySkill": ["drums", "stage", "vocal"],
+      "moods": ["angry", "bright"],
+      "desc": "세 코드와 진심. 작은 공연장의 열기로 버틴다."
+    },
+    "shoegaze": {
+      "id": "shoegaze",
+      "label": "슈게이즈",
+      "color": "#a98bff",
+      "color2": "#7de2d1",
+      "path": "음원 공유 → 마니아 팬층",
+      "reach": 0.6,
+      "loyalty": 1.5,
+      "keySkill": ["guitar", "compose"],
+      "moods": ["dreamy", "wistful"],
+      "desc": "노이즈의 벽 너머의 멜로디. 해외 리스너가 먼저 알아본다."
+    },
+    "folk": {
+      "id": "folk",
+      "label": "포크",
+      "color": "#e9b872",
+      "color2": "#6b8f71",
+      "path": "버스킹 → 싱어송라이터",
+      "reach": 0.9,
+      "loyalty": 1.2,
+      "keySkill": ["vocal", "guitar", "compose"],
+      "moods": ["calm", "wistful"],
+      "desc": "가사가 무기. 드라마 OST 제안이 올지도."
+    },
+    "metal": {
+      "id": "metal",
+      "label": "메탈",
+      "color": "#c0c6d0",
+      "color2": "#8b0000",
+      "path": "기술 연습 → 전문 공연",
+      "reach": 0.45,
+      "loyalty": 1.8,
+      "keySkill": ["drums", "guitar", "bass"],
+      "moods": ["angry", "epic"],
+      "desc": "좁지만 깊은 세계. 팬들은 평생 간다."
+    },
+    "indiepop": {
+      "id": "indiepop",
+      "label": "인디팝",
+      "color": "#5ad1ff",
+      "color2": "#ff9ed2",
+      "path": "SNS → 스트리밍",
+      "reach": 1.35,
+      "loyalty": 0.8,
+      "keySkill": ["vocal", "keys", "compose"],
+      "moods": ["bright", "dreamy", "calm"],
+      "desc": "숏폼 한 번이면 인생이 바뀐다. 대신 금방 잊힌다."
+    }
+  }
+}
