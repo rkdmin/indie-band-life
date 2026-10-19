@@ -7,6 +7,7 @@ import { PixelScene } from '../art/PixelScene';
 import { playSong, sfx, stopSong, type SongLike } from '../audio/player';
 import { useBackButton } from '../platform';
 import { useArmed } from './useArmed';
+import { useScrollLock } from './useScrollLock';
 
 interface Props {
   scene: SceneId;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function Cinematic({ scene, people, crowd = 0.8, seed, kicker, title, sub, song, children, onDone, autoCloseMs }: Props) {
+  useScrollLock();
   const [typed, setTyped] = useState(0);
   const done = typed >= title.length;
   const subDelay = 0.4 + title.length * 0.06;

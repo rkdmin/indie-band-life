@@ -167,9 +167,20 @@ export function relDelta(s: GameState, n: Npc, d: number) {
   n.lastSeenTurn = s.turn;
 }
 
-export function relationLabel(n: Npc): string {
-  if (n.role === 'parent') return '가족';
-  if (n.role === 'sibling') return '형제·자매';
+/** 가족은 ‘가족’ 대신 엄마·아빠·형·오빠·누나·언니·남동생·여동생으로 — 내 성별과 나이 차이로 정한다 */
+export function kinLabel(n: Npc, me: { gender: 'm' | 'f'; birthYear: number }): string | null {
+  if (n.role === 'parent') return n.gender === 'f' ? '엄마' : '아빠';
+  if (n.role !== 'sibling') return null;
+  if (Math.abs(n.birthYear - me.birthYear) < 0.5) return n.gender === 'f' ? '쌍둥이 자매' : '쌍둥이 형제';
+  if (n.birthYear < me.birthYear) return n.gender === 'm' ? (me.gender === 'm' ? '형' : '오빠') : me.gender === 'm' ? '누나' : '언니';
+  return n.gender === 'm' ? '남동생' : '여동생';
+}
+
+export function relationLabel(n: Npc, me?: { gender: 'm' | 'f'; birthYear: number }): string {
+  const kin = me ? kinLabel(n, me) : null;
+  if (kin) return kin;
+  if (n.role === 'parent') return '부모님';
+  if (n.role === 'sibling') return '형제';
   if (n.role === 'partner') return '연인';
   if (n.inBand) return '밴드 멤버';
   if (n.affinity >= 70) return '절친';

@@ -18,7 +18,7 @@ import { REGIONS, annualDeathProb, minWage, priceIndex } from './data/world';
 import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
 import { computeEnding } from './endings';
-import { won } from './korean';
+import { josa, won } from './korean';
 import ALLOWANCE from '../data/fate/allowance.json';
 import { flavorLines } from './flavor';
 import { COUNTRIES, countryBirthShare, countryOf, type CountryId } from './data/countries';
@@ -876,3 +876,29 @@ export function isKoreaOnly(id: string) {
   return KOREA_ONLY.has(id) || /^rg_(seoul|gg|metro|local)_/.test(id);
 }
 export { COUNTRIES };
+
+/** 밴드 이름 짓기·바꾸기 — 첫 발매 전까지. 지금까지의 기록에 남은 옛 이름도 함께 바꾼다 */
+export function canRenameBand(s: GameState): boolean {
+  return !!s.band && !s.albums.some((a) => a.bandName === s.band!.name);
+}
+export function cleanBandName(raw: string): string {
+  return raw.replace(/[〈〉<>\r\n\t]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+}
+export function renameBand(prev: GameState, raw: string): GameState {
+  const name = cleanBandName(raw);
+  if (!name || !prev.band || !canRenameBand(prev) || name === prev.band.name) return prev;
+  const s = clone(prev);
+  const old = `〈${s.band!.name}〉`;
+  const neu = `〈${name}〉`;
+  s.band!.name = name;
+  for (const c of s.chronicle) if (c.text.includes(old)) c.text = c.text.split(old).join(neu);
+  for (const f of s.feed) if (f.text.includes(old)) f.text = f.text.split(old).join(neu);
+  for (const c of s.cine) if (c.title.includes(old)) c.title = c.title.split(old).join(neu);
+  if (s.active) {
+    s.active.choices = s.active.choices.map((c) => ({ ...c, label: c.label.split(old).join(neu) }));
+    // 이름 짓기 선택지는 조사까지 새 이름에 맞춘다 (〈합주단〉으로 / 〈바다〉로)
+    if (s.active.id === 'name_band' && s.active.choices[0]) s.active.choices[0].label = `${josa(name, '으로/로').replace(name, neu)} 간다`;
+    s.active.text = s.active.text.split(old).join(neu);
+  }
+  return s;
+}

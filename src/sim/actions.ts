@@ -484,7 +484,8 @@ export function missingInst(c: Ctx): Inst[] {
   return (['vocal', 'guitar', 'bass', 'drums'] as Inst[]).filter((i) => !have.has(i));
 }
 
-export function formBand(c: Ctx, name?: string, genre?: Genre) {
+/** ask: 이름 짓기 화면을 띄운다 (이름을 정해서 넘기지 않았으면 기본으로 띄운다 — 학교 밴드부·재결합은 이름이 정해져 있다) */
+export function formBand(c: Ctx, name?: string, genre?: Genre, ask = !name) {
   const g = genre ?? favoriteGenre(c.s);
   const inst = c.p.mainInst ?? 'guitar';
   const band = {
@@ -504,6 +505,11 @@ export function formBand(c: Ctx, name?: string, genre?: Genre) {
   // 멤버는 카드로 직접 고른다 (events/draft.ts) — 결성 직후 첫 카드를 띄운다
   c.queue('pick_member', {}, { src: 'form', round: 1 });
   band.chemistry = clamp(40 + c.members.reduce((a, m) => a + m.affinity, 0) / Math.max(1, c.members.length) / 3);
+  // 이름이 정해지지 않은 결성이면 멤버 고르기보다 먼저 이름을 짓는다 (events/naming.ts)
+  if (ask) {
+    c.s.queue.unshift({ id: 'name_band', bind: {} });
+    return band;
+  }
   c.chron(`밴드 〈${band.name}〉 결성 (${GENRE_INFO[g].label})`, 'band');
   c.line(`밴드 〈${band.name}〉 결성!`, 'big');
   c.s.cine.push({ kind: 'band', scene: 'studio', kicker: `${c.year} · ${c.ageInt}세 · ${GENRE_INFO[g].label}`, title: `〈${band.name}〉`, sub: c.members.length ? `${josa(c.members.map((m) => given(m.name)).join(', '), '과/와')} 함께 밴드를 시작했다.` : '이름부터 정했다. 이제 함께할 사람을 고를 차례.', at: c.s.time });

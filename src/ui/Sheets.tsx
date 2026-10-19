@@ -15,6 +15,8 @@ import { WAVES, historyBetween } from '../sim/data/history';
 import type { CountryId } from '../sim/data/countries';
 import { npcAppearance } from '../sim/appearance';
 import { Flag } from './Flag';
+import { BandNamer } from './BandNamer';
+import { canRenameBand } from '../sim/engine';
 
 // ───────────────────────── 사람들 ─────────────────────────
 export function PeopleSheet({ s }: { s: GameState }) {
@@ -47,12 +49,12 @@ function PersonRow({ s, n }: { s: GameState; n: Npc }) {
       </div>
       <div>
         <div className="nm">
-          {n.name} {!n.alive && '🕊️'} <span className="chip">{relationLabel(n)}</span>
+          {n.name} {!n.alive && '🕊️'} <span className="chip">{relationLabel(n, s.player)}</span>
         </div>
         <div className="meta">
-          {a}세 · {n.role === 'parent' ? '가족' : `${INST_LABEL[n.inst]} ${Math.round(n.skill)}`} · {careerLabel(n, a)}
+          {a}세 · {n.role === 'parent' ? '' : `${INST_LABEL[n.inst]} ${Math.round(n.skill)} · `}{careerLabel(n, a)}
           <br />
-          {n.metAge}세 때 {n.metAt}에서 · {n.traits.map((t) => TRAIT_LABEL[t]).join(', ')}
+          {n.role === 'parent' || (n.role === 'sibling' && n.birthYear <= s.player.birthYear) ? '태어날 때부터' : n.role === 'sibling' ? `${n.metAge}세 때 태어난 동생` : `${n.metAge}세 때 ${n.metAt}에서`} · {n.traits.map((t) => TRAIT_LABEL[t]).join(', ')}
         </div>
         {n.role !== 'parent' && (
           <div className="aff">
@@ -71,15 +73,18 @@ function PersonRow({ s, n }: { s: GameState; n: Npc }) {
 }
 
 // ───────────────────────── 밴드 ─────────────────────────
-export function BandSheet({ s }: { s: GameState }) {
+export function BandSheet({ s, onRename }: { s: GameState; onRename?: (name: string) => void }) {
   const p = s.player;
   const b = s.band;
+  const [naming, setNaming] = useState(false);
   return (
     <>
       {b ? (
         <div className="band-hero">
           <div className="dim">{genreLabel(b.genre, s.time, s.player.country)} · {b.formedYear}년 결성 · {b.label === 'none' ? '무소속' : b.label === 'indie' ? '인디 레이블' : '대형 기획사'}</div>
           <h2>{b.name}</h2>
+          {onRename && canRenameBand(s) && !naming && <button className="linkbtn" style={{ color: '#fff' }} onClick={() => setNaming(true)}>✎ 이름 바꾸기 (첫 발매 전까지)</button>}
+          {onRename && naming && <div className="namer-box"><BandNamer current={b.name} seed={s.seed + s.turn} confirmLabel="이 이름으로 바꾸기" onConfirm={(n) => { onRename(n); setNaming(false); }} /></div>}
           <div className="row" style={{ marginTop: 8 }}>
             <span className="chip big">팀워크 {Math.round(b.chemistry)}</span>
             <span className="chip">공연 {b.gigs}회</span>

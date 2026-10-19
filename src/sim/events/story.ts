@@ -201,7 +201,7 @@ export const STORY: EventDef[] = [
         run: (c) => {
           c.study(-4);
           if (c.check(c.choicesOdds!)) {
-            const band = formBand(c, c.vars.hasClub ? `${c.pick(['한빛', '새솔', '푸른', '동명', '세화'])}고 밴드부` : `${c.pick(['방과후', '구민회관', '지하'])} ${c.pick(['소년단', '클럽', '밴드'])}`);
+            const band = formBand(c, c.vars.hasClub ? `${c.pick(['한빛', '새솔', '푸른', '동명', '세화'])}고 밴드부` : `${c.pick(['방과후', '구민회관', '지하'])} ${c.pick(['소년단', '클럽', '밴드'])}`, undefined, !c.vars.hasClub);
             if (!band.memberIds.includes(c.bind.mf)) {
               band.memberIds.push(c.bind.mf);
               const m = c.npc('mf');
@@ -355,7 +355,7 @@ export const STORY: EventDef[] = [
   {
     id: 'old_friend_call', scene: 'pub', title: '오랜만이다', priority: 140, cooldown: 6, chance: 0.5,
     when: (c) => between(c, 19, 33) && !c.band && !!c.p.mainInst && c.p.military !== 'serving' && !c.flag('quitMusic'),
-    bind: (c) => c.bindFrom('f', (n) => n.affinity >= 10 && n.metAge < 19 && !n.inBand && (n.career === 'student' || n.career === 'musician' || n.skill > 35)),
+    bind: (c) => c.bindFrom('f', (n) => n.role !== 'parent' && n.role !== 'sibling' && n.affinity >= 10 && n.metAge < 19 && !n.inBand && (n.career === 'student' || n.career === 'musician' || n.skill > 35)),
     text: (c) => {
       const n = c.npc('f');
       const ago = c.ageInt - n.metAge;
@@ -604,7 +604,7 @@ export const STORY: EventDef[] = [
   {
     id: 'producer_friend', scene: 'recording', title: '오랜 친구의 스튜디오', priority: 120, once: true, chance: 0.35,
     when: (c) => c.age >= 34 && c.p.job !== 'producer',
-    bind: (c) => c.bindFrom('f', (n) => (n.career === 'producer' || n.career === 'label') && n.affinity >= 5),
+    bind: (c) => c.bindFrom('f', (n) => n.role !== 'parent' && n.role !== 'sibling' && (n.career === 'producer' || n.career === 'label') && n.affinity >= 5),
     text: (c) => {
       const n = c.npc('f');
       return `${n.metAge}살 때 ${n.metAt}에서 만난 ${n.name}. 지금은 ${careerLabel(n, c.s.time - n.birthYear)}.\n“너 같은 사람이 필요해. 우리 스튜디오에서 같이 일하자. 신인들 곡도 봐 주고.”`;

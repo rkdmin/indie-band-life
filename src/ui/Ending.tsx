@@ -17,6 +17,7 @@ import { ChronicleSheet, SongRow } from './Sheets';
 import { shareFile } from '../platform';
 import { FanGraph } from './FanGraph';
 import type { Meta } from './save';
+import { kinLabel } from '../sim/npc';
 
 interface Props {
   state: GameState;
@@ -50,8 +51,8 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
     return ppl.map((n) => ({
       id: n.id,
       name: n.name,
-      role: ids.has(n.id) ? INST_LABEL[n.inst] : n.role === 'partner' ? '사랑' : '친구',
-      how: `${n.metAge}살, ${n.metAt}`,
+      role: ids.has(n.id) ? INST_LABEL[n.inst] : n.role === 'partner' ? '사랑' : kinLabel(n, s.player) ?? '친구',
+      how: n.role === 'parent' || n.role === 'sibling' ? (n.birthYear <= s.player.birthYear ? '태어날 때부터' : `${n.metAge}살 때 태어난 동생`) : `${n.metAge}살, ${n.metAt}`,
     }));
   }, [s]);
   const highlights = useMemo(() => s.chronicle.filter((c) => c.kind === 'big' || c.kind === 'band').slice(-8), [s.chronicle]);

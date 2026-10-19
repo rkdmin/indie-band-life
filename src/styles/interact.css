@@ -68,3 +68,17 @@ button:disabled { transform: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .gcard, .mcard, .choice, .pick, .country-pick button, .era-pick button { transition: none !important; animation: none !important; }
 }
+.sheet-head, .sheet-backdrop { touch-action: none; }
+
+/* 밴드 이름 짓기 */
+.namer { display: grid; gap: 10px; margin-top: 14px; }
+.namer-row { display: flex; gap: 8px; }
+.namer-row .text-input { flex: 1; min-width: 0; font-family: var(--serif); font-size: 20px; font-weight: 400; }
+.namer-row .btn { flex: none; width: 48px; padding: 0; font-size: 20px; }
+.namer-ideas { display: flex; flex-wrap: wrap; gap: 6px; }
+.namer-ideas .chip { cursor: pointer; font-size: 13px; padding: 4px 10px; }
+.namer-ideas .chip.on { background: var(--ink); color: var(--paper); }
+@media (hover: hover) { .namer-ideas .chip:not(.on):hover { border-color: var(--pink); color: var(--pink); } }
+.namer-preview { font-size: 14px; color: var(--sub); }
+.namer-preview b { font-family: var(--serif); font-weight: 400; color: var(--ink); font-size: 18px; }
+.namer-box { margin-top: 10px; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 4px 12px 12px; }

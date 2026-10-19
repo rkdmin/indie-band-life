@@ -6,6 +6,9 @@ import { togglePlan, planOptions, resolvePlan } from '../src/sim/plan';
 import { newGame, runPeriodAuto, openEvent, beginPeriod, autoChoose, proceed, endPeriod } from '../src/sim/engine';
 import { Rng } from '../src/sim/rng';
 import { moodOf } from '../src/ui/cutMood';
+import { kinLabel } from '../src/sim/npc';
+import { renameBand, canRenameBand, cleanBandName } from '../src/sim/engine';
+import type { Npc } from '../src/sim/types';
 import type { ActiveEvent, GameState } from '../src/sim/types';
 import type { CountryId } from '../src/sim/data/countries';
 
@@ -106,5 +109,55 @@ describe('컷신 반응', () => {
     expect(moodOf({ ...base, result: { text: '', lines: [], rolls: [roll(true)] } })).toBe('good');
     expect(moodOf({ ...base, result: { text: '', lines: [], rolls: [roll(false)] } })).toBe('bad');
     expect(moodOf({ ...base, result: { text: '', lines: [{ text: '', tone: 'bad' }, { text: '', tone: 'bad' }, { text: '', tone: 'good' }] } })).toBe('bad');
+  });
+});
+
+describe('가족 호칭', () => {
+  const n = (role: string, gender: 'm' | 'f', birthYear: number) => ({ role, gender, birthYear }) as unknown as Npc;
+  it('엄마·아빠, 내 성별과 나이로 형·오빠·누나·언니·남동생·여동생', () => {
+    const boy = { gender: 'm' as const, birthYear: 2000 };
+    const girl = { gender: 'f' as const, birthYear: 2000 };
+    expect(kinLabel(n('parent', 'f', 1970), boy)).toBe('엄마');
+    expect(kinLabel(n('parent', 'm', 1968), girl)).toBe('아빠');
+    expect(kinLabel(n('sibling', 'm', 1997), boy)).toBe('형');
+    expect(kinLabel(n('sibling', 'm', 1997), girl)).toBe('오빠');
+    expect(kinLabel(n('sibling', 'f', 1997), boy)).toBe('누나');
+    expect(kinLabel(n('sibling', 'f', 1997), girl)).toBe('언니');
+    expect(kinLabel(n('sibling', 'm', 2003), girl)).toBe('남동생');
+    expect(kinLabel(n('sibling', 'f', 2003), boy)).toBe('여동생');
+    expect(kinLabel(n('friend', 'f', 2000), boy)).toBeNull();
+  });
+});
+
+describe('밴드 이름', () => {
+  it('결성한 밴드는 모두 결성 기록이 남는다 (이름 짓기를 거쳐도)', () => {
+    const bad: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      let s = newGame({ name: '검사', gender: i % 2 ? 'm' : 'f', birthYear: 1970 + i * 3, seed: 8800 + i * 11, country: 'KR' });
+      let g = 0;
+      while (s.phase !== 'ending' && g++ < 400) s = runPeriodAuto(s);
+      for (const b of [...s.pastBands, ...(s.band ? [s.band] : [])]) {
+        if (!s.chronicle.some((c) => c.text.includes(`〈${b.name}〉`))) bad.push(`${b.name} 기록 없음`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+  it('이름을 바꾸면 지난 기록도 바뀌고, 첫 발매 뒤엔 못 바꾼다', () => {
+    expect(cleanBandName('  〈새 이름〉  ')).toBe('새 이름');
+    expect(cleanBandName('아주아주아주아주아주아주긴이름입니다')).toHaveLength(16);
+    let s = newGame({ name: '검사', gender: 'm', birthYear: 1990, seed: 9100, country: 'KR' });
+    let g = 0;
+    while (!s.band && s.phase !== 'ending' && g++ < 400) s = runPeriodAuto(s);
+    expect(s.band, '이 시드는 밴드를 만든다').toBeTruthy();
+    if (!s.band) return;
+    const old = s.band.name;
+    s = { ...s, chronicle: [...s.chronicle, { age: 20, year: 2010, text: `밴드 〈${old}〉 결성`, kind: 'band' }], albums: [] };
+    const r = renameBand(s, '파란 지붕');
+    expect(r.band!.name).toBe('파란 지붕');
+    expect(r.chronicle.some((c) => c.text.includes('〈파란 지붕〉'))).toBe(true);
+    expect(r.chronicle.some((c) => c.text.includes(`〈${old}〉`))).toBe(false);
+    const released = { ...r, albums: [{ id: 'a', title: 't', kind: 'single', songIds: [], year: 2011, age: 21, bandName: '파란 지붕', coverSeed: 1, genre: r.band!.genre, score: 5, sales: 1 }] } as typeof r;
+    expect(canRenameBand(released)).toBe(false);
+    expect(renameBand(released, '다른 이름').band!.name).toBe('파란 지붕');
   });
 });

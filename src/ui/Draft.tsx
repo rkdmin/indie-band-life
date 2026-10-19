@@ -9,12 +9,14 @@ import { TRAIT_LABEL, careerLabel, npcAge } from '../sim/npc';
 import { sfx } from '../audio/player';
 import { charmWord, describe, npcAppearance } from '../sim/appearance';
 import { useArmed } from './useArmed';
+import { useScrollLock } from './useScrollLock';
 
 export function MemberDraft({ s, onChoose, cut }: { s: GameState; onChoose: (i: number) => void; cut?: ReactNode }) {
   const ev = s.active!;
   const band = s.band;
   const n = Number(ev.vars?.n ?? 0);
   const cards = Array.from({ length: n }, (_, i) => ({ i, npc: s.npcs[ev.vars?.[`c${i}`] as string], ch: ev.choices[i] })).filter((x) => x.npc);
+  useScrollLock();
   const passIdx = ev.choices.length - 1;
   const armed = useArmed(ev.id, 350);
   return (

@@ -4,7 +4,7 @@
 import { genreLabel } from '../sim/data/era/genres';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedEntry, GameState, SceneId } from '../sim/types';
-import { autoChoose, beginPeriod, canRetire, choose, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
+import { autoChoose, beginPeriod, canRetire, choose, renameBand, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
 import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
 import { INST_LABEL, minWage } from '../sim/data/world';
 import { ARTIST_SURVEY, facts } from '../sim/data/reality';
@@ -37,7 +37,9 @@ import { npcAppearance, playerAppearance } from '../sim/appearance';
 import { charmWord, heightAt } from '../sim/appearance';
 import { useArmed } from './useArmed';
 import { EventCut } from './EventCut';
+import { BandNamer } from './BandNamer';
 import { Flag } from './Flag';
+import { useScrollLock } from './useScrollLock';
 
 type Speed = 0 | 1 | 2 | 4 | 8;
 type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'data' | 'settings' | 'plan';
@@ -341,7 +343,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
 
       {!coach && ev && isDraft(ev.id) && !ev.result && !ev.pending && <MemberDraft s={s} onChoose={onChoose} cut={<EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={peopleFor(s, ev.scene, Object.values(ev.bind))} night seed={s.seed + Math.round(ev.at * 12)} onDone={() => undefined} />} />}
       {!coach && ev && ev.cards && !ev.result && !ev.pending && <CardPick s={s} onChoose={onChoose} cut={<EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={peopleFor(s, ev.scene, Object.values(ev.bind))} night={false} seed={s.seed + Math.round(ev.at * 12)} onDone={() => undefined} />} />}
-      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && !(ev.cards && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
+      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && !(ev.cards && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} onRename={(n) => commit(renameBand(stRef.current, n))} />}
       {!coach && ev && ev.big && (
         <Cinematic
           key={`${ev.id}-${ev.at}`}
@@ -394,7 +396,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
         />
       )}
       {tab === 'people' && <Sheet title="사람들" onClose={() => setTab(null)}><PeopleSheet s={s} /></Sheet>}
-      {tab === 'band' && <Sheet title="밴드 · 실력" onClose={() => setTab(null)}><BandSheet s={s} /></Sheet>}
+      {tab === 'band' && <Sheet title="밴드 · 실력" onClose={() => setTab(null)}><BandSheet s={s} onRename={(n) => commit(renameBand(stRef.current, n))} /></Sheet>}
       {tab === 'records' && <Sheet title="디스코그래피" onClose={() => setTab(null)}><RecordsSheet s={s} /></Sheet>}
       {tab === 'chron' && <Sheet title="연대기 · 음악사" onClose={() => setTab(null)}><ChronicleSheet s={s} /></Sheet>}
       {tab === 'data' && <Sheet title="데이터로 본 내 인생" onClose={() => setTab(null)}><DataSheet s={s} /></Sheet>}
@@ -691,8 +693,9 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   );
 }
 
-function Fork({ s, onChoose, onNext, onAuto }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; onAuto: () => void }) {
+function Fork({ s, onChoose, onNext, onAuto, onRename }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; onAuto: () => void; onRename: (name: string) => void }) {
   const ev = s.active!;
+  useScrollLock();
   useEffect(() => sfx('page'), [ev.id]);
   const a = Math.max(0, Math.floor(ev.at - s.player.birthYear));
   const m = Math.min(12, Math.floor((ev.at - Math.floor(ev.at)) * 12) + 1);
@@ -713,7 +716,7 @@ function Fork({ s, onChoose, onNext, onAuto }: { s: GameState; onChoose: (i: num
           <WhoBar s={s} />
           <h2>{ev.title}</h2>
           <div className="text">{ev.text}</div>
-          {ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
+          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
         </div>
         {!ev.result && !s.autoDecide && (
           <div className="fork-foot">
@@ -784,7 +787,7 @@ function WhoBar({ s }: { s: GameState }) {
           </div>
           <div>
             <b>{n.name}</b>
-            <span>{relationLabel(n)} · 친밀도 {Math.round(n.affinity)}</span>
+            <span>{relationLabel(n, s.player)} · 친밀도 {Math.round(n.affinity)}</span>
           </div>
         </div>
       ))}
