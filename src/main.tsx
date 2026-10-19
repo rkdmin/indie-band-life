@@ -11,8 +11,17 @@ import './styles/deck.css';
 import './styles/cards.css';
 import './styles/data.css';
 import './styles/interact.css';
+import './styles/ending.css';
 
 initBackButton();
+
+// 게임 화면은 확대·축소되지 않게 — 두 손가락 확대(iOS 는 viewport 설정을 무시해서 제스처를 직접 막는다)·두 번 탭·Ctrl+휠·Ctrl+±
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && ['+', '=', '-', '_', '0'].includes(e.key)) e.preventDefault();
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

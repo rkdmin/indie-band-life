@@ -1,0 +1,46 @@
+/* ═══════════ 엔딩: 팬 사다리 + 특이사항 도장 ═══════════ */
+.ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.rung { display: grid; grid-template-columns: 22px 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; background: var(--paper2); color: var(--sub); transition: background-color 0.12s, color 0.12s, transform 0.12s; }
+.rung-n { font-family: var(--pixel); font-size: 12px; text-align: right; }
+.rung-e { font-size: 16px; filter: grayscale(0.8); opacity: 0.6; }
+.rung-t { display: grid; min-width: 0; }
+.rung-t b { font-size: 14px; font-weight: 700; color: var(--ink2); }
+.rung-t small { font-size: 11px; }
+.rung-o { font-size: 11px; text-align: right; white-space: nowrap; }
+.rung.summit { background: linear-gradient(90deg, #ffe14d22, var(--paper2) 60%); }
+.rung.above { opacity: 0.75; }
+.rung.here { background: var(--ink); color: #fff; transform: scale(1.02); }
+.rung.here .rung-t b, .rung.here .rung-t small { color: #fff; }
+.rung.here .rung-e { filter: none; opacity: 1; }
+.rung.mine { background: var(--pink); box-shadow: 3px 3px 0 var(--ink); animation: rungLand 0.5s ease; }
+.rung.mine .rung-o em { font-style: normal; font-family: var(--serif); font-size: 15px; color: #fff; }
+@keyframes rungLand { 30% { transform: scale(1.08); } 60% { transform: scale(0.98); } }
+
+.stamps { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; padding: 4px; }
+.stamp { position: relative; display: grid; justify-items: center; text-align: center; gap: 2px; padding: 12px 10px 10px; border: 3px double var(--ink); border-radius: 10px; color: var(--ink); background: #fff8; transform: rotate(var(--tilt)) scale(2.2); opacity: 0; }
+.stamp.in { animation: stampIn 0.32s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes stampIn { 0% { opacity: 0; transform: rotate(var(--tilt)) scale(2.2); } 70% { opacity: 1; transform: rotate(var(--tilt)) scale(0.94); } 100% { opacity: 1; transform: rotate(var(--tilt)) scale(1); } }
+.stamp::before { content: ''; position: absolute; inset: 3px; border-radius: 7px; border: 1.5px solid var(--ink); opacity: 0.35; pointer-events: none; }
+.stamp-e { font-size: 30px; line-height: 1.1; }
+.stamp b { font-family: var(--serif); font-weight: 400; font-size: 17px; line-height: 1.15; color: var(--ink); }
+.stamp small { font-size: 12px; color: var(--ink2); line-height: 1.35; }
+.stamp-o { margin-top: 3px; font-family: var(--pixel); font-size: 11px; color: var(--ink); opacity: 0.8; }
+.stamp-new { position: absolute; top: -9px; right: -6px; font-family: var(--pixel); font-size: 11px; color: #fff; background: var(--pink); padding: 1px 6px; border-radius: 3px; transform: rotate(8deg); box-shadow: 1px 1px 0 var(--ink); }
+.stamp.rare { background: linear-gradient(115deg, #fff8 30%, #ffe9a8aa 45%, #fff8 60%) 0 0 / 250% 100%; }
+.stamp.rare.in { animation: stampIn 0.32s cubic-bezier(.2,1.6,.4,1) forwards, foil 2.6s 0.4s linear infinite; }
+@keyframes foil { to { background-position: -250% 0; } }
+
+/* 도감 */
+.dex-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.dex-badge { display: grid; justify-items: center; text-align: center; gap: 2px; padding: 10px 6px; border: 2px dashed var(--line); border-radius: 8px; }
+.dex-badge.got { border: 3px double var(--ink); background: var(--card); }
+.dex-badge .e { font-size: 24px; }
+.dex-badge b { font-size: 13px; }
+.dex-badge small { font-size: 11px; color: var(--sub); }
+.dex-badge:not(.got) .e { filter: grayscale(1) brightness(0.3); opacity: 0.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp { opacity: 1; transform: rotate(var(--tilt)); animation: none !important; }
+  .rung.mine { animation: none; }
+}
+.rung-t b { overflow-wrap: anywhere; } .rung-o { max-width: 46%; white-space: normal; }

@@ -23,6 +23,8 @@ export interface Meta {
   endings: Record<string, number>; // 엔딩 id → 달성 횟수
   lives: PastLife[];
   seenIntro: boolean;
+  /** 특이사항 배지 id → 받은 횟수 */
+  badges?: Record<string, number>;
 }
 
 export function loadGame(): GameState | null {
@@ -49,7 +51,7 @@ export function saveGame(s: GameState | null) {
 export function loadMeta(): Meta {
   try {
     const raw = localStorage.getItem(META_KEY);
-    if (raw) return { endings: {}, lives: [], seenIntro: false, ...JSON.parse(raw) };
+    if (raw) return migrateMeta({ endings: {}, lives: [], seenIntro: false, badges: {}, ...JSON.parse(raw) });
   } catch {
     /* 무시 */
   }
@@ -82,8 +84,21 @@ export function recordLife(meta: Meta, s: GameState): Meta {
   const next: Meta = {
     ...meta,
     endings: { ...meta.endings, [s.ending.id]: (meta.endings[s.ending.id] ?? 0) + 1 },
+    badges: (s.ending.badges ?? []).reduce((acc, b) => ({ ...acc, [b]: (acc[b] ?? 0) + 1 }), { ...(meta.badges ?? {}) } as Record<string, number>),
     lives: [life, ...meta.lives].slice(0, 30),
   };
   saveMeta(next);
   return next;
+}
+
+/** 예전 엔딩(사연별 14개)을 받은 기록은 같은 사연의 배지로 옮긴다 — 엔딩은 이제 팬 사다리 14단계 */
+const OLD_TO_BADGE: Record<string, string> = {
+  young_genius: 'young', global: 'global', livelihood: 'livelihood', revival: 'revival', cult: 'cult',
+  reunion: 'reunion', lifelong: 'lifelong', mentor: 'mentor', bankrupt: 'bankrupt', quit: 'quit',
+};
+function migrateMeta(m: Meta): Meta {
+  if ((m as Meta & { migrated2?: boolean }).migrated2) return m;
+  const badges = { ...(m.badges ?? {}) };
+  for (const [old, n] of Object.entries(m.endings)) if (OLD_TO_BADGE[old]) badges[OLD_TO_BADGE[old]] = (badges[OLD_TO_BADGE[old]] ?? 0) + n;
+  return { ...m, badges, migrated2: true } as Meta;
 }

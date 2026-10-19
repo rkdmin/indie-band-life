@@ -7,6 +7,7 @@ import { GENRE_INFO, eraOf } from './data/world';
 import { countryOf } from './data/countries';
 import { bandMembers } from './npc';
 import { count, josa } from './korean';
+import hitsJson from '../data/fate/hits.json';
 
 // 인생 사건이 곡의 주제가 된다. flags 에 theme:<key> 가 쌓이면 작곡 때 추천된다.
 export interface Theme {
@@ -133,6 +134,14 @@ export function bestSong(s: GameState): Song | null {
   return [...pool].sort((a, b) => b.streams + b.quality * 1000 - (a.streams + a.quality * 1000))[0];
 }
 
+const HITS = hitsJson.data;
+/** 터졌을 때의 크기 — 완성도 90 이상이면 큰 단계가 더 자주 */
+export function hitLevel(rng: Rng, quality: number) {
+  const boost = quality >= 90 ? HITS.qualityBoost : quality >= 80 ? Math.sqrt(HITS.qualityBoost) : 1;
+  const ws = HITS.levels.map((l, i) => l.p * (i >= 2 ? boost : 1));
+  return rng.weighted(HITS.levels, (l) => ws[HITS.levels.indexOf(l)])!;
+}
+
 /** 발매: 곡들의 품질·팬·평판·장르 도달력·시대로 반응을 계산 */
 export function release(s: GameState, rng: Rng, songIds: string[], title: string): Album {
   const songs = songIds.map((id) => s.songs.find((x) => x.id === id)!).filter(Boolean);
@@ -167,20 +176,32 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   }
   // 바이럴은 앨범당 한 번, 가장 좋은 곡만 노린다: 품질·장르 도달력·숏폼 시대
   // 취미 음악인의 곡이 터질 일은 훨씬 드물다 (홍보·유통이 없다)
-  const viralP = (sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 3.2)) * (s.flags.hobby ? 0.3 : 1);
+  const viralP = (sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 2.6)) * (s.flags.hobby ? 0.3 : 1);
   const viral = rng.chance(viralP);
   s.lastResults.push({ text: `🎲 ${viralWhere(s)} 입소문 ${Math.max(1, Math.round(viralP * 100))}% → ${viral ? '터졌다' : '불발'}`, tone: viral ? 'big' : 'neutral', delta: true });
+  let hitGlobal = 0;
   if (viral) {
     best.hit = true;
-    const burst = rng.range(1.5, 6) * 1_000_000 * gi.reach * era.streamMul;
+    // 얼마나 크게 터지나 — 대부분은 반짝, 아주 드물게 나라 전체·세계로 (data/fate/hits.json)
+    const lv = hitLevel(rng, best.quality);
+    const burst = rng.range(1.5, 6) * 1_000_000 * gi.reach * era.streamMul * lv.mul;
     best.streams += Math.round(burst);
-    best.peak = rng.int(1, 40);
-    newFans += burst / 250;
+    best.peak = rng.int(lv.peak[0], lv.peak[1]);
+    best.hitLevel = lv.id;
+    const add = (burst / 250) * cMul;
+    newFans += add;
+    hitGlobal = add * lv.global;
+    if (lv.id !== 'spark') s.lastResults.push({ text: `🔥 ${lv.label}`, tone: 'big', delta: true });
+    s.flags[`hit_${lv.id}`] = ((s.flags[`hit_${lv.id}`] as number) || 0) + 1;
   } else if (best.streams > 600_000) {
     best.peak = rng.int(41, 100);
   }
   newFans = Math.round(newFans);
   // 해외 팬은 해외 플레이리스트·투어로 생긴 팬층이 있을 때 발매마다 조금씩 는다
+  if (hitGlobal > 0) {
+    p.globalFans += Math.round(hitGlobal);
+    s.lastResults.push({ text: `해외 팬 +${count(Math.round(hitGlobal))}`, tone: 'good', delta: true });
+  }
   if (p.globalFans > 0 || gi.id === 'shoegaze' || gi.id === 'metal') {
     const g = Math.round((p.globalFans * 0.12 + newFans * (gi.id === 'shoegaze' || gi.id === 'metal' ? 0.25 : 0.06)) * Math.pow(best.quality / 70, 2));
     p.globalFans += g;
@@ -188,6 +209,8 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   }
   // 취미 음악인의 발매는 지인·단골 중심으로만 퍼진다
   p.fans += s.flags.hobby && !s.flags.revivalHit ? Math.round(newFans * 0.35) : newFans;
+  // 한 나라 안의 팬은 그 나라 인구가 상한이다
+  p.fans = Math.min(p.fans, (HITS.domesticCap as Record<string, number>)[p.country ?? 'KR'] ?? 12_000_000);
   p.rep = clamp(p.rep + ((avgQ - 40) / 25) * (kind === 'full' ? 3 : kind === 'ep' ? 1.8 : 0.8) * fatigue);
 
   const album: Album = {

@@ -152,6 +152,7 @@ export const BREAKOUT_EVENTS: EventDef[] = [
             c.skill('stage', 1);
             return r.lose.line;
           }
+          c.set(`boWin:${r.kind}`);
           const jp = r.jackpot && c.roll(r.jackpot.p);
           const [lo, hi] = jp ? r.jackpot!.fans : r.win.fans;
           c.fans(c.rng.int(lo, hi));

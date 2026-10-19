@@ -82,3 +82,6 @@ button:disabled { transform: none !important; }
 .namer-preview { font-size: 14px; color: var(--sub); }
 .namer-preview b { font-family: var(--serif); font-weight: 400; color: var(--ink); font-size: 18px; }
 .namer-box { margin-top: 10px; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 4px 12px 12px; }
+
+/* 두 번 탭 확대 막기 — 스크롤은 그대로 */
+html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

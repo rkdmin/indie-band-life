@@ -490,6 +490,7 @@ export function choose(prev: GameState, idx: number): GameState {
     if (!live.length) return s;
     idx = rng.pick(live);
     s.flags.wildPick = 1;
+    s.flags.wildCount = Number(s.flags.wildCount ?? 0) + 1;
   }
   const ch = def.choices[idx];
   const c = new Ctx(s, rng, ev.bind, ev.vars ?? {});
@@ -567,6 +568,8 @@ function applyChoice(s: GameState, idx: number, pd?: PendingRoll): GameState {
   for (const cn of s.cine.slice(cineBefore)) cn.at = ev.at;
   for (const r of c.rolls) c.lines.push({ text: `🎲 ${r.label} d20(${r.nat2 !== undefined ? `${r.nat}·${r.nat2}` : r.nat})${r.mod >= 0 ? '+' : ''}${r.mod} vs 난이도 ${r.dc} → ${r.crit === 'success' ? '대성공' : r.crit === 'fail' ? '대실패' : r.ok ? '성공' : '실패'}`, tone: r.ok ? 'good' : 'bad', delta: true });
   s.active = { ...ev, pending: undefined, bind: c.bind, result: { text, lines: c.lines, rolls: c.rolls, jackpot: jackpotOf(s, fans0, money0) } };
+  const jp = s.active.result?.jackpot;
+  if (jp) s.flags[jp.kind === 'bust' ? 'jpBust' : 'jpBig'] = Number(s.flags[jp.kind === 'bust' ? 'jpBust' : 'jpBig'] ?? 0) + 1;
   const label = typeof ch.label === 'function' ? ch.label(c) : ch.label;
   pushFeed(s, { t: ev.at, text: `${ev.title} — ${label}`, tone: ev.big ? 'big' : 'neutral', kind: 'event' });
   linesToFeed(s, c.lines, ev.at + 0.002, text || undefined, 'event');

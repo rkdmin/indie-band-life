@@ -7,6 +7,8 @@ import { newGame, runPeriodAuto, openEvent, beginPeriod, autoChoose, proceed, en
 import { Rng } from '../src/sim/rng';
 import { moodOf } from '../src/ui/cutMood';
 import { kinLabel } from '../src/sim/npc';
+import { ENDINGS, BADGES, endingOf, fame } from '../src/sim/endings';
+import oddsJson from '../src/data/fate/ending_odds.json';
 import { renameBand, canRenameBand, cleanBandName } from '../src/sim/engine';
 import type { Npc } from '../src/sim/types';
 import type { ActiveEvent, GameState } from '../src/sim/types';
@@ -159,5 +161,30 @@ describe('밴드 이름', () => {
     const released = { ...r, albums: [{ id: 'a', title: 't', kind: 'single', songIds: [], year: 2011, age: 21, bandName: '파란 지붕', coverSeed: 1, genre: r.band!.genre, score: 5, sales: 1 }] } as typeof r;
     expect(canRenameBand(released)).toBe(false);
     expect(renameBand(released, '다른 이름').band!.name).toBe('파란 지붕');
+  });
+});
+
+describe('팬 사다리와 특이사항', () => {
+  it('단계는 1부터 14까지 빠짐없이, 위로 갈수록 기준이 높다', () => {
+    expect(ENDINGS.map((e) => e.tier)).toEqual(Array.from({ length: 14 }, (_, i) => i + 1));
+    const mins = ENDINGS.filter((e) => e.min !== undefined).map((e) => e.min!);
+    for (let i = 1; i < mins.length; i++) expect(mins[i]).toBeLessThan(mins[i - 1]);
+    expect(new Set(BADGES.map((b) => b.id)).size).toBe(BADGES.length);
+    // 화면에 쓰는 빈도 데이터가 모든 단계·배지를 담고 있다
+    for (const e of ENDINGS) expect(oddsJson.data.tiers, e.id).toHaveProperty(e.id);
+    for (const b of BADGES) expect(oddsJson.data.badges, b.id).toHaveProperty(b.id);
+  });
+  it('인생은 팬 규모에 맞는 단계에 선다', () => {
+    for (let i = 0; i < 8; i++) {
+      let s = newGame({ name: '검사', gender: 'm', birthYear: 1980 + i * 4, seed: 6600 + i * 31, country: 'KR' });
+      let g = 0;
+      while (s.phase !== 'ending' && g++ < 400) s = runPeriodAuto(s);
+      const e = endingOf(s);
+      expect(s.ending!.id).toBe(e.id);
+      if (e.min !== undefined) expect(fame(s)).toBeGreaterThanOrEqual(e.min);
+      const above = ENDINGS.find((x) => x.tier === e.tier - 1);
+      if (above?.min !== undefined) expect(fame(s)).toBeLessThan(above.min);
+      for (const b of s.ending!.badges ?? []) expect(BADGES.some((x) => x.id === b)).toBe(true);
+    }
   });
 });

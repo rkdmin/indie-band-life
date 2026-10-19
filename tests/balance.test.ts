@@ -57,7 +57,8 @@ describe('밸런스', () => {
     expect(r.bandRate).toBeGreaterThan(FULL ? 0.6 : 0.4);
     expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(kinds(6));
     // 전설은 드물어야 한다
-    expect((r.endings.legend ?? 0) / N).toBeLessThan(0.25);
+    // 사다리 꼭대기(1~3단계, 팬 100만 명 이상)는 아주 드물어야 한다
+    expect(((r.endings.t1_world ?? 0) + (r.endings.t2_stadium ?? 0) + (r.endings.t3_national ?? 0)) / N).toBeLessThan(0.05);
   });
   it('알아서 정책 (기본 자동 계획)', () => {
     const r = run('auto');

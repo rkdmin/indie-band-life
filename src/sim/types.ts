@@ -177,6 +177,8 @@ export interface Song {
   hit: boolean;
   revival: boolean; // 역주행
   coverSeed: number;
+  /** 터졌을 때의 크기 (data/fate/hits.json) */
+  hitLevel?: string;
 }
 
 export interface Album {
@@ -339,6 +341,12 @@ export interface EndingResult {
   epitaph: string;
   rank: 'S' | 'A' | 'B' | 'C';
   bestSongId: string | null;
+  /** 팬 사다리 단계 (1 이 꼭대기) */
+  tier?: number;
+  /** 닿은 사람 수 — 최고 팬 + 해외 팬 */
+  fame?: number;
+  /** 특이사항 배지 */
+  badges?: string[];
 }
 
 export interface GameState {

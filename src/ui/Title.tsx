@@ -113,7 +113,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
             </div>
             <div className="counter">
               <b>{meta.lives.length}</b>
-              <span>이 기기에서 살아 본 인생 · 엔딩 {Object.keys(meta.endings).length}/{ENDINGS.length}</span>
+              <span>살아 본 인생 · 엔딩 도감 {ENDINGS.filter((e) => meta.endings[e.id]).length}/{ENDINGS.length} 단계</span>
             </div>
           </div>
           <div className="ticker" key={tick}>“{TICKS[tick]}”</div>

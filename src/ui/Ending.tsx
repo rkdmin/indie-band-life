@@ -7,7 +7,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { GameState } from '../sim/types';
 import { Cover } from '../art/Cover';
 import { drawPerson } from '../art/pixel';
-import { ENDINGS } from '../sim/endings';
+import { ENDINGS, BADGES, badgesOf, endingOf, fame as fameOf } from '../sim/endings';
+import { FameLadder, BadgeStamps } from './EndingLadder';
 import { biography } from '../sim/bio';
 import { rarityText } from '../sim/data/fate';
 import { INST_LABEL } from '../sim/data/world';
@@ -55,6 +56,11 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
       how: n.role === 'parent' || n.role === 'sibling' ? (n.birthYear <= s.player.birthYear ? '태어날 때부터' : `${n.metAge}살 때 태어난 동생`) : `${n.metAge}살, ${n.metAt}`,
     }));
   }, [s]);
+  // 사다리 단계와 특이사항 — 예전 저장(단계 정보 없음)은 지금 기준으로 다시 계산한다
+  const tierDef = ENDINGS.find((x) => x.id === e.id) ?? endingOf(s);
+  const fameN = e.fame ?? fameOf(s);
+  const badgeIds = e.badges ?? badgesOf(s).map((b) => b.id);
+  const badgeLines = useMemo(() => Object.fromEntries(BADGES.filter((b) => badgeIds.includes(b.id)).map((b) => [b.id, b.line(s)])), [s]); // eslint-disable-line react-hooks/exhaustive-deps
   const highlights = useMemo(() => s.chronicle.filter((c) => c.kind === 'big' || c.kind === 'band').slice(-8), [s.chronicle]);
 
   useEffect(() => {
@@ -72,7 +78,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
     sfx('tap');
     try {
       const blob = await renderShareCard(s, bio, bandName);
-      const text = `${s.player.name}(${s.player.birthYear}–${s.player.birthYear + deathAge})의 인생: ${e.title.replace(/^\S+ /, '')} · ${e.rank}랭크${best ? `\n대표곡 〈${best.title}〉` : ''}\n#인디밴드키우기`;
+      const text = `${s.player.name}(${s.player.birthYear}–${s.player.birthYear + deathAge})의 인생: ${ENDINGS.length}단계 중 ${tierDef.tier}단계 ${e.title.replace(/^\S+ /, '')} · ${e.rank}랭크${badgeIds.length ? ` · 특이사항 ${BADGES.filter((b) => badgeIds.includes(b.id)).map((b) => b.emoji).join('')}` : ''}${best ? `\n대표곡 〈${best.title}〉` : ''}\n#인디밴드키우기`;
       const how = await shareFile(blob, `인디밴드키우기_${s.player.name}.png`, text, '인디밴드 키우기');
       if (how === 'downloaded') {
         try {
@@ -118,6 +124,14 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
             )}
           </div>
         </div>
+        <section className="liner-sec">
+          <h4>FAME — {ENDINGS.length}단계 중 {tierDef.tier}단계까지 닿았다</h4>
+          <FameLadder tier={tierDef.tier} fame={fameN} />
+        </section>
+        <section className="liner-sec">
+          <h4>특이사항 — 이 인생에만 있던 일 {badgeIds.length ? `${badgeIds.length}개` : ''}</h4>
+          <BadgeStamps ids={badgeIds} lines={badgeLines} seen={meta.badges ?? {}} />
+        </section>
         <section className="liner-sec">
           <h4>TRACKLIST — 이 인생의 장면들</h4>
           <ol className="tracklist">
@@ -205,7 +219,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
       <button className="btn primary block" onClick={share}>라이너 노트 카드 공유하기</button>
       <button className="btn block" onClick={() => { sfx('tap'); onNewLife(); }}>다음 인생으로 태어나기</button>
       <button className="btn ghost block" onClick={onQuit}>처음 화면으로</button>
-      <div className="dim" style={{ textAlign: 'center' }}>엔딩 도감 {Object.keys(meta.endings).length}/{ENDINGS.length}</div>
+      <div className="dim" style={{ textAlign: 'center' }}>엔딩 도감 {ENDINGS.filter((x) => meta.endings[x.id]).length}/{ENDINGS.length}단계 · 특이사항 {Object.keys(meta.badges ?? {}).filter((k) => BADGES.some((b) => b.id === k)).length}/{BADGES.length}개</div>
     </div>
   );
 }
