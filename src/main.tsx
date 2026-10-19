@@ -10,6 +10,7 @@ import './styles/turntable.css';
 import './styles/deck.css';
 import './styles/cards.css';
 import './styles/data.css';
+import './styles/interact.css';
 
 initBackButton();
 

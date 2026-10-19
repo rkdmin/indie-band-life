@@ -299,6 +299,8 @@ export interface ActiveEvent extends PendingEvent {
   order?: number[];
   /** ‘운에 맡긴다’ 선택지가 끼어들었다 */
   wild?: boolean;
+  /** 고른 선택지 (결과 화면에 한 줄로 보인다) */
+  picked?: number;
   result?: { text: string; lines: ResultLine[]; rolls?: Roll[]; jackpot?: Jackpot };
   pending?: PendingRoll;
   at: number;

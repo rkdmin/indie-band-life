@@ -494,6 +494,7 @@ export function choose(prev: GameState, idx: number): GameState {
   const ch = def.choices[idx];
   const c = new Ctx(s, rng, ev.bind, ev.vars ?? {});
   if (!ch || (ch.if && !ch.if(c)) || ev.choices[idx]?.disabled) return s;
+  ev.picked = idx;
   // 판정이 있는 선택지는 먼저 주사위만 굴린다 (결과 적용은 resolveRoll)
   if (ch.odds) {
     const o = ch.odds(c);

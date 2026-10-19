@@ -1,0 +1,70 @@
+/* ═══════════════════════════════════════════════════════════════
+   누를 수 있는 모든 것의 반응 — 한곳에서 일관되게.
+   - 마우스: 올리면(hover) 살짝 떠오르거나 밝아진다 (터치 기기에선 hover 가 남지 않게 @media (hover: hover) 안에서만)
+   - 누름: 손가락·마우스 모두 눌리는 느낌(active)
+   - 키보드: focus-visible 링 (styles.css)
+   - 잠김(disabled): 반응하지 않는다
+   마지막에 불러와 앞의 규칙을 덮는다.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 공통 움직임 */
+.seg button, .speed button, .speed-m button, .tabs button, .tool, .x, .pick, .linkbtn, .play,
+.country-pick button, .era-pick button, .choice, .gcard, .mcard, .btn, .filter {
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+/* ── 카드: 등장 애니메이션이 끝난 뒤엔 transform 을 붙잡지 않는다 (fill both 때문에 hover 가 먹지 않던 문제) ── */
+.gcard, .mcard { animation-fill-mode: backwards !important; }
+@media (hover: hover) {
+  .gcard:not(:disabled):hover, .mcard:not(:disabled):hover { transform: translateY(-8px) rotate(-1.2deg); box-shadow: 9px 12px 0 var(--yellow); z-index: 2; }
+  .gcard:not(:disabled):hover .gcard-icon, .mcard:not(:disabled):hover .mcard-face { animation: cardWiggle 0.5s ease; }
+}
+.gcard:not(:disabled):active, .mcard:not(:disabled):active { transform: translateY(-2px) scale(0.97); box-shadow: 3px 3px 0 var(--ink); transition-duration: 0.05s; }
+@keyframes cardWiggle { 30% { transform: rotate(-6deg) scale(1.08); } 60% { transform: rotate(4deg); } }
+
+/* ── 선택지 ── */
+@media (hover: hover) {
+  .choice:not(:disabled):hover { transform: translateX(3px); }
+  .choice:not(:disabled):hover .num { color: var(--pink); }
+}
+.choice:not(:disabled):active { transform: translate(2px, 2px); box-shadow: none; transition-duration: 0.05s; }
+
+/* ── 단추 무리: 배속·탭·분할 단추·도구 ── */
+@media (hover: hover) {
+  .seg button:not(.on):hover, .speed button:not(.on):hover, .speed-m button:not(.on):hover, .tool:not(.on):hover { background: #fff; color: var(--pink); }
+  .tabs button:hover { color: var(--pink); }
+  .x:hover { background: var(--ink); color: var(--paper); }
+  .linkbtn:hover { color: var(--pink); text-decoration-thickness: 2px; }
+  .play:hover { transform: scale(1.08); }
+  .filter:hover { border-color: var(--ink); }
+}
+.seg button:active, .speed button:active, .speed-m button:active, .tool:active, .x:active { transform: translate(1px, 1px); transition-duration: 0.05s; }
+.linkbtn:active, .play:active { transform: scale(0.96); }
+
+/* 지금 열려 있는 시트의 탭 */
+.tabs button.on { color: var(--pink); box-shadow: inset 0 -3px 0 var(--pink); }
+
+/* ── 고르기 칸: 생활 계획·나라·시대 ── */
+@media (hover: hover) {
+  .pick:not(:disabled):not(.on):hover, .country-pick button:not(.on):hover, .era-pick button:not(.on):hover {
+    transform: translateY(-2px); box-shadow: 3px 3px 0 var(--pink); background: #fff;
+  }
+}
+.pick:not(:disabled):active, .country-pick button:active, .era-pick button:active { transform: translateY(1px); box-shadow: none; transition-duration: 0.05s; }
+.pick.on, .country-pick button.on, .era-pick button.on { animation: pickPop 0.22s ease; }
+@keyframes pickPop { 50% { transform: scale(1.04); } }
+
+/* 잠긴 것은 반응하지 않는다 */
+button:disabled { transform: none !important; }
+
+/* 닫히는 바탕은 눌러서 닫을 수 있다는 걸 알 수 있게 */
+.sheet-backdrop { cursor: pointer; }
+
+/* 고른 선택지를 결과 위에 한 줄로 */
+.picked-line { display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: var(--sub); margin-top: 14px; }
+.picked-line b { color: var(--ink); font-weight: 700; }
+.picked-line::before { content: '▶'; color: var(--pink); font-size: 11px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gcard, .mcard, .choice, .pick, .country-pick button, .era-pick button { transition: none !important; animation: none !important; }
+}

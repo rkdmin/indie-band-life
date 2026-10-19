@@ -272,7 +272,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             {s.band ? ` · 〈${s.band.name}〉` : ''}
           </div>
           <div className="speed" role="group" aria-label="배속">
-            <button className={speed === 0 && !skipping ? 'on' : ''} onClick={() => { setSpeed(0); setSkipping(false); }} aria-label="일시정지">❚❚</button>
+            <button className={speed === 0 && !skipping ? 'on' : ''} onClick={() => { setSpeed(0); setSkipping(false); }} aria-label="일시정지" title="일시정지">❚❚</button>
             {([1, 2, 4, 8] as Speed[]).map((x) => (
               <button key={x} className={speed === x && !skipping ? 'on' : ''} onClick={() => { setSpeed(x); setSkipping(false); sfx('tap'); }}>
                 {x}×
@@ -284,19 +284,19 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           </div>
           {/* 휴대폰: 한 줄짜리 큰 버튼 */}
           <div className="speed-m" role="group" aria-label="시간 조절">
-            <button className={paused ? 'on' : ''} onClick={() => { if (paused) setSpeed(lastSpeed.current); else { lastSpeed.current = speed || 1; setSpeed(0); setSkipping(false); } sfx('tap'); }} aria-label={paused ? '재생' : '일시정지'}>
+            <button className={paused ? 'on' : ''} onClick={() => { if (paused) setSpeed(lastSpeed.current); else { lastSpeed.current = speed || 1; setSpeed(0); setSkipping(false); } sfx('tap'); }} aria-label={paused ? '재생' : '일시정지'} title={paused ? '재생' : '일시정지'}>
               {paused ? '▶' : '❚❚'}
             </button>
-            <button onClick={() => { const order: Speed[] = [1, 2, 4, 8]; const nx = order[(order.indexOf(speed === 0 ? lastSpeed.current : speed) + 1) % order.length]; setSpeed(nx); lastSpeed.current = nx; setSkipping(false); sfx('tap'); }} aria-label="배속 바꾸기">
+            <button onClick={() => { const order: Speed[] = [1, 2, 4, 8]; const nx = order[(order.indexOf(speed === 0 ? lastSpeed.current : speed) + 1) % order.length]; setSpeed(nx); lastSpeed.current = nx; setSkipping(false); sfx('tap'); }} aria-label="배속 바꾸기" title="배속 바꾸기">
               {speed === 0 ? lastSpeed.current : speed}×
             </button>
-            <button className={skipping ? 'on' : ''} onClick={() => { setSkipping(true); if (speed === 0) setSpeed(lastSpeed.current); }} aria-label="다음 결정까지 빨리 감기">
+            <button className={skipping ? 'on' : ''} onClick={() => { setSkipping(true); if (speed === 0) setSpeed(lastSpeed.current); }} aria-label="다음 결정까지 빨리 감기" title="다음 결정까지 빨리 감기">
               ▸▸
             </button>
-            <button className={s.autoDecide ? 'on' : ''} onClick={() => commit(setAutoDecide(stRef.current, !s.autoDecide))} aria-label="자동 결정">
+            <button className={s.autoDecide ? 'on' : ''} onClick={() => commit(setAutoDecide(stRef.current, !s.autoDecide))} aria-label="자동 결정" title="고민 없이 자동으로 고른다">
               자동
             </button>
-            <button onClick={() => setTab('settings')} aria-label="설정">⚙</button>
+            <button onClick={() => setTab('settings')} aria-label="설정" title="설정">⚙</button>
           </div>
         </div>
         <div className="yearprog" aria-hidden>
@@ -317,12 +317,12 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           <div className="plan-wrap"><PlanCard s={s} onEdit={() => setTab('plan')} onChange={commit} /></div>
           {a >= 15 && <div className="reality-wrap"><RealityCard s={s} clock={clock} /></div>}
           <nav className="tabs" aria-label="기록">
-            <button className="mobile-only" onClick={() => setTab('plan')}>계획</button>
-            <button onClick={() => setTab('people')}>사람<span className="n">{Object.keys(s.npcs).length}</span></button>
-            <button onClick={() => setTab('band')}>밴드</button>
-            <button onClick={() => setTab('records')}>음반<span className="n">{s.songs.length}</span></button>
-            <button onClick={() => setTab('chron')}>연대기</button>
-            <button onClick={() => setTab('data')}>데이터</button>
+            <button className={`mobile-only ${tab === 'plan' ? 'on' : ''}`} aria-pressed={tab === 'plan'} onClick={() => setTab('plan')}>계획</button>
+            <button className={tab === 'people' ? 'on' : ''} aria-pressed={tab === 'people'} onClick={() => setTab('people')}>사람<span className="n">{Object.keys(s.npcs).length}</span></button>
+            <button className={tab === 'band' ? 'on' : ''} aria-pressed={tab === 'band'} onClick={() => setTab('band')}>밴드</button>
+            <button className={tab === 'records' ? 'on' : ''} aria-pressed={tab === 'records'} onClick={() => setTab('records')}>음반<span className="n">{s.songs.length}</span></button>
+            <button className={tab === 'chron' ? 'on' : ''} aria-pressed={tab === 'chron'} onClick={() => setTab('chron')}>연대기</button>
+            <button className={tab === 'data' ? 'on' : ''} aria-pressed={tab === 'data'} onClick={() => setTab('data')}>데이터</button>
           </nav>
         </div>
         <div className="life-right">
@@ -617,6 +617,23 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   // 새 사건·결과가 뜬 직후의 탭은 무시한다 (선택지를 누른 손가락이 ‘계속’까지 누르지 않게)
   const armedPick = useArmed(ev.id, 250);
   const armedNext = useArmed(res, 450);
+  // 키보드: 숫자로 고르고, 결과가 나오면 Enter·Space 로 계속 (데스크톱)
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || (e.target as HTMLElement)?.tagName === 'INPUT') return;
+      if (!res) {
+        if (!armedPick) return;
+        const visible = (ev.order ?? ev.choices.map((_, i) => i)).filter((i) => !ev.choices[i].hidden);
+        const n = Number(e.key);
+        if (n >= 1 && n <= visible.length && !ev.choices[visible[n - 1]].disabled) { e.preventDefault(); sfx('tap'); onChoose(visible[n - 1]); }
+        else if (e.key === '?' && ev.wild) { e.preventDefault(); sfx('tap'); onChoose(ev.choices.length); }
+      } else if ((e.key === 'Enter' || e.key === ' ') && armedNext) {
+        e.preventDefault(); sfx('page'); onNext();
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [ev, res, armedPick, armedNext, onChoose, onNext]);
   const resRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (res) resRef.current?.scrollIntoView({ block: 'nearest' });
@@ -655,6 +672,7 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
     );
   return (
     <div ref={resRef}>
+      {ev.picked !== undefined && ev.choices[ev.picked] && <div className="picked-line"><span>고른 것</span><b>{ev.choices[ev.picked].label}</b></div>}
       {revealed && res.jackpot && <JackpotBurst j={res.jackpot} />}
       {revealed && !!(res.text || notes.length || picked.length) && (
         <div className="fork-result">
