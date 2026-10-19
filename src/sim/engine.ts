@@ -14,7 +14,7 @@ import { ARTIST_SURVEY } from './data/reality';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
 import { actionSlots, age, ageInt, chron, livingCost, stepSize } from './state';
-import { REGIONS, annualDeathProb, minWage, priceIndex } from './data/world';
+import { REGIONS, annualDeathProb, minWage, priceIndex, SKILL_LABEL } from './data/world';
 import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
 import { computeEnding } from './endings';
@@ -247,19 +247,26 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > age(s));
       const card = ch.card?.(c);
       const lock = why || short || undefined;
+      const odds = ok && !hidden && !lock ? ch.odds?.(c) : undefined;
+      const soft = ok && !hidden && !lock ? softWhy(ch, c, odds, price) : [];
       return {
         label,
         hint: hint ? periodText(hint, at, s.player.country) : hint,
         disabled: !ok || hidden || !!lock,
-        hidden,
+        hidden: hidden || !ok,
         lock,
+        whys: soft,
+        why: undefined as string | undefined,
         money: !!short && !why,
-        odds: ok && !hidden && !lock ? ch.odds?.(c) : undefined,
+        odds,
         risk: ch.risk,
         range: ch.range?.(c),
         card: card && { ...card, title: periodText(card.title, at, s.player.country), sub: card.sub && periodText(card.sub, at, s.player.country) },
       };
     });
+    // 이유는 선택지끼리 겹치지 않게 나눠 준다
+    assignWhys(choices.map((x) => x.whys)).forEach((w, i) => (choices[i].why = w ? periodText(w, at, s.player.country) : undefined));
+    for (const x of choices) delete (x as { whys?: string[] }).whys;
     // 돈 때문에 모든 길이 막히면(위기 사건 등) 돈 잠금은 풀어 준다 — 빚을 내서라도 고르게
     if (!choices.some((x) => !x.disabled) && choices.some((x) => x.money)) for (const x of choices) if (x.money) { x.disabled = x.hidden; x.lock = undefined; }
     for (const x of choices) delete (x as { money?: boolean }).money;
@@ -459,6 +466,86 @@ export function openEvent(prev: GameState, at: number): GameState {
 
 export const hasQueuedEvent = (s: GameState) => s.queue.length > 0;
 
+
+// 고를 수 있는 이유를 살짝 — 직접 적은 why 가 먼저, 없으면 판정 보정에서 가장 큰 것, 아니면 지출
+const LIFT = ['이 받쳐 준다', '이 힘이 된다', ' 덕에 해 볼 만하다'];
+const DRAG = ['이 마음에 걸린다', '이 발목을 잡는다', '이 아직 부족하다'];
+function softWhy(ch: { why?: (c: Ctx) => string | undefined; run: (c: Ctx) => unknown }, c: Ctx, odds: { parts: { label: string; d: number }[] } | undefined, price: number): string[] {
+  const own = ch.why?.(c);
+  if (own) return [own];
+  if (!odds?.parts.length && !price) return PEEK ? peek(ch, c) : [];
+  if (odds?.parts.length) {
+    const up = [...odds.parts].sort((a, b) => b.d - a.d)[0];
+    const down = [...odds.parts].sort((a, b) => a.d - b.d)[0];
+    const pickLine = (arr: string[], label: string) => {
+      const k = label.length % arr.length;
+      const tail = arr[k];
+      // 받침에 맞춰 ‘이/가’
+      return tail.startsWith('이') ? josa(label, '이/가') + tail.slice(1) : label + tail;
+    };
+    if (down && down.d <= -2 && Math.abs(down.d) >= (up?.d ?? 0)) return [pickLine(DRAG, down.label)];
+    if (up && up.d >= 2) return [pickLine(LIFT, up.label)];
+    return [];
+  }
+  if (price > 0) return [c.age < 19 ? '모아 둔 용돈으로 될 것 같다' : '통장에 그 정도는 있다'];
+  return [];
+}
+
+/** 같은 사건의 선택지끼리 이유가 겹치지 않게 — 겹치면 그다음으로 큰 변화를, 그것도 없으면 비운다 */
+function assignWhys(lists: string[][]): (string | undefined)[] {
+  const used = new Set<string>();
+  const out: (string | undefined)[] = lists.map(() => undefined);
+  // 후보가 적은 선택지부터 자리를 잡는다
+  const order = lists.map((l, i) => i).filter((i) => lists[i].length).sort((a, b) => lists[a].length - lists[b].length);
+  for (const i of order) {
+    const pick = lists[i].find((w) => !used.has(w));
+    if (pick) { used.add(pick); out[i] = pick; }
+  }
+  return out;
+}
+
+/** 미리 돌려 보기는 사람이 화면을 볼 때만 (게임 화면이 켠다) — 수백 번 도는 시뮬레이션에선 끈다 */
+let PEEK = false;
+export function setChoicePeek(on: boolean) {
+  PEEK = on;
+}
+
+/**
+ * 판정도 지출도 없는 선택지는 몰래 한 번 돌려 보고, 가장 크게 바뀌는 것을 숫자 없이 살짝 알려 준다.
+ * 실제 상태는 건드리지 않는다 (복사본에서, 따로 만든 주사위로).
+ */
+function peek(ch: { run: (c: Ctx) => unknown }, c: Ctx): string[] {
+  try {
+    const s0 = c.s;
+    const t = JSON.parse(JSON.stringify(s0)) as GameState;
+    const cc = new Ctx(t, new Rng((s0.rng ^ 0x5eed) >>> 0), { ...c.bind }, { ...c.vars });
+    ch.run(cc);
+    const a = s0.player;
+    const b = t.player;
+    const cand: [number, string][] = [];
+    const add = (w: number, text: string) => cand.push([w, text]);
+    if (b.stats.stress < a.stats.stress - 2) add((a.stats.stress - b.stats.stress) / 6, '마음이 좀 놓일 것 같다');
+    if (b.stats.stress > a.stats.stress + 3) add((b.stats.stress - a.stats.stress) / 8, '속은 좀 끓을 것 같다');
+    if (b.stats.happiness > a.stats.happiness + 2) add((b.stats.happiness - a.stats.happiness) / 7, '기분은 좋아질 것 같다');
+    if (b.stats.health > a.stats.health + 1) add((b.stats.health - a.stats.health) / 3, '몸이 좀 나아질 것 같다');
+    if (b.stats.health < a.stats.health - 1) add((a.stats.health - b.stats.health) / 3, '몸이 좀 축날 것 같다');
+    for (const k of Object.keys(a.skills) as (keyof typeof a.skills)[]) {
+      const d = b.skills[k] - a.skills[k];
+      if (d >= 1) add(d / 1.5, `${SKILL_LABEL[k]} 실력이 늘 것 같다`);
+    }
+    if (b.fans > a.fans + 5) add(Math.log10(b.fans - a.fans + 1) * 1.2, '알아보는 사람이 늘 것 같다');
+    if (b.money > a.money + 1000) add(Math.log10(b.money - a.money) / 2.5, '돈이 좀 들어올 것 같다');
+    for (const [id, n] of Object.entries(t.npcs)) {
+      const d = n.affinity - (s0.npcs[id]?.affinity ?? n.affinity);
+      if (d >= 4) add(d / 4, `${josa(n.name.slice(n.name.length > 2 ? 1 : 0), '과/와')} 가까워질 것 같다`);
+      if (d <= -4) add(-d / 4, `${josa(n.name.slice(n.name.length > 2 ? 1 : 0), '과/와')} 서먹해질 것 같다`);
+    }
+    cand.sort((x, y) => y[0] - x[0]);
+    return cand.map((x) => x[1]);
+  } catch {
+    return [];
+  }
+}
 
 // 선택지의 지출 — cost 가 없으면 run 의 앞부분(조건 판정 전)에 있는 첫 지출을 읽는다.
 // 판정 뒤에만 드는 돈(실패하면 수리비 등)은 잠금 기준이 아니다.

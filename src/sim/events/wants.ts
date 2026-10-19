@@ -72,7 +72,7 @@ export const WANT_EVENTS: EventDef[] = [
         label: '부모님께 사 달라고 조른다',
         risk: 'risky',
         req: (c) => (!parents(c).length ? '사 달라고 할 부모님이 곁에 없다' : c.p.income === 'low' ? '형편이 어려운 걸 안다 — 차마 말을 꺼내지 못했다' : null),
-        hint: (c) => (c.p.income === 'high' ? '집이 넉넉하다 — 거의 사 준다' : c.p.income === 'mid' ? '보통 형편 — 성적과 사이가 관건' : undefined),
+        why: (c) => (c.p.income === 'high' ? '집이 넉넉한 편이라 말이 통할 것 같다' : '성적표가 괜찮으면 모를까'),
         odds: (c) => {
           const pa = parents(c)[0];
           return c.dc(c.p.income === 'high' ? 4 : 12, '설득 판정', [['부모님과 사이', pa ? Math.floor((pa.affinity - 40) / 15) : 0], ['성적', Math.floor((c.p.study - 45) / 15)]], '가정', '형편이 넉넉할수록 쉽게 사 준다 [가정]');

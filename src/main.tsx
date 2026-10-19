@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { setChoicePeek } from './sim/engine';
 import { CrashGuard } from './ui/Crash';
 import { initBackButton, isNative } from './platform';
 import './styles/fonts.css';
@@ -14,6 +15,8 @@ import './styles/interact.css';
 import './styles/ending.css';
 
 initBackButton();
+// 고를 수 있는 선택지에 ‘마음이 좀 놓일 것 같다’ 같은 이유를 살짝 (선택지를 미리 돌려 본다)
+setChoicePeek(true);
 
 // 게임 화면은 확대·축소되지 않게 — 두 손가락 확대(iOS 는 viewport 설정을 무시해서 제스처를 직접 막는다)·두 번 탭·Ctrl+휠·Ctrl+±
 for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });

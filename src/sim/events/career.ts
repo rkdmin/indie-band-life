@@ -273,7 +273,9 @@ export const CAREER: EventDef[] = [
         run: (c) => {
           c.money(-c.krw(2_000_000), '법률 상담');
           if (c.check(c.choicesOdds!)) { c.rep(3); c.chron('밴드 이름을 지켜 냈다', 'band'); return '공연 기록과 포스터가 증거가 됐다. 먼저 쓴 사람이 우리라는 게 인정됐다.'; }
-          c.stat('stress', 8); c.band!.name = `${c.band!.name} 밴드`; c.fans(-(c.p.fans * 0.03));
+          const old = c.band!.name;
+          c.stat('stress', 8); c.band!.name = `${old} 밴드`; c.fans(-(c.p.fans * 0.03));
+          c.chron(`밴드 이름 변경: 〈${old}〉 → 〈${c.band!.name}〉 (상표 합의)`, 'band');
           return '결국 이름 뒤에 한 단어를 붙이는 걸로 합의했다. 어색하지만, 우리는 우리다.';
         },
       },

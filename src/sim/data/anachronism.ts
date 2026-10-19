@@ -57,7 +57,12 @@ const NUM_WORD = '(?:\\d[\\d,.]*[만천백]?|한|두|세|네|다섯|여섯|일�
 const UNIT = '(?:장|명|곡|개|번|년|살|세|원|시간|분|초|달|주|일|회|팀|곳|석|권|대|마리|잔|그릇|통|줄|층|평|미터|만원|천원|억|위|점|표|채|벌|켤레|송이|쪽|주년|개월)';
 const TIE = new RegExp(`(^|[\\s(“‘〈])(${NUM_WORD}) (${UNIT})(?=$|[\\s,.!?…)”’〉이가을를은는의에도만째짜쯤씩과와로으])`, 'g');
 export function tieNumbers(text: string): string {
-  return text.includes(' ') ? text.replace(TIE, '$1$2 $3') : text;
+  if (!text.includes(' ')) return text;
+  // 〈밴드 이름〉·〈곡 제목〉 안은 그대로 둔다 — 이름이 바뀌면 기록 속 이름과 실제 이름이 어긋난다
+  return text
+    .split(/(〈[^〉]*〉)/)
+    .map((part) => (part.startsWith('〈') ? part : part.replace(TIE, '$1$2\u00a0$3')))
+    .join('');
 }
 
 export function periodText(text: string, year: number, country?: string): string {

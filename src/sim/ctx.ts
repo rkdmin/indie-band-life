@@ -297,6 +297,8 @@ export interface EventChoice {
   range?: (c: Ctx) => string;
   /** 지금 고를 수 없는 이유 — 있으면 선택지가 잠긴 채로 보인다 (돈·외모·실력·나이…) */
   req?: (c: Ctx) => string | null | undefined | false;
+  /** 고를 수 있을 때 살짝 보이는 이유 (없으면 판정 보정·지출에서 만든다) */
+  why?: (c: Ctx) => string | undefined;
   /** 이 선택에 드는 돈 — 통장보다 크면 ‘돈이 부족하다’로 잠긴다. 없으면 run 의 첫 지출에서 읽는다 */
   cost?: (c: Ctx) => number;
 }

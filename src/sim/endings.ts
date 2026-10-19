@@ -117,6 +117,8 @@ export const BADGES: BadgeDef[] = [
   { id: 'gambler', emoji: '🎲', title: '운에 맡긴 인생', ink: 'purple', hint: '운에 맡긴다를 다섯 번', test: (s) => n(s, 'wildCount') >= 5, line: (s) => `${n(s, 'wildCount')}번이나 운에 맡겼다.` },
   { id: 'jackpot', emoji: '💰', title: '한탕', ink: 'gold', hint: '대박을 여러 번 터뜨린다', test: (s) => n(s, 'jpBig') >= 12, line: (s) => `대박이 ${n(s, 'jpBig')}번 터졌다.` },
   { id: 'busts', emoji: '💸', title: '쪽박의 달인', ink: 'black', hint: '쪽박을 여러 번', test: (s) => n(s, 'jpBust') >= 8, line: (s) => `쪽박만 ${n(s, 'jpBust')}번.` },
+  { id: 'new_face', emoji: '🪞', title: '새 얼굴', ink: 'purple', hint: '성형이 아주 잘된다', test: (s) => !!f(s, 'surgeryGreat'), line: () => '거울 속 얼굴이 마음에 들었다.' },
+  { id: 'regret', emoji: '🩹', title: '후회한 수술', ink: 'black', hint: '성형이 잘못된다', test: (s) => !!f(s, 'surgeryRegret'), line: () => '그 수술만은 되돌리고 싶었다.' },
   { id: 'prolific', emoji: '✍️', title: '다작', ink: 'blue', hint: '곡을 서른다섯 개 넘게 쓴다', test: (s) => s.songs.length >= 35, line: (s) => `곡 ${s.songs.length}개를 썼다.` },
 ];
 

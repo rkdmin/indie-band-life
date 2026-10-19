@@ -3,13 +3,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { togglePlan, planOptions, resolvePlan } from '../src/sim/plan';
-import { newGame, runPeriodAuto, openEvent, beginPeriod, autoChoose, proceed, endPeriod } from '../src/sim/engine';
+import { newGame, runPeriodAuto, openEvent, beginPeriod, autoChoose, proceed, endPeriod, choose } from '../src/sim/engine';
 import { Rng } from '../src/sim/rng';
 import { moodOf } from '../src/ui/cutMood';
 import { kinLabel } from '../src/sim/npc';
 import { ENDINGS, BADGES, endingOf, fame } from '../src/sim/endings';
 import oddsJson from '../src/data/fate/ending_odds.json';
-import { renameBand, canRenameBand, cleanBandName } from '../src/sim/engine';
+import { renameBand, canRenameBand, cleanBandName, setChoicePeek } from '../src/sim/engine';
 import type { Npc } from '../src/sim/types';
 import type { ActiveEvent, GameState } from '../src/sim/types';
 import type { CountryId } from '../src/sim/data/countries';
@@ -185,6 +185,67 @@ describe('팬 사다리와 특이사항', () => {
       const above = ENDINGS.find((x) => x.tier === e.tier - 1);
       if (above?.min !== undefined) expect(fame(s)).toBeLessThan(above.min);
       for (const b of s.ending!.badges ?? []) expect(BADGES.some((x) => x.id === b)).toBe(true);
+    }
+  });
+});
+
+describe('선택지의 이유', () => {
+  it('회색 선택지는 언제나 이유가 있고, 고를 수 있는 선택지엔 살짝 이유가 붙는다 (상태는 그대로)', () => {
+    setChoicePeek(true);
+    try {
+      let s = newGame({ name: '검사', gender: 'm', birthYear: 1992, seed: 5150, country: 'KR' });
+      let g = 0;
+      while ((!s.band || s.time - s.player.birthYear < 23) && g++ < 400) s = runPeriodAuto(s);
+      let withWhy = 0;
+      for (const id of ['fest_local', 'burnout', 'release_ready', 'w_want', 'b_route']) {
+        const before = JSON.stringify(s.player);
+        const o = openEvent({ ...s, phase: 'running', active: null, stressTurns: 3, queue: [{ id, bind: {} }] }, s.time);
+        if (!o.active) continue;
+        for (const c of o.active.choices) {
+          if (c.hidden) continue;
+          if (c.disabled) expect(c.lock, `${id} ‘${c.label}’ 이유 없는 회색`).toBeTruthy();
+          if (!c.disabled && c.why) withWhy++;
+        }
+        // 미리 돌려 보기는 실제 상태를 바꾸지 않는다
+        expect(JSON.stringify(o.player)).toBe(before);
+      }
+      expect(withWhy).toBeGreaterThan(2);
+    } finally {
+      setChoicePeek(false);
+    }
+  });
+});
+
+describe('성형', () => {
+  it('흔해지기 전·미성년엔 없고, 돈이 모자라면 잠기고, 매력은 범위 안에서 바뀐다', () => {
+    const base = (by: number, age: number, money: number) => {
+      let s = newGame({ name: '검사', gender: 'f', birthYear: by, seed: 7300 + by, country: 'KR' });
+      let g = 0;
+      while (s.time - s.player.birthYear < age && g++ < 400) s = runPeriodAuto(s);
+      return { ...s, phase: 'running' as const, active: null, player: { ...s.player, money } };
+    };
+    // 1960년생 24세 = 1984년 — 한국에서 미용 성형이 흔해지기(1985) 전
+    const early = base(1960, 24, 50_000_000);
+    expect(openEvent({ ...early, queue: [{ id: 'c_surgery', bind: {} }] }, early.time).active?.id).not.toBe('c_surgery');
+    // 미성년
+    const teen = base(2000, 16, 50_000_000);
+    expect(openEvent({ ...teen, queue: [{ id: 'c_surgery', bind: {} }] }, teen.time).active?.id).not.toBe('c_surgery');
+    // 돈이 모자라면 비싼 수술은 잠긴다
+    const poor = base(1995, 24, 2_000_000);
+    const o = openEvent({ ...poor, queue: [{ id: 'c_surgery', bind: {} }] }, poor.time);
+    expect(o.active?.id).toBe('c_surgery');
+    const jaw = o.active!.choices.find((c) => c.label === '양악 수술');
+    if (jaw && !jaw.hidden) expect(jaw.lock).toMatch(/돈이 부족하다/);
+    // 여러 번 해 봐도 매력은 5~98 안
+    for (let k = 0; k < 20; k++) {
+      const rich = base(1995, 24, 50_000_000);
+      const oo = openEvent({ ...rich, rng: 1000 + k, queue: [{ id: 'c_surgery', bind: {} }] }, rich.time);
+      const i = oo.active!.choices.findIndex((c) => c.label === '코 성형');
+      const r = choose(oo, i);
+      const charm = r.player.app!.charm;
+      expect(charm).toBeGreaterThanOrEqual(5);
+      expect(charm).toBeLessThanOrEqual(98);
+      expect(r.flags.surgeries).toBe(1);
     }
   });
 });

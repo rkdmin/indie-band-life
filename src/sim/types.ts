@@ -293,7 +293,7 @@ export interface ActiveEvent extends PendingEvent {
   title: string;
   text: string;
   scene: SceneId;
-  choices: { label: string; hint?: string; disabled?: boolean; hidden?: boolean; odds?: Odds; card?: CardInfo; risk?: Risk; range?: string; /** 고를 수 없는 이유 (돈이 부족하다·실력이 안 된다…) */ lock?: string }[];
+  choices: { label: string; hint?: string; disabled?: boolean; hidden?: boolean; odds?: Odds; card?: CardInfo; risk?: Risk; range?: string; /** 고를 수 없는 이유 (돈이 부족하다·실력이 안 된다…) */ lock?: string; /** 고를 수 있는 이유를 살짝 — ‘보컬 실력이 받쳐 준다’ */ why?: string }[];
   /** 선택지를 카드로 펼쳐 보여 준다 */
   cards?: boolean;
   kicker?: string;
