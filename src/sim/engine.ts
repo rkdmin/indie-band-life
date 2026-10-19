@@ -706,7 +706,9 @@ export function endPeriod(prev: GameState): GameState {
   s.rng = rng.state;
 
   if (!p.alive) {
-    chron(s, '마지막 숨. 어딘가에서 내 노래가 흐르고 있었다.', 'big');
+    // 몇 해를 한꺼번에 넘기는 시기에 세상을 떠나면 시기 끝이 아니라 떠난 해로 적는다 (1968–2034인데 ‘2035년 67세 마지막 숨’이 되던 문제)
+    const dA = p.deathAge ?? Math.floor(a);
+    s.chronicle.push({ age: dA, year: p.birthYear + dA, text: '마지막 숨. 어딘가에서 내 노래가 흐르고 있었다.', kind: 'big' });
     const ce = s.flags.careerEnd as number | undefined;
     s.cine.push(
       ce !== undefined

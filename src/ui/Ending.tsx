@@ -226,14 +226,17 @@ async function renderShareCard(s: GameState, bio: string, bandName: string | nul
   cv.width = W;
   cv.height = H;
   const g = cv.getContext('2d')!;
+  const serif = '"Black Han Sans", sans-serif';
+  const sans = '"Pretendard Variable", sans-serif';
+  const mono = '"Galmuri11", monospace';
+  // 화면에 아직 안 쓴 글자는 글꼴 조각이 안 받아져 있다 — 카드에 들어갈 글자로 미리 불러 둔다
+  const sample = `${bio} ${bandName ?? ''} ${s.player.name} LINER NOTES 인디밴드 키우기 0123456789`;
   try {
+    await Promise.all([`800 40px ${serif}`, `700 34px ${sans}`, `400 24px ${mono}`].map((f) => document.fonts?.load(f, sample)));
     await document.fonts?.ready;
   } catch {
     /* 폰트 없이 진행 */
   }
-  const serif = '"Nanum Myeongjo", serif';
-  const sans = '"Noto Sans KR", sans-serif';
-  const mono = '"IBM Plex Mono", monospace';
   const deathAge = s.player.deathAge ?? Math.floor(s.time - s.player.birthYear);
   g.fillStyle = '#f3eee3';
   g.fillRect(0, 0, W, H);

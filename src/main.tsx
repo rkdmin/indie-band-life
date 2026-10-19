@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { CrashGuard } from './ui/Crash';
 import { initBackButton, isNative } from './platform';
+import './styles/fonts.css';
 import './styles.css';
 import './theme.css';
 import './styles/turntable.css';

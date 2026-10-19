@@ -328,7 +328,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             <div className="stage-view"><PixelScene id={sceneId} people={people} crowd={Math.min(1, ((s.flags.lastGigAudience as number) || 40) / 300)} night={month >= 9 || month <= 2 || sceneId === 'rooftop'} seed={s.seed + s.turn} label={SCENE_LABEL[sceneId]} /></div>
             <div className="stage-cap">
               <span><b>{SCENE_LABEL[sceneId]}</b> · {SEASON[month - 1]}</span>
-              <span className="dim">{countryOf(s.player.country).flag} {periodText(countryOf(s.player.country).regions[s.player.region], s.time, s.player.country)}</span>
+              <span className="dim"><span className="cc">{s.player.country ?? 'KR'}</span> {periodText(countryOf(s.player.country).regions[s.player.region], s.time, s.player.country)}</span>
             </div>
           </div>
           <div className="pops-anchor"><StatPops pops={pops} /></div>
@@ -433,7 +433,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
         <div>
           <div className="idname">{p.name}</div>
           <dl className="idfields">
-            <dt>출생</dt><dd>{p.birthYear} · {countryOf(p.country).flag} {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
+            <dt>출생</dt><dd>{p.birthYear} · <span className="cc">{p.country ?? 'KR'}</span> {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
             <dt>외모</dt><dd>{heightAt(playerAppearance({ ...p, country: p.country }), a, p.gender)}cm · {charmWord(playerAppearance({ ...p, country: p.country }).charm)}</dd>
             {a >= 18 && <><dt>직업</dt><dd>{String(s.flags.jobTitle ?? JOB_LABEL[p.job] ?? '—')}</dd></>}
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>

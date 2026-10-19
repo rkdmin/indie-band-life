@@ -27,7 +27,7 @@
 .tt-disc svg { width: 100%; height: 100%; display: block; will-change: transform; }
 
 .tt-track path { stroke: #0b0a10; stroke-width: 0.7; transition: fill 0.25s, opacity 0.25s; }
-.tt-track text { font-family: var(--mono); font-size: 8px; text-anchor: middle; dominant-baseline: middle; fill: #ffffffaa; pointer-events: none; }
+.tt-track text { font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 8px; text-anchor: middle; dominant-baseline: middle; fill: #ffffffaa; pointer-events: none; }
 .tt-track.win path { fill: #ff4fa3; opacity: 0.38; }
 .tt-track.lose path { fill: #ffffff; opacity: 0.04; }
 .tt-track.hidden path { fill: #ffe14d; opacity: 0.75; }
@@ -38,7 +38,7 @@
 .tt-track.hidden.hit text { fill: #14110c; }
 .tt-label { fill: #ff4fa3; stroke: #fff3; stroke-width: 1; }
 .tt-label-t { font-family: var(--serif); font-size: 12px; text-anchor: middle; fill: #fff; letter-spacing: 0.08em; }
-.tt-label-s { font-family: var(--mono); font-size: 8px; text-anchor: middle; fill: #ffffffcc; }
+.tt-label-s { font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 8px; text-anchor: middle; fill: #ffffffcc; }
 
 /* 바늘: 12시 방향 위에서 내려온다 */
 .tt-needle { position: absolute; left: 50%; top: -9%; width: 0; height: 0; pointer-events: none; }

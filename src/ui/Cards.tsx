@@ -36,7 +36,7 @@ export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) 
             return (
               <button key={i} className={`gcard gc-${ch.risk ?? 'none'}`} style={{ animationDelay: `${k * 0.1}s` }} onClick={() => { if (!armed) return; sfx('tap'); onChoose(i); }}>
                 <span className="gcard-top">
-                  {c.tag && <span className="gcard-tag">{c.tag}</span>}
+                  {c.tag && c.tag !== (ch.risk && RISK_LABEL[ch.risk]) && <span className="gcard-tag">{c.tag}</span>}
                   <RiskTag risk={ch.risk} />
                 </span>
                 {c.face ? (

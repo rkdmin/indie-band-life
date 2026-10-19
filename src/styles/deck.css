@@ -46,7 +46,7 @@
 .ro { background: #0b0a14; border-radius: 4px; padding: 5px 8px; box-shadow: inset 0 1px 3px #000; min-width: 0; }
 .ro span { display: block; font-size: 10px; letter-spacing: 0.1em; color: #8f88a6; }
 .ro b { display: block; font-family: var(--mono); font-size: 15px; color: #7cf0b0; text-shadow: 0 0 6px #7cf0b066; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ro small { font-family: var(--mono); font-size: 10.5px; color: #9fd0ff; }
+.ro small { font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 10.5px; color: #9fd0ff; }
 .ro.neg b { color: #ff7a8a; text-shadow: 0 0 6px #ff7a8a66; }
 .ro b.insp { color: #ffe14d; text-shadow: 0 0 6px #ffe14d66; letter-spacing: 2px; }
 @media (max-width: 720px) {

@@ -51,6 +51,7 @@ describe('논리 모순', () => {
       for (const c of s.chronicle) {
         if (c.year < by - 1) bad.push(`${ct}${by} 태어나기 전 기록: ${c.year} ${c.text}`);
         if (c.year > death + 1) bad.push(`${ct}${by} 죽은 뒤 기록: ${c.year} ${c.text}`);
+        if (p.deathAge != null && c.age > p.deathAge) bad.push(`${ct}${by} 떠난 나이(${p.deathAge})보다 늦은 기록: ${c.age}세 ${c.text}`);
         // 나이에 맞지 않는 사건
         if (c.age < 16 && /결혼|입대|계약금|대출/.test(c.text)) bad.push(`${ct}${by} ${c.age}세에 어울리지 않는 기록: ${c.text}`);
       }

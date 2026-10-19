@@ -122,7 +122,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
             <div className="country-pick">
               {COUNTRY_IDS.map((id) => (
                 <button key={id} className={country === id ? 'on' : ''} onClick={() => setCountry(id)}>
-                  <span className="cf">{COUNTRIES[id].flag}</span>
+                  <span className="cf cc">{id}</span>
                   {COUNTRIES[id].name}
                 </button>
               ))}

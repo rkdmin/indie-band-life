@@ -54,7 +54,7 @@ export const Cover = memo(function Cover({ seed, genre, title, artist, size = 12
       <rect width="100" height="100" fill={bg} />
       {shapes}
       <rect width="100" height="100" filter={`url(#${id}n)`} />
-      <text x="6" y="92" fontSize="6.5" fontWeight="900" fill={ink} style={{ fontFamily: 'Black Han Sans, Noto Sans KR, sans-serif' }}>
+      <text x="6" y="92" fontSize="6.5" fontWeight="900" fill={ink} style={{ fontFamily: "'Black Han Sans', 'Pretendard Variable', sans-serif" }}>
         {title.length > 16 ? title.slice(0, 15) + '…' : title}
       </text>
       <text x="6" y="10" fontSize="4.6" fill={ink} opacity="0.85" letterSpacing="0.6">

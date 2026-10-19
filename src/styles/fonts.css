@@ -1,0 +1,25 @@
+/* ═══════════════════════════════════════════════════════════════
+   글꼴 — 전부 번들에 넣는다 (앱은 오프라인에서도 같은 글꼴로 보인다). 모두 SIL OFL 1.1.
+   - 본문:   Pretendard Variable  (한국 앱 UI 표준에 가까운 산세리프, 숫자 폭이 고르다)
+   - 픽셀:   Galmuri11            (한글 비트맵 글꼴 — 도트 캐릭터와 같은 결. 라벨·숫자·계기판)
+   - 제목:   Black Han Sans       (공연 포스터처럼 굵은 제목)
+   - 손글씨: Nanum Pen Script     (가사·메모·묘비명처럼 ‘누가 쓴 글’에만)
+   ═══════════════════════════════════════════════════════════════ */
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+@import '@fontsource/black-han-sans/400.css';
+@import '@fontsource/nanum-pen-script/400.css';
+
+@font-face {
+  font-family: 'Galmuri11';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Galmuri11';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2');
+}
