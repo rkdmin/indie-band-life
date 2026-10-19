@@ -7,6 +7,7 @@ import type { EndingResult, GameState } from './types';
 import { bestSong } from './songs';
 import { count, given, josa } from './korean';
 import { genreLabel } from './data/era/genres';
+import { tieNumbers } from './data/anachronism';
 
 export interface EndingDef {
   id: string;
@@ -167,7 +168,7 @@ export function computeEnding(s: GameState): EndingResult {
     tier: def.tier,
     title: `${def.emoji} ${def.title}`,
     subtitle: def.subtitle,
-    text: def.text(s) + `\n\n${s.chronicle.length}개의 기억 · 곡 ${s.songs.length}개 (발매 ${released(s)}) · 공연 ${gigs(s)}회`,
+    text: tieNumbers(def.text(s)) + `\n\n${s.chronicle.length}개의 기억 · 곡 ${s.songs.length}개 (발매 ${released(s)}) · 공연 ${gigs(s)}회`,
     epitaph: epitaphParts.join(' · '),
     rank,
     bestSongId: best?.id ?? null,

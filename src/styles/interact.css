@@ -85,3 +85,27 @@ button:disabled { transform: none !important; }
 
 /* 두 번 탭 확대 막기 — 스크롤은 그대로 */
 html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* ── 줄바꿈 다듬기 ──
+   본문은 마지막 줄에 낱말 하나만 덩그러니 남지 않게(pretty), 제목·단추·이름표는 두 줄이면 길이를 비슷하게(balance).
+   한국어는 낱말 중간에서 끊지 않는다(keep-all, theme.css), 너무 긴 영문·숫자만 칸 안에서 끊는다(anywhere). */
+p, li, .text, .fork-result, .hint, .lock, .dim, .cert-story, .cert-moments, .bio, .liner-notes, .stamp small, .gcard-sub, .ds-intro, .coach p { text-wrap: pretty; }
+h1, h2, h3, h4, .btn, .choice, .chip, .label, .gcard-title, .mcard-name, .rung-t b, .stamp b, .pick, .tt-ability, .fork h2, .cine-title, .sheet-head h3 { text-wrap: balance; }
+
+/* 숫자·짧은 이름표는 쪼개지지 않게 */
+.tabs button, .tabs button .n, .tl-axis span, .fate-rarity b, .fate-rarity .label, .rung-n, .stat b, .chip, .cc, .pick-n, .num { white-space: nowrap; }
+/* 아주 좁은 폰: 하단 탭 글자를 조금 줄인다 */
+@media (max-width: 359px) { .tabs button { font-size: 12.5px; padding: 0 2px; } .tabs button .n { font-size: 11px; margin-left: 1px; } }
+/* 위쪽 날짜·밴드 줄: 한 줄로 자르지 말고 두 줄까지 */
+@media (max-width: 899px) { .datebar { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; } }
+/* 시트 안 칸은 시트 폭을 넘지 않는다 — 안쪽 내용의 최소 폭이 칸을 밀어내 화면 밖으로 나가던 문제 */
+.sheet-body { grid-template-columns: minmax(0, 1fr); }
+.sheet-body > *, .datasheet > *, .fork-body > *, .liner > * { min-width: 0; }
+.datasheet { grid-template-columns: minmax(0, 1fr); }
+/* 연표 축: 양 끝 연도는 붙이고, 가운데 설명은 칸 안에서 줄바꿈 */
+.tl-axis { gap: 6px; }
+.tl-axis span { flex: none; }
+.tl-axis .me { flex: 1; min-width: 0; white-space: normal; text-align: center; line-height: 1.25; }
+/* 분할 단추: 글자는 한 줄로, 좁으면 글자를 조금 줄인다 */
+.seg button { white-space: nowrap; }
+@media (max-width: 380px) { .seg button { font-size: 12.5px; padding-left: 4px; padding-right: 4px; } }

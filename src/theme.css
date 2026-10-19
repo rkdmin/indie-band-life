@@ -32,7 +32,7 @@
   --serif: 'Black Han Sans', 'Pretendard Variable', sans-serif;
   --hand: 'Nanum Pen Script', 'Pretendard Variable', cursive;
 }
-body { font-synthesis: none; letter-spacing: -0.01em; word-break: keep-all; overflow-wrap: anywhere; }
+body { font-synthesis: none; letter-spacing: -0.01em; word-break: keep-all; overflow-wrap: break-word; }
 /* 숫자는 자리가 흔들리지 않게 */
 .stat b, .ss b, .money-row .v, .numbers b, .counter b, .fate-p, .country-stats b, .gcard-stats b, .skill-row b { font-variant-numeric: tabular-nums; }
 
@@ -251,7 +251,7 @@ body::before {
 
 /* ── 인생 변수 (J카드) ── */
 .fate-box { margin-top: 16px; border: 2px solid var(--ink); border-radius: 4px; background: #fff; }
-.fate-rarity { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 14px; background: var(--yellow); border-bottom: 2px solid var(--ink); }
+.fate-rarity { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 10px; padding: 10px 14px; background: var(--yellow); border-bottom: 2px solid var(--ink); }
 .fate-rarity b { font-family: var(--serif); font-weight: 400; font-size: 22px; }
 .fate-cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; padding: 12px 14px; }
 @media (max-width: 560px) { .fate-cols { grid-template-columns: 1fr; } }

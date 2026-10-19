@@ -43,4 +43,11 @@
   .stamp { opacity: 1; transform: rotate(var(--tilt)); animation: none !important; }
   .rung.mine { animation: none; }
 }
-.rung-t b { overflow-wrap: anywhere; } .rung-o { max-width: 46%; white-space: normal; }
+.rung-o { white-space: nowrap; }
+
+/* 좁은 화면: 빈도는 제목 아래 줄로 — 제목이 꺾이지 않게 */
+@media (max-width: 480px) {
+  .rung { grid-template-columns: 20px 22px minmax(0, 1fr); row-gap: 1px; }
+  .rung-o { grid-column: 3; max-width: none; text-align: left; white-space: nowrap; }
+  .rung-t b, .rung-t small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

@@ -19,12 +19,12 @@
 .tl-rows { position: relative; display: grid; gap: 3px; padding: 2px 0; }
 .tl-overlay { position: absolute; top: 0; bottom: 0; left: 76px; right: 0; pointer-events: none; }
 .tl-life { position: absolute; top: 0; bottom: 0; background: #e0367f14; border-left: 2px solid #e0367f88; border-right: 2px solid #e0367f88; }
-.tl-row { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 0; font-size: 12px; }
-.tl-name { color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; }
+.tl-row { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 0; font-size: 12px; }
+.tl-name { color: var(--ink2); line-height: 1.2; padding-right: 6px; }
 .tl-track { position: relative; height: 14px; }
 .tl-track i { position: absolute; top: 4px; height: 6px; border-radius: 3px; background: #2357e6; }
 .tl-track em { position: absolute; top: -1px; font-style: normal; font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--sub); transform: translateX(-110%); }
-.tl-axis { display: flex; justify-content: space-between; font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--sub); margin: 4px 0 0 76px; }
+.tl-axis { display: flex; justify-content: space-between; font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--sub); margin: 4px 0 0 88px; }
 .tl-axis .me { color: #c8186e; font-family: inherit; }
 
 .ds-chips { display: flex; flex-wrap: wrap; gap: 5px; }

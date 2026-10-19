@@ -5,6 +5,18 @@ import { EVENTS } from '../src/sim/events';
 import { annualDeathProb, minWage } from '../src/sim/data/world';
 import { prob } from '../src/sim/rng';
 import { playLife } from './autoplay';
+import { tieNumbers } from '../src/sim/data/anachronism';
+
+describe('줄바꿈', () => {
+  it('숫자와 단위는 줄이 바뀌지 않게 묶는다 (세 장 · 두 시간 · 3천 명), 다른 낱말은 그대로', () => {
+    const N = ' ';
+    expect(tieNumbers('공연 제안이 세 장 들어왔다.')).toBe(`공연 제안이 세${N}장 들어왔다.`);
+    expect(tieNumbers('진통 두 시간 만에')).toBe(`진통 두${N}시간 만에`);
+    expect(tieNumbers('관객 3천 명이 왔다')).toBe(`관객 3천${N}명이 왔다`);
+    expect(tieNumbers('열 손가락 열 발가락')).toBe('열 손가락 열 발가락');
+    expect(tieNumbers('세 사람이 왔다')).toBe('세 사람이 왔다');
+  });
+});
 
 describe('한국어 조사', () => {
   it('받침에 맞는 조사를 붙인다', () => {

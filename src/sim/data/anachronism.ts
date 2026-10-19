@@ -49,7 +49,22 @@ function sentences(line: string): string[] {
 }
 
 /** 그 해에 없던 말을 그 시대의 말로 바꾸고, 바꿀 말이 없으면 그 문장을 뺀다 */
+/**
+ * 숫자와 단위 사이는 줄이 바뀌지 않는 띄어쓰기로 — ‘세 / 장’, ‘두 / 시간’처럼 갈라져 보이지 않게.
+ * 앞: 아라비아 숫자(만·천 포함) 또는 한 ~ 아흔 같은 수 관형사. 뒤: 장·명·곡·시간… 같은 단위 뒤에 조사·문장부호·띄어쓰기.
+ */
+const NUM_WORD = '(?:\\d[\\d,.]*[만천백]?|한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|스무|서른|마흔|쉰|예순|일흔|여든|아흔|몇|수십|수백|수천|수만)';
+const UNIT = '(?:장|명|곡|개|번|년|살|세|원|시간|분|초|달|주|일|회|팀|곳|석|권|대|마리|잔|그릇|통|줄|층|평|미터|만원|천원|억|위|점|표|채|벌|켤레|송이|쪽|주년|개월)';
+const TIE = new RegExp(`(^|[\\s(“‘〈])(${NUM_WORD}) (${UNIT})(?=$|[\\s,.!?…)”’〉이가을를은는의에도만째짜쯤씩과와로으])`, 'g');
+export function tieNumbers(text: string): string {
+  return text.includes(' ') ? text.replace(TIE, '$1$2 $3') : text;
+}
+
 export function periodText(text: string, year: number, country?: string): string {
+  return tieNumbers(periodTextRaw(text, year, country));
+}
+
+function periodTextRaw(text: string, year: number, country?: string): string {
   if (!text || year >= 2023) return text;
   const ct = asCountry(country);
   const drops: RegExp[] = [];
