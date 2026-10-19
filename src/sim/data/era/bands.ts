@@ -12,6 +12,8 @@ export interface Band {
   c: CountryId;
   from: number;
   to: number;
+  /** 실제 스타일 — 화면에 그대로 보인다 (게임 장르 6개로는 정확히 말할 수 없어서) */
+  style: string;
   genres: Genre[];
 }
 
@@ -21,3 +23,6 @@ export const BANDS: Band[] = bandsJson.data as never;
 export function bandsAt(country: CountryId, year: number, genre?: Genre): Band[] {
   return BANDS.filter((b) => b.c === country && year >= b.from && year <= b.to && (!genre || b.genres.includes(genre)));
 }
+
+/** 실존 밴드의 실제 스타일 */
+export const styleOf = (name: string) => BANDS.find((b) => b.name === name)?.style;

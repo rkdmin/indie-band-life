@@ -261,6 +261,15 @@ export class Ctx {
   chron(text: string, kind: ChronicleEntry['kind'] = 'life', role?: string) {
     chron(this.s, text, kind, role ? this.bind[role] : undefined);
   }
+  /** 같은 사건의 문장이 반복되지 않게 — 지난번과 다른 것을 고른다 */
+  vary(key: string, lines: readonly string[]): string {
+    const k = `tv:${key}`;
+    const last = Number(this.s.flags[k] ?? -1);
+    let i = this.rng.int(0, lines.length - 1);
+    if (lines.length > 1 && i === last) i = (i + 1 + this.rng.int(0, lines.length - 2)) % lines.length;
+    this.s.flags[k] = i;
+    return lines[i];
+  }
   line(text: string, tone: ResultLine['tone'] = 'neutral') {
     this.lines.push({ text, tone });
   }
@@ -313,6 +322,8 @@ export interface EventDef {
   /** 선택지를 카드로 펼쳐 보여 준다 */
   cards?: boolean;
   kicker?: string;
+  /** 한 번에 보여 줄 선택지 수 (기본 4) — 많으면 이번 인생에서 덜 본 것부터 */
+  show?: number;
   /** 이 해보다 이르면 나오지 않는다 (전제가 그 시대에 없던 사건) */
   minYear?: number;
   maxYear?: number;

@@ -7,6 +7,10 @@ import { EVENTS } from '../src/sim/events';
 
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
 const N = Number(env.BALANCE_N ?? 300);
+// 빠른 점검(BALANCE_N 작게)에서는 평균이 크게 흔들린다 — 기준은 표본 크기에 맞춰 느슨하게, 기본 300명에선 엄격하게
+const FULL = N >= 100;
+const MIN_DEATH = FULL ? 65 : 58;
+const kinds = (want: number) => Math.min(want, Math.ceil(N / 2));
 
 function run(policy: Policy) {
   const endings: Record<string, number> = {};
@@ -47,25 +51,25 @@ describe('밸런스', () => {
     console.log('[musician]', JSON.stringify({ ...r, seen: undefined }, null, 1));
     const never = EVENTS.filter((e) => !e.queued && !r.seen.has(e.id)).map((e) => e.id);
     console.log('[musician] 한 번도 안 나온 사건:', never.join(', '));
-    expect(r.avgDeath).toBeGreaterThan(65);
+    expect(r.avgDeath).toBeGreaterThan(MIN_DEATH);
     expect(r.avgDeath).toBeLessThan(95);
-    expect(r.under40).toBeLessThan(0.05);
-    expect(r.bandRate).toBeGreaterThan(0.6);
-    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(6);
+    expect(r.under40).toBeLessThan(FULL ? 0.05 : 0.2);
+    expect(r.bandRate).toBeGreaterThan(FULL ? 0.6 : 0.4);
+    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(kinds(6));
     // 전설은 드물어야 한다
     expect((r.endings.legend ?? 0) / N).toBeLessThan(0.25);
   });
   it('알아서 정책 (기본 자동 계획)', () => {
     const r = run('auto');
     console.log('[auto]', JSON.stringify({ ...r, seen: undefined }, null, 1));
-    expect(r.avgDeath).toBeGreaterThan(65);
-    expect(r.bandRate).toBeGreaterThan(0.6);
-    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(5);
+    expect(r.avgDeath).toBeGreaterThan(MIN_DEATH);
+    expect(r.bandRate).toBeGreaterThan(FULL ? 0.6 : 0.4);
+    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(kinds(5));
   });
   it('무작위 정책', () => {
     const r = run('random');
     console.log('[random]', JSON.stringify({ ...r, seen: undefined }, null, 1));
     expect(r.avgTurns).toBeGreaterThan(60);
-    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(5);
+    expect(Object.keys(r.endings).length).toBeGreaterThanOrEqual(kinds(5));
   });
 });

@@ -4,7 +4,7 @@
 import type { EventDef, Ctx } from '../ctx';
 import { VENUES } from '../data/world';
 import { BILLS, SCENES, TOURS, billAt, scenesAt, toursAt } from '../data/era/acts';
-import { bandsAt } from '../data/era/bands';
+import { bandsAt, styleOf } from '../data/era/bands';
 import { hasMedia } from '../data/era/media';
 import { genreLabel } from '../data/era/genres';
 import type { CountryId } from '../data/countries';
@@ -230,7 +230,7 @@ export const ACT_EVENTS: EventDef[] = [
       c.vars.on = heardOn(c);
       return true;
     },
-    text: (c) => `${c.year}년. ${c.vars.on}에서 ${c.vars.band}의 노래가 흘러나왔다.\n${genreLabel(c.vars.g as never, c.year, ct(c))}. 처음 듣는 소리였다.`,
+    text: (c) => `${c.year}년. ${c.vars.on}에서 ${c.vars.band}의 노래가 흘러나왔다.\n${styleOf(String(c.vars.band)) ?? genreLabel(c.vars.g as never, c.year, ct(c))}. 처음 듣는 소리였다.`,
     choices: [
       {
         label: '그 밴드에 빠진다',
@@ -256,6 +256,10 @@ export const ACT_EVENTS: EventDef[] = [
           return '도입부에서 막혔다. 그래도 매일 조금씩 늘었다.';
         },
       },
+      { label: '가사를 노트에 받아 적는다', run: (c) => { c.set(`heardBand:${c.vars.band}`); c.skill('compose', 2); c.genre(c.vars.g as never, 4); return '받아 적다 보니 문장의 리듬이 보였다. 노트 뒷장에 내 가사를 처음 써 봤다.'; } },
+      { label: '그 노래 얘기로 반 친구와 친해진다', if: (c) => c.age < 25, run: (c) => { c.set(`heardBand:${c.vars.band}`); c.stat('happiness', 6); c.genre(c.vars.g as never, 4); c.theme('friend'); return '“너도 그거 들어?” 그 한마디로 점심시간이 매일 짧아졌다.'; } },
+      { label: '그 소리의 뿌리를 거슬러 찾아 듣는다', run: (c) => { c.set(`heardBand:${c.vars.band}`); c.genre(c.vars.g as never, 7); c.skill('compose', 1); return '그들이 듣고 자란 음반을 찾아 들었다. 소리의 족보가 머릿속에 그려졌다.'; } },
+      { label: '라디오에 신청곡 사연을 보낸다', if: (c) => c.year < 2012, run: (c) => { c.set(`heardBand:${c.vars.band}`); c.stat('happiness', 4); if (c.roll(0.25)) { c.stat('happiness', 6); return '내 사연이 읽혔다. 이름이 전파를 탔다. 그 밤엔 잠이 안 왔다.'; } return '사연은 안 읽혔다. 그래도 그 곡은 그 주에 세 번 나왔다.'; } },
       { label: '그냥 흘려듣는다', run: (c) => { c.set(`heardBand:${c.vars.band}`); return '다들 그 노래 얘기뿐이었지만, 나는 다른 노래를 찾았다.'; } },
     ],
   },
@@ -288,6 +292,17 @@ export const ACT_EVENTS: EventDef[] = [
           return c.band ? '무대 위 그들의 동선과 조명을 몰래 메모했다. 다음 합주 때 다 따라 해 봤다.' : '앞사람 어깨 너머로 본 무대. 집에 오는 내내 귀가 울렸다.';
         },
       },
+      {
+        label: '새벽부터 줄 서서 맨 앞자리를 노린다',
+        odds: (c) => c.dc(11, '체력 판정', [['체력', c.m(c.p.talents.stamina)]], '가정'),
+        run: (c) => {
+          c.set(`saw:${c.vars.band}`); c.money(-c.krw(90_000), '공연 티켓'); c.genre(c.vars.g as never, 8); c.stat('energy', -15);
+          if (c.check(c.choicesOdds!)) { c.stat('happiness', 15); c.skill('stage', 2); c.chron(`${c.vars.band} 공연, 맨 앞줄`, 'music'); return '펜스를 잡고 두 시간을 버텼다. 땀이 튀는 거리에서 본 무대는 달랐다.'; }
+          c.stat('happiness', 6); return '세 시간 줄을 섰는데 열 번째 줄. 그래도 좋았다.';
+        },
+      },
+      { label: '친구 표까지 사서 같이 간다', run: (c) => { c.set(`saw:${c.vars.band}`); c.money(-c.krw(180_000), '공연 티켓 두 장'); c.stat('happiness', 12); c.genre(c.vars.g as never, 5); c.theme('friend'); return '돌아오는 길에 둘이서 목이 쉬도록 그 노래를 불렀다.'; } },
+      { label: '공연장 밖에서 기다리는 사람들 앞에서 버스킹한다', if: (c) => !!c.p.mainInst && c.age >= 15, run: (c) => { c.set(`saw:${c.vars.band}`); c.fans(c.rng.int(5, 40)); c.skill('stage', 2); c.money(c.krw(30_000), '기타 케이스'); return '입장 줄이 우리 노래를 따라 흥얼거렸다. 표는 못 샀지만 이상하게 뿌듯했다.'; } },
       { label: '돈이 없어 포기한다', run: (c) => { c.set(`saw:${c.vars.band}`); c.stat('happiness', -2); return '공연장 밖에서 새어 나오는 소리만 들었다.'; } },
     ],
   },

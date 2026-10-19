@@ -419,9 +419,27 @@ export const STORY: EventDef[] = [
   {
     id: 'fest_local', scene: 'festival', title: '페스티벌 섭외', priority: 110, cooldown: 3, chance: 0.45,
     when: (c) => !!c.band && c.p.fans >= 6000 && c.p.fans < 30000 && c.p.military !== 'serving' && eraOf(c.s.time, c.p.country).gigMul > 0.5,
-    text: (c) => `지역 록 페스티벌에서 연락이 왔다.\n낮 2시 서브 스테이지. 출연료는 적지만, 관객은 3천 명.`,
+    text: (c) => c.vary('fest_local', [
+      '지역 록 페스티벌에서 연락이 왔다.\n낮 2시 서브 스테이지. 출연료는 적지만, 관객은 3천 명.',
+      '바닷가 페스티벌에서 출연 제안. 해 지기 직전 슬롯이다.\n모래바람에 앰프가 버틸지가 걱정이다.',
+      '지난해 관객으로 갔던 페스티벌. 올해는 출연자 명단에 우리 이름이 있다.\n작은 글씨지만.',
+      '산속 캠핑 페스티벌. 무대 뒤가 바로 계곡이다.\n관객은 텐트에서 맥주를 들고 나온다.',
+    ]),
     choices: [
       { label: '간다!', run: (c) => { const v = VENUES.find((x) => x.id === 'local_fest')!; playGig(c, v, true); c.theme('dream'); c.stat('energy', -15); } },
+      {
+        label: '관객석까지 내려가는 무대로',
+        odds: (c) => c.dc(13, '무대 판정', [['무대', c.m(c.p.skills.stage)], ['체력', c.m(c.p.talents.stamina)]], '가정', '모 아니면 도'),
+        run: (c) => {
+          const v = VENUES.find((x) => x.id === 'local_fest')!;
+          playGig(c, v, true); c.stat('energy', -20);
+          if (c.check(c.choicesOdds!)) { c.fans(c.p.fans * 0.06 + 150); c.chron('페스티벌에서 관객 한가운데로 뛰어들었다', 'music'); return '마이크 줄이 닿는 데까지 걸어 들어갔다. 그 장면이 그날의 사진이 됐다.'; }
+          c.stat('health', -3); return '케이블에 걸려 넘어졌다. 웃음과 박수가 반반이었다.';
+        },
+      },
+      { label: '신곡만으로 세트리스트를 짠다', run: (c) => { const v = VENUES.find((x) => x.id === 'local_fest')!; playGig(c, v, true); c.skill('compose', 3); c.stat('energy', -15); return '아는 노래가 없는 관객 앞에서, 반응이 그대로 보였다. 쓸 곡과 버릴 곡이 갈렸다.'; } },
+      { label: '다들 아는 커버곡으로 분위기를 띄운다', run: (c) => { const v = VENUES.find((x) => x.id === 'local_fest')!; playGig(c, v, true); c.fans(c.rng.int(50, 200)); c.rep(-1); c.stat('energy', -15); return '떼창이 터졌다. 우리 노래 차례엔 조금 조용해졌다.'; } },
+      { label: '굿즈 부스까지 직접 지킨다', run: (c) => { const v = VENUES.find((x) => x.id === 'local_fest')!; playGig(c, v, true); c.money(c.krw(700_000), '굿즈'); c.stat('energy', -25); return '공연 끝나고 땀도 안 식었는데 부스에 줄이 섰다. 사인을 백 장 했다.'; } },
       { label: '이번엔 쉰다', run: (c) => { c.stat('stress', -5); } },
     ],
   },
@@ -440,12 +458,57 @@ export const STORY: EventDef[] = [
     when: (c) => c.age >= 16 && c.p.military !== 'serving' && unreleased(c.s).length >= 3 && c.s.time - Number(c.s.flags.lastRelease ?? -99) >= 2.5,
     text: (c) => {
       const songs = bestUnreleased(c, 7);
-      return `노트북 속 데모 폴더에 ${unreleased(c.s).length}곡이 쌓였다.\n제일 자신 있는 건 〈${songs[0].title}〉(완성도 ${songs[0].quality}).\n${c.band && c.band.label !== 'none' ? '레이블이 녹음비를 대 준다.' : `녹음비는 싱글 ${won(c.krw(1_200_000))}, EP ${won(c.krw(4_000_000))}, 정규 ${won(c.krw(9_000_000))}.`}`;
+      const open = c.vary('release_ready', [
+        `노트북 속 데모 폴더에 ${unreleased(c.s).length}곡이 쌓였다.`,
+        `합주실 화이트보드에 곡 제목이 ${unreleased(c.s).length}개. 지우개 자국만 수십 번.`,
+        `공연 셋리스트의 절반이 아직 음원이 없는 곡이다. 관객들이 자꾸 묻는다. “그 노래 어디서 들어요?”`,
+        `휴대폰 음성 메모에 흥얼거린 멜로디가 ${unreleased(c.s).length}개. 이제 진짜로 녹음할 때다.`,
+        `새벽 세 시, 데모를 처음부터 끝까지 들었다. ${unreleased(c.s).length}곡. 버릴 게 없다… 아마도.`,
+      ]);
+      return `${open}\n제일 자신 있는 건 〈${songs[0].title}〉(완성도 ${songs[0].quality}).\n${c.band && c.band.label !== 'none' ? '레이블이 녹음비를 대 준다.' : `녹음비는 싱글 ${won(c.krw(1_200_000))}, EP ${won(c.krw(4_000_000))}, 정규 ${won(c.krw(9_000_000))}.`}`;
     },
     choices: [
       { label: (c) => `싱글 〈${bestUnreleased(c, 1)[0].title}〉`, run: (c) => doRelease(c, 1) },
       { label: 'EP로 묶어 낸다', if: (c) => unreleased(c.s).length >= 3, run: (c) => doRelease(c, 5) },
       { label: '정규 앨범을 낸다', if: (c) => unreleased(c.s).length >= 7, run: (c) => doRelease(c, 10) },
+      {
+        label: '공연장에서 통째로 녹음해 라이브 앨범으로',
+        if: (c) => !!c.band && c.band.gigs >= 5,
+        odds: (c) => c.dc(13, '라이브 판정', [['무대', c.m(c.p.skills.stage)], ['밴드 합', c.m(c.band?.chemistry ?? 40)]], '가정', '실수도 그대로 남는다'),
+        run: (c) => {
+          if (c.check(c.choicesOdds!)) { const r = doRelease(c, 5); c.fans(c.p.fans * 0.04 + 40); c.skill('stage', 2); c.chron('공연 실황을 그대로 담은 라이브 앨범', 'music'); return `관객 함성까지 담겼다. ${r}`; }
+          c.skill('stage', 2); c.stat('stress', 5); return '그날따라 기타 줄이 두 번 끊어졌다. 녹음은 서랍으로.';
+        },
+      },
+      {
+        label: '한정판 실물 음반으로 300장만 찍는다',
+        run: (c) => { const r = doRelease(c, 3); c.money(c.krw(900_000), '한정판 판매'); c.rep(2); return `번호를 손으로 적은 300장. 사흘 만에 동났다. ${r}`; },
+      },
+      {
+        label: '크라우드펀딩으로 녹음비를 모은다',
+        if: (c) => c.year >= 2011 && c.p.fans >= 300,
+        odds: (c) => c.dc(12, '펀딩 판정', [['팬 수', c.p.fans >= 3000 ? 4 : c.p.fans >= 1000 ? 2 : 0], ['평판', c.m(c.p.rep)]], '가정', '목표액을 못 채우면 한 푼도 못 받는다'),
+        run: (c) => {
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(4_500_000), '펀딩'); const r = doRelease(c, 5); c.fans(c.p.fans * 0.03 + 30); return `목표액 112% 달성. 후원자 이름을 속지에 다 적었다. ${r}`; }
+          c.stat('stress', 6); c.rep(-1); return '마감 3시간 전 68%. 결국 무산됐다. 그래도 응원 댓글은 남았다.';
+        },
+      },
+      {
+        label: '신곡은 공연에서 먼저 반응을 본다',
+        if: (c) => !!c.band,
+        run: (c) => { c.skill('stage', 2); c.skill('compose', 2); c.fans(c.rng.int(10, 60)); c.set('lastRelease', c.s.time - 1.5); return '관객이 고개를 끄덕인 곡과 휴대폰을 꺼낸 곡이 확실히 갈렸다. 다음 녹음 곡이 정해졌다.'; },
+      },
+      {
+        label: '친한 프로듀서에게 편곡을 맡긴다',
+        cost: (c) => c.krw(1_500_000),
+        odds: (c) => c.dc(11, '궁합 판정', [['곡 완성도', c.m(bestUnreleased(c, 1)[0]?.quality ?? 50)]], '가정', '남의 손을 타면 좋아지기도, 내 곡이 아니게 되기도'),
+        run: (c) => {
+          c.money(-c.krw(1_500_000), '편곡비');
+          const s0 = bestUnreleased(c, 1)[0];
+          if (c.check(c.choicesOdds!)) { if (s0) s0.quality = Math.min(100, s0.quality + 8); const r = doRelease(c, 1); return `소리가 한 겹 넓어졌다. ${r}`; }
+          if (s0) s0.quality = Math.max(10, s0.quality - 3); c.stat('stress', 5); return '듣고 나서 한참 말이 없었다. 좋은데, 내 노래가 아니었다.';
+        },
+      },
       { label: '아직이다. 더 다듬자', run: (c) => { c.skill('compose', 2); return '서랍에 넣어 두었다. 좋은 곡은 기다려 준다.'; } },
     ],
   },
@@ -483,8 +546,18 @@ export const STORY: EventDef[] = [
   {
     id: 'burnout', scene: 'home', title: '번아웃', priority: 140, cooldown: 6, chance: 0.8,
     when: (c) => c.s.stressTurns >= 2 && c.age >= 15,
-    text: () => '아침에 눈을 떴는데 아무것도 하고 싶지 않다.\n좋아하던 노래가 소음처럼 들린다.',
+    text: (c) => c.vary('burnout', [
+      '아침에 눈을 떴는데 아무것도 하고 싶지 않다.\n좋아하던 노래가 소음처럼 들린다.',
+      '합주실 문 앞까지 갔다가 그냥 돌아왔다.\n이유를 설명할 수가 없다.',
+      '악기 케이스를 석 달째 열지 않았다.\n먼지가 앉은 게 보이는데도.',
+      '무대 위에서 가사가 하얗게 지워졌다.\n그날 이후로 잠이 잘 안 온다.',
+    ]),
+    show: 4,
     choices: [
+      { label: '아무 계획 없이 기차를 탄다', run: (c) => { c.money(-c.krw(300_000), '여행'); c.stat('stress', -22); c.theme('sea'); c.s.stressTurns = 0; return '창밖 풍경을 다섯 시간 봤다. 내릴 때쯤 콧노래가 나왔다.'; } },
+      { label: '내 장르가 아닌 음악만 듣는다', run: (c) => { c.stat('stress', -15); c.genre(c.pick(['folk', 'indiepop', 'metal', 'shoegaze'] as const), 6); c.s.stressTurns = 0; return '평생 안 듣던 음악이 이상하게 쉬게 해 줬다.'; } },
+      { label: '매일 아침 달리기를 한다', run: (c) => { c.stat('stress', -18); c.stat('health', 5); c.p.habits.exercise = Math.min(3, c.p.habits.exercise + 1); c.s.stressTurns = 0; return '처음엔 1킬로미터도 힘들었다. 숨이 차니 생각이 멈췄다.'; } },
+      { label: '고향 친구 집에서 며칠 지낸다', run: (c) => { c.stat('stress', -20); c.stat('happiness', 6); c.theme('friend'); c.s.stressTurns = 0; return '음악 얘기는 한 마디도 안 했다. 그게 좋았다.'; } },
       { label: '모든 걸 내려놓고 쉰다', run: (c) => { c.stat('stress', -30); c.stat('energy', 30); c.fans(-c.p.fans * 0.05); c.s.stressTurns = 0; return '반년 동안 기타를 만지지 않았다. 그리고 어느 날, 다시 만지고 싶어졌다.'; } },
       { label: '상담을 받는다', run: (c) => { c.money(-c.krw(800_000), '상담비'); c.stat('stress', -25); c.stat('happiness', 6); c.s.stressTurns = 0; c.theme('night'); return '“괜찮지 않아도 괜찮아요.” 그 말을 가사로 적었다.'; } },
       { label: '그냥 버틴다', run: (c) => { c.stat('health', -6); c.stat('stress', -5); return '버텼다. 몸이 대신 대가를 치렀다.'; } },

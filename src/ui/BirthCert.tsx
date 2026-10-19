@@ -9,6 +9,7 @@ import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
 import { playerAppearance } from '../sim/appearance';
 import { describe, npcAppearance } from '../sim/appearance';
+import { Flag } from './Flag';
 
 const TASTE: Record<string, string> = {
   classical: '클래식 라디오', trot: '트로트', ballad: '발라드', none: '음악보다 뉴스', folk: '통기타 포크',
@@ -67,7 +68,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             </ul>
           )}
           <div className="country-box">
-            <span className="cflag" aria-hidden>{ct.id}</span>
+            <span className="cflag"><Flag c={ct.id} size={28} /></span>
             <div className="grow">
               <b>{periodText(ct.name, y, ct.id)}</b>
               <div className="dim">{y + 20 < 2015 ? `스무 살 무렵: ${era20.desc}` : periodText(ct.scene, y + 20, ct.id)}</div>

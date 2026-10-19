@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 // 멤버 고르기 카드. 인연과 우연이 섞인 후보 3~4장 중 한 명에게 영입을 제안한다 (제안하면 d20 영입 판정).
 
 import { genreLabel } from '../sim/data/era/genres';
@@ -9,7 +10,7 @@ import { sfx } from '../audio/player';
 import { charmWord, describe, npcAppearance } from '../sim/appearance';
 import { useArmed } from './useArmed';
 
-export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: number) => void }) {
+export function MemberDraft({ s, onChoose, cut }: { s: GameState; onChoose: (i: number) => void; cut?: ReactNode }) {
   const ev = s.active!;
   const band = s.band;
   const n = Number(ev.vars?.n ?? 0);
@@ -19,6 +20,7 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
   return (
     <div className="draft-back">
       <div className="draft" role="dialog" aria-modal="true" aria-label={ev.title}>
+        {cut && <div className="draft-cut">{cut}</div>}
         <div className="draft-head">
           <span className="k">{ev.vars?.src === 'walkin' ? 'WALK-IN' : 'MEMBER DRAFT'}</span>
           <h2>{ev.title}</h2>

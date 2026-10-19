@@ -1,15 +1,34 @@
 {
   "about": "손으로 확인한 클럽 씬: 이 기간 이 무대에서 실제로 공연하던 밴드들. 그 밖의 밴드는 bands.json 의 데뷔 직후 몇 년을 무명 시절 클럽 무대로 자동 생성한다.",
   "data": [
-    {"id": "kr_8army", "c": "KR", "from": 1958, "to": 1969, "place": "미8군 클럽 무대", "acts": ["신중현"], "genres": ["indierock", "folk"], "src": "공개 음악사 자료(위키백과 등)"},
+    {
+      "id": "kr_8army",
+      "c": "KR",
+      "from": 1958,
+      "to": 1969,
+      "place": "미8군 클럽 무대",
+      "acts": [
+        "신중현"
+      ],
+      "genres": [
+        "indierock"
+      ],
+      "src": "공개 음악사 자료(위키백과 등)"
+    },
     {
       "id": "kr_drug",
       "c": "KR",
       "from": 1995.3,
       "to": 1998.9,
       "place": "홍대 앞 클럽 드럭",
-      "acts": ["크라잉넛", "노브레인"],
-      "genres": ["punk", "indierock"],
+      "acts": [
+        "크라잉넛",
+        "노브레인"
+      ],
+      "genres": [
+        "punk",
+        "indierock"
+      ],
       "src": "뉴시스 인디 30주년 보도·경북매일"
     },
     {
@@ -18,8 +37,14 @@
       "from": 2008,
       "to": 2011,
       "place": "홍대 앞 라이브클럽",
-      "acts": ["장기하와 얼굴들", "국카스텐"],
-      "genres": ["folk", "indierock", "indiepop", "metal"],
+      "acts": [
+        "장기하와 얼굴들",
+        "국카스텐"
+      ],
+      "genres": [
+        "indierock",
+        "folk"
+      ],
       "src": "공개 음악사 자료(위키백과 등)"
     },
     {
@@ -28,8 +53,14 @@
       "from": 1975,
       "to": 1978,
       "place": "뉴욕 CBGB",
-      "acts": ["라몬스", "토킹 헤즈"],
-      "genres": ["punk", "indierock"],
+      "acts": [
+        "라몬스",
+        "토킹 헤즈"
+      ],
+      "genres": [
+        "punk",
+        "indierock"
+      ],
       "src": "공개 음악사 자료(위키백과 등)"
     },
     {
@@ -38,8 +69,13 @@
       "from": 1988.5,
       "to": 1991.5,
       "place": "시애틀의 작은 클럽",
-      "acts": ["너바나"],
-      "genres": ["indierock", "punk"],
+      "acts": [
+        "너바나"
+      ],
+      "genres": [
+        "indierock",
+        "punk"
+      ],
       "src": "공개 음악사 자료(위키백과 등)"
     },
     {
@@ -48,19 +84,42 @@
       "from": 1999.5,
       "to": 2001.5,
       "place": "뉴욕 로어이스트사이드의 클럽",
-      "acts": ["스트록스"],
-      "genres": ["indierock", "punk"],
+      "acts": [
+        "스트록스"
+      ],
+      "genres": [
+        "indierock"
+      ],
       "src": "공개 음악사 자료(위키백과 등)"
     },
-    {"id": "uk_100club", "c": "UK", "from": 1976.5, "to": 1977.5, "place": "런던의 펑크 클럽", "acts": ["섹스 피스톨스", "클래시"], "genres": ["punk"], "src": "공개 음악사 자료(위키백과 등)"},
+    {
+      "id": "uk_100club",
+      "c": "UK",
+      "from": 1976.5,
+      "to": 1977.5,
+      "place": "런던의 펑크 클럽",
+      "acts": [
+        "섹스 피스톨스",
+        "클래시"
+      ],
+      "genres": [
+        "punk"
+      ],
+      "src": "공개 음악사 자료(위키백과 등)"
+    },
     {
       "id": "uk_manc",
       "c": "UK",
       "from": 1992,
       "to": 1994,
       "place": "맨체스터의 작은 클럽",
-      "acts": ["오아시스"],
-      "genres": ["indierock", "indiepop"],
+      "acts": [
+        "오아시스"
+      ],
+      "genres": [
+        "indierock",
+        "indiepop"
+      ],
       "src": "공개 음악사 자료(위키백과 등)"
     },
     {
@@ -69,12 +128,55 @@
       "from": 2003.5,
       "to": 2005.5,
       "place": "셰필드의 펍 무대",
-      "acts": ["아크틱 몽키스"],
-      "genres": ["indierock", "punk"],
+      "acts": [
+        "아크틱 몽키스"
+      ],
+      "genres": [
+        "indierock"
+      ],
       "src": "공개 음악사 자료(위키백과 등)"
     },
-    {"id": "jp_livehouse", "c": "JP", "from": 1985, "to": 1988, "place": "도쿄의 라이브하우스", "acts": ["X"], "genres": ["metal", "punk"], "src": "공개 음악사 자료(위키백과 등)"},
-    {"id": "de_berlin", "c": "DE", "from": 1994, "to": 1996, "place": "베를린의 클럽", "acts": ["람슈타인"], "genres": ["metal", "punk"], "src": "공개 음악사 자료(위키백과 등)"},
-    {"id": "br_bh", "c": "BR", "from": 1985, "to": 1989, "place": "벨루오리존치의 메탈 공연장", "acts": ["세풀투라"], "genres": ["metal", "punk"], "src": "공개 음악사 자료(위키백과 등)"}
+    {
+      "id": "jp_livehouse",
+      "c": "JP",
+      "from": 1985,
+      "to": 1988,
+      "place": "도쿄의 라이브하우스",
+      "acts": [
+        "X"
+      ],
+      "genres": [
+        "metal"
+      ],
+      "src": "공개 음악사 자료(위키백과 등)"
+    },
+    {
+      "id": "de_berlin",
+      "c": "DE",
+      "from": 1994,
+      "to": 1996,
+      "place": "베를린의 클럽",
+      "acts": [
+        "람슈타인"
+      ],
+      "genres": [
+        "metal"
+      ],
+      "src": "공개 음악사 자료(위키백과 등)"
+    },
+    {
+      "id": "br_bh",
+      "c": "BR",
+      "from": 1985,
+      "to": 1989,
+      "place": "벨루오리존치의 메탈 공연장",
+      "acts": [
+        "세풀투라"
+      ],
+      "genres": [
+        "metal"
+      ],
+      "src": "공개 음악사 자료(위키백과 등)"
+    }
   ]
 }

@@ -14,6 +14,7 @@ import { FanGraph } from './FanGraph';
 import { WAVES, historyBetween } from '../sim/data/history';
 import type { CountryId } from '../sim/data/countries';
 import { npcAppearance } from '../sim/appearance';
+import { Flag } from './Flag';
 
 // ───────────────────────── 사람들 ─────────────────────────
 export function PeopleSheet({ s }: { s: GameState }) {
@@ -335,7 +336,7 @@ export function ChronicleSheet({ s }: { s: GameState }) {
           ) : (
             <div key={i} className="tl world">
               <div className="when">
-                {r.h.y}{r.h.m ? `.${String(r.h.m).padStart(2, '0')}` : ''} · <span className="cc">{r.h.c === 'GLOBAL' ? 'WORLD' : r.h.c}</span>
+                {r.h.y}{r.h.m ? `.${String(r.h.m).padStart(2, '0')}` : ''} · <Flag c={r.h.c} size={10} />
                 {r.h.y >= born ? ` · 나는 ${r.h.y - born}세` : ' · 태어나기 전'}
               </div>
               <div className="what">{r.h.text}</div>

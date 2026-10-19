@@ -400,6 +400,32 @@ export const CARD_EVENTS: EventDef[] = [
         card: (c) => ({ title: '할부 최고급', icon: '💳', tag: '빚', stats: [['가격', `${won(c.krw(3_000_000))} 할부`], ['이자', '연 15%'], ['실력', '+4']] }),
         run: (c) => { c.borrow(c.krw(3_000_000), 0.15, '악기 할부'); c.money(-c.krw(3_000_000), '최고급 악기'); c.skill(c.p.mainInst!, 4); c.skill('stage', 2); return '새 악기의 냄새. 할부 문자는 매달 온다.'; },
       },
+      {
+        label: '한 달 빌려 써 본다',
+        risk: 'safe',
+        range: (c) => `−${won(c.krw(150_000))} · 실력 +1 · 나와 맞는지 알게 된다`,
+        card: (c) => ({ title: '한 달 대여', icon: '📦', tag: '안정', stats: [['대여료', won(c.krw(150_000))], ['실력', '+1']], sub: '사기 전에 손에 맞는지부터' }),
+        run: (c) => { c.money(-c.krw(150_000), '악기 대여'); c.skill(c.p.mainInst!, 1); c.stat('happiness', 3); return '한 달 써 보니 알았다. 비싼 게 다 내 소리는 아니었다.'; },
+      },
+      {
+        label: '고장 난 걸 사서 직접 고친다',
+        risk: 'risky',
+        range: (c) => `−${won(c.krw(250_000))} · 고치면 실력 +3, 못 고치면 공구만 남는다`,
+        card: (c) => ({ title: '수리용 매물', icon: '🔧', tag: '모험', stats: [['가격', won(c.krw(250_000))], ['수리 성공', '약 50%']], sub: '“소리는 나는데 가끔 안 나요.”' }),
+        run: (c) => {
+          c.money(-c.krw(250_000), '수리용 매물');
+          if (c.rng.chance(0.5)) { c.skill(c.p.mainInst!, 3); c.chron('고장 난 악기를 직접 고쳐 썼다', 'music'); return '납땜 냄새 나는 일주일. 다시 소리가 났을 때 소리를 질렀다.'; }
+          c.stat('stress', 4); return '고치다가 더 망가뜨렸다. 대신 악기 속 구조는 다 알게 됐다.';
+        },
+      },
+      {
+        label: '멤버 악기와 바꿔 쳐 본다',
+        risk: 'safe',
+        if: (c) => !!c.band && c.members.length > 0,
+        range: () => '돈 0원 · 다른 악기 감각 +1',
+        card: () => ({ title: '악기 바꿔 치기', icon: '🔄', tag: '안정', stats: [['가격', '0원'], ['감각', '+1']] }),
+        run: (c) => { c.skill('compose', 2); c.skill(c.p.mainInst!, 1); return '남의 악기로 치니 내 버릇이 보였다. 그리고 다른 사람 파트를 이해하게 됐다.'; },
+      },
     ],
   },
 ];

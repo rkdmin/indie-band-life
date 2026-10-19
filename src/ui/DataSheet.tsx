@@ -8,7 +8,7 @@ import { birthsIn, minWage, priceIndex } from '../sim/data/world';
 import { countryOf, hasMinWage, lifeExpAt, type CountryId } from '../sim/data/countries';
 import { MEDIA } from '../sim/data/era/media';
 import { GENRE_ERAS, genreNamedIn } from '../sim/data/era/genres';
-import { bandsAt } from '../sim/data/era/bands';
+import { bandsAt, styleOf } from '../sim/data/era/bands';
 import { ARTIST_SURVEY } from '../sim/data/reality';
 import { won } from '../sim/korean';
 import { meanHeight, playerAppearance } from '../sim/appearance';
@@ -220,7 +220,7 @@ export function DataSheet({ s }: { s: GameState }) {
           <span>{born + 18}–{born + 30}년 {c.name}</span>
         </figcaption>
         <div className="ds-chips">
-          {twenties.length ? twenties.map(([n, y]) => <span key={n}>{n} <em>{y}</em></span>) : <span className="dim">이 시기 데이터에 있는 밴드가 없다</span>}
+          {twenties.length ? twenties.map(([n, y]) => <span key={n}>{n} <em>{styleOf(n)} · {y}</em></span>) : <span className="dim">이 시기 데이터에 있는 밴드가 없다</span>}
         </div>
         <div className="dc-src">📊 data/era/bands.json — 활동 기간 [근사]</div>
       </figure>

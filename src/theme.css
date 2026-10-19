@@ -307,7 +307,8 @@ body::before {
 .country-pick button.on { background: var(--ink); color: #fff; box-shadow: inset 0 -3px 0 var(--pink); }
 .country-pick .cf { font-size: 11px; margin-right: 2px; }
 .country-box { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 4px; background: #fff; }
-.country-box .cflag { flex: none; display: grid; place-items: center; width: 44px; height: 44px; font-family: var(--pixel); font-size: 15px; font-weight: 700; color: #fff; background: var(--ink); border-radius: 4px; box-shadow: 3px 3px 0 var(--pink); }
+.country-box .cflag { flex: none; line-height: 0; }
+.country-box .cflag .flag { box-shadow: 3px 3px 0 var(--pink); }
 .country-box b { font-family: var(--serif); font-weight: 400; font-size: 20px; }
 .country-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; margin-top: 6px; color: var(--sub); }
 .country-stats b { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
@@ -361,5 +362,5 @@ body::before {
 .entry.world .deltas { color: var(--dim); font-size: 10.5px; }
 @media (max-width: 720px) { .entry.world { margin: 4px 6px; grid-template-columns: 36px 1fr; } }
 
-/* 나라 코드 배지 — 이모지 국기는 윈도우에서 글자로 깨져 보여서 어디서나 같은 모양으로 */
-.cc { display: inline-block; font-family: var(--pixel); font-size: 11px; font-weight: 700; line-height: 1; padding: 2px 4px 1px; border: 1px solid currentColor; border-radius: 2px; vertical-align: 1px; letter-spacing: 0; opacity: 0.85; }
+
+.flag { display: inline-block; vertical-align: -2px; border: 1px solid #0003; border-radius: 1px; flex: none; }

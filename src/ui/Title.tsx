@@ -10,6 +10,7 @@ import { isMuted, playBgm, setMuted, sfx, stopBgm } from '../audio/player';
 import { ENDINGS } from '../sim/endings';
 import { count } from '../sim/korean';
 import type { Meta } from './save';
+import { Flag } from './Flag';
 
 const ERAS = [
   { id: 'old', label: '옛 시절', from: 1950, to: 1984, help: '1950~1984년생. 미8군 무대와 통기타, 대학가요제를 지나 홍대 인디가 태어나는 순간을 산다.' },
@@ -122,7 +123,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
             <div className="country-pick">
               {COUNTRY_IDS.map((id) => (
                 <button key={id} className={country === id ? 'on' : ''} onClick={() => setCountry(id)}>
-                  <span className="cf cc">{id}</span>
+                  <span className="cf"><Flag c={id} size={14} /></span>
                   {COUNTRIES[id].name}
                 </button>
               ))}

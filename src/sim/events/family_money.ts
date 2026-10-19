@@ -306,6 +306,16 @@ export const FAMILY_MONEY: EventDef[] = [
         },
       },
       { label: '절반만, 받을 생각 없이 준다', run: (c) => { c.money(-c.krw(1_500_000), '친구 도움'); c.rel('f', 8); c.stat('happiness', 2); return '“갚지 마.” 그렇게 말하니 오히려 마음이 편했다.'; } },
+      {
+        label: '차용증을 쓰고 빌려준다',
+        odds: (c) => c.dc(9, '회수 판정', [['신뢰', c.m(c.npc('f').trust)]], '가정', '종이 한 장이 회수 가능성을 높인다'),
+        run: (c) => {
+          c.money(-c.krw(3_000_000), '빌려준 돈');
+          if (c.check(c.choicesOdds!)) { c.money(c.krw(3_000_000), '돌려받은 돈'); c.rel('f', 2); return '정확히 약속한 날 돌려받았다. 조금 서먹해졌지만, 돈은 돌아왔다.'; }
+          c.rel('f', -12); c.stat('stress', 8); return '차용증이 있어도 받을 방법은 마땅치 않았다.';
+        },
+      },
+      { label: '돈 대신 일자리를 소개한다', run: (c) => { c.rel('f', 5); c.stat('stress', -1); return '내가 하던 알바 자리를 넘겨줬다. 한 달 뒤 “덕분에 숨 쉰다”는 문자가 왔다.'; } },
       { label: '정중히 거절한다', run: (c) => { c.rel('f', -5); c.stat('stress', 3); return '“그래, 이해해.” 그날 술값은 각자 냈다.'; } },
     ],
   },
@@ -377,6 +387,9 @@ export const FAMILY_MONEY: EventDef[] = [
       { label: '통기타로 신청곡을 받는다', run: (c) => { c.money(-c.krw(300_000), '대관'); c.fans(c.rng.int(20, 60)); c.skill('stage', 2); c.stat('happiness', 8); return '세 시간이 30분처럼 지나갔다. 신청곡 중엔 나도 잊은 노래가 있었다.'; } },
       { label: '굿즈를 만들어 판다', run: (c) => { c.money(c.krw(600_000), '굿즈'); c.fans(c.rng.int(10, 30)); return '스티커와 엽서가 다 팔렸다. 사인하다 손목이 아팠다.'; } },
       { label: '한 명씩 이야기를 듣는다', run: (c) => { c.fans(c.rng.int(10, 30)); c.theme('friend'); c.stat('stress', -6); return '내 노래가 누군가의 시험 기간, 이별, 입원을 버티게 했단다.'; } },
+      { label: '아직 안 낸 신곡을 처음 들려준다', run: (c) => { c.fans(c.rng.int(15, 45)); c.skill('compose', 2); return '첫 소절에서 누군가 울기 시작했다. 이 곡은 꼭 내야겠다고 생각했다.'; } },
+      { label: '팬들 이야기로 즉석에서 가사를 쓴다', run: (c) => { c.fans(c.rng.int(20, 50)); c.theme('friend'); c.skill('stage', 1); return '서른 명의 한 줄씩으로 노래 한 곡이 됐다. 제목은 그날 날짜.'; } },
+      { label: '다 같이 근처 공원으로 나가 노래한다', if: (c) => !!c.p.mainInst, run: (c) => { c.fans(c.rng.int(20, 70)); c.stat('happiness', 10); return '지나가던 사람들까지 서서 들었다. 작은 팬미팅이 동네 공연이 됐다.'; } },
     ],
   },
   {

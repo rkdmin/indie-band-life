@@ -102,3 +102,15 @@ export function narrate(id: string, rng: Rng, o: { age?: number; year?: number; 
   const fresh = pool.filter((l) => !o.recent?.has(l.t));
   return fresh.length ? rng.pick(fresh).t : '';
 }
+
+/**
+ * 생활 계획 고르기 — 화면의 버튼 하나를 눌렀을 때 선택이 어떻게 바뀌는지.
+ * ‘알아서’ 상태에서 처음 고르면 새로 시작하고, 칸이 다 찼으면 몰래 바꾸지 않고 full 을 알린다.
+ */
+export function togglePlan(st: { auto: boolean; sel: string[] }, id: string, slots: number): { auto: boolean; sel: string[]; full: boolean } {
+  if (st.auto) return { auto: false, sel: [id], full: false };
+  if (st.sel.includes(id)) return { auto: false, sel: st.sel.filter((x) => x !== id), full: false };
+  if (slots === 1) return { auto: false, sel: [id], full: false };
+  if (st.sel.length >= slots) return { auto: false, sel: st.sel, full: true };
+  return { auto: false, sel: [...st.sel, id], full: false };
+}

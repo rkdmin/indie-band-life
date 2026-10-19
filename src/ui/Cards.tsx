@@ -1,6 +1,6 @@
 // 카드 고르기 화면 + 위험도 태그 + 대박·쪽박 연출.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { GameState, Jackpot, Risk } from '../sim/types';
 import { Portrait } from '../art/Portrait';
 import { sfx } from '../audio/player';
@@ -14,7 +14,7 @@ export function RiskTag({ risk }: { risk?: Risk }) {
   return <span className={`risk risk-${risk}`}>{RISK_LABEL[risk]}</span>;
 }
 
-export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) => void }) {
+export function CardPick({ s, onChoose, cut }: { s: GameState; onChoose: (i: number) => void; cut?: ReactNode }) {
   const ev = s.active!;
   const idx = ev.order ?? ev.choices.map((_, i) => i);
   const items = idx.map((i) => ({ ch: ev.choices[i], i })).filter(({ ch }) => !ch.hidden && (!ch.disabled || !!ch.lock) && ch.card);
@@ -24,6 +24,7 @@ export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) 
   return (
     <div className="draft-back">
       <div className="draft gdraft" role="dialog" aria-modal="true" aria-label={ev.title}>
+        {cut && <div className="draft-cut">{cut}</div>}
         <div className="draft-head">
           <span className="k">{ev.kicker ?? 'CARDS'}</span>
           <h2>{ev.title}</h2>

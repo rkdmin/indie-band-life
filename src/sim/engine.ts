@@ -272,12 +272,17 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
     const body = keepLast ? shown.slice(0, -1) : [...shown];
     const custom = id === 'pick_member' || id === 'member_walkin';
     if (!custom) {
-      // 다섯 개 이상이면 네 개만 — 열려 있는 선택지 중에서
+      // 많으면 일부만 — 이번 인생에서 덜 본 선택지부터 (같은 사건이 와도 다른 선택지가 보이게)
+      const key = `cs:${id}`;
+      const seen = String(s.flags[key] ?? '').split(',').map((x) => Number(x) || 0);
       const live = body.filter((i) => !choices[i].disabled);
-      if (live.length >= 5) {
-        const drop = rng.shuffle([...live]).slice(0, live.length - 4);
-        for (const i of drop) choices[i].hidden = true;
+      const cap = def.show ?? 4;
+      if (live.length > cap) {
+        const ranked = rng.shuffle([...live]).sort((a, b) => (seen[a] ?? 0) - (seen[b] ?? 0));
+        for (const i of ranked.slice(cap)) choices[i].hidden = true;
       }
+      for (const i of body) if (!choices[i].hidden) seen[i] = (seen[i] ?? 0) + 1;
+      s.flags[key] = Array.from({ length: choices.length }, (_, i) => seen[i] ?? 0).join(',');
     }
     const order = custom ? shown : [...rng.shuffle(body.filter((i) => !choices[i].hidden)), ...(keepLast ? [lastI] : [])];
     const wild = !custom && !def.queued && !def.cards && order.filter((i) => !choices[i].disabled).length >= 2 && rng.chance(0.12);
@@ -302,6 +307,9 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
   }
 }
 
+/** 상황이 생길 때마다 와야 하는 사건 (멤버 모집·위기 등) — 반복 감쇠에서 뺀다 */
+const REPEATABLE = new Set(['pick_member', 'member_walkin', 'debt_crisis', 'member_leave', 'discharge', 'burnout']);
+
 function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if (def.queued) return false;
   if ((s.player.country ?? 'KR') !== 'KR' && isKoreaOnly(def.id)) return false;
@@ -310,7 +318,10 @@ function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if (age(s) < eventMinAge(def, s.player.country)) return false;
   if (s.time < eventMinYear(def, s.player.country) || (def.maxYear !== undefined && s.time > def.maxYear)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
-  if (def.cooldown && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < def.cooldown) return false;
+  // 같은 사건이 이번 인생에 여러 번 왔으면 다음까지 더 오래 기다린다
+  const seenN = Number(s.flags[`n:${def.id}`] ?? 0);
+  const cd = def.cooldown ? (REPEATABLE.has(def.id) ? def.cooldown : def.cooldown * (1 + 0.5 * seenN)) : 0;
+  if (cd && s.fired[def.id] !== undefined && s.turn - s.fired[def.id] < cd) return false;
   const c = new Ctx(s, rng);
   try {
     return def.when(c);
@@ -325,7 +336,10 @@ function scheduleEvents(s: GameState, rng: Rng) {
   for (const def of EVENTS) {
     if (!eligible(s, rng, def)) continue;
     const c = new Ctx(s, rng);
-    const p = typeof def.chance === 'function' ? def.chance(c) : def.chance ?? 0.12;
+    const p0 = typeof def.chance === 'function' ? def.chance(c) : def.chance ?? 0.12;
+    // 본 횟수만큼 덜 나온다 — 일반 사건은 크게, 이야기 사건은 조금
+    const n = REPEATABLE.has(def.id) ? 0 : Number(s.flags[`n:${def.id}`] ?? 0);
+    const p = p0 * Math.pow((def.priority ?? 0) >= 100 ? 0.85 : 0.65, n);
     if (!rng.chance(p)) continue;
     ((def.priority ?? 0) >= 100 ? story : random).push(def);
   }
@@ -412,7 +426,7 @@ export function beginPeriod(prev: GameState): GameState {
   for (const h of historyBetween(s.time, s.periodEnd, (s.player.country ?? 'KR') as CountryId)) {
     const at = h.y + ((h.m ?? 6) - 0.5) / 12;
     if (at - s.player.birthYear < (h.kind === 'world' ? 6 : 10)) continue;
-    pushFeed(s, { t: at, text: h.text, tone: h.kind === 'world' ? 'world' : 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : h.c} · ${h.src}`, kind: 'news' });
+    pushFeed(s, { t: at, text: h.text, tone: h.kind === 'world' ? 'world' : 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : COUNTRIES[h.c].name} · ${h.src}`, kind: 'news' });
   }
   for (const line of flavorLines(s, rng)) pushFeed(s, { t: s.time + step * rng.range(0.05, 0.95), text: line, tone: 'flavor', kind: 'flavor' });
   s.feed.sort((a, b) => a.t - b.t);
@@ -433,6 +447,7 @@ export function openEvent(prev: GameState, at: number): GameState {
     if (ev) {
       s.active = ev;
       s.fired[pe.id] = s.turn;
+      s.flags[`n:${pe.id}`] = Number(s.flags[`n:${pe.id}`] ?? 0) + 1;
       s.phase = 'event';
       s.lastScene = ev.scene;
       break;

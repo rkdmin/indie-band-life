@@ -7,7 +7,7 @@ import { GENRE_INFO, INST_LABEL, VENUES, eraOf, festivalFee, minWage, type Venue
 import { availableThemes, release, unreleased, writeSong } from './songs';
 import { favoriteGenre } from './state';
 import { randomBandName } from './names';
-import { given, josa } from './korean';
+import { given, josa, won } from './korean';
 import { clamp } from './rng';
 import { playerAppearance } from './appearance';
 
@@ -22,6 +22,8 @@ export interface ActionDef {
   param?: ParamKind;
   desc: (c: Ctx) => string;
   when: (c: Ctx) => boolean;
+  /** 이 활동에 드는 돈 — 통장보다 크면 ‘돈이 부족하다’로 잠긴다 */
+  price?: (c: Ctx) => number;
   /** 고를 수는 없지만 보여 줄 때 이유 */
   locked?: (c: Ctx) => string | null;
   run: (c: Ctx, param?: string) => void;
@@ -215,7 +217,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: 'rehearse', label: '밴드 합주', emoji: '🥁', scene: 'studio', energy: 18,
     desc: (c) => `합주실 2시간 ${Math.round(c.krw(20000) * 2 / 10000)}만원. 실력과 팀워크가 함께 오른다.`,
-    when: (c) => !!c.band && free(c),
+    when: (c) => c.age >= 13 && free(c),
+    price: (c) => (c.band ? c.krw(40000) / (c.members.length + 1) : 0),
     run: (c) => {
       const band = c.band!;
       c.money(-c.krw(40000) / (c.members.length + 1), '합주실비');
@@ -245,7 +248,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: 'gig', label: '공연하기', emoji: '🎤', scene: 'club', energy: 28, param: 'venue',
     desc: (c) => `팬 ${c.p.fans.toLocaleString()}명. 무대가 우리를 키운다.`,
-    when: (c) => c.age >= 16 && free(c) && (!!c.band || c.p.skills.vocal + c.p.skills.guitar > 60),
+    when: (c) => c.age >= 16 && free(c),
+    locked: (c) => (!c.band && c.p.skills.vocal + c.p.skills.guitar <= 60 ? `밴드도 없고, 혼자 설 실력도 아직이다 (보컬+기타 ${Math.round(c.p.skills.vocal + c.p.skills.guitar)}/60)` : null),
     run: (c, venueId) => {
       const v = VENUES.find((x) => x.id === venueId) ?? VENUES[0];
       playGig(c, v);
@@ -295,7 +299,9 @@ export const ACTIONS: ActionDef[] = [
   {
     id: 'release', label: '녹음·발매', emoji: '💿', scene: 'recording', energy: 25, param: 'release',
     desc: (c) => `미발매 곡 ${unreleased(c.s).length}개. 싱글·EP·정규 중 선택.`,
-    when: (c) => c.age >= 16 && free(c) && unreleased(c.s).length > 0,
+    when: (c) => c.age >= 16 && free(c),
+    locked: (c) => (unreleased(c.s).length === 0 ? '낼 곡이 없다 — 작곡부터' : null),
+    price: (c) => (c.band?.label && c.band.label !== 'none' ? 0 : c.krw(1_200_000)),
     run: (c, param) => {
       const [title, ids] = (param || '').split('|');
       const songIds = ids ? ids.split(',') : [unreleased(c.s)[0].id];
@@ -311,6 +317,7 @@ export const ACTIONS: ActionDef[] = [
     id: 'promo', label: 'SNS 홍보', emoji: '📣', scene: 'home', energy: 8,
     desc: (c) => `광고비 ${Math.round(c.krw(300000) / 10000)}만원. 다음 발매의 초반 화력을 키운다.`,
     when: (c) => c.age >= 17 && free(c) && c.s.time >= 2010,
+    price: (c) => c.krw(300000),
     run: (c) => {
       c.money(-c.krw(300000), '광고비');
       c.inc('promo');
@@ -323,6 +330,7 @@ export const ACTIONS: ActionDef[] = [
     id: 'flyer', label: '포스터 붙이기', emoji: '🧷', scene: 'street', energy: 10,
     desc: (c) => `인쇄비 ${Math.round(c.krw(60000) / 10000) || 1}만원. 전봇대와 레코드 가게 유리문에 공연 포스터를.`,
     when: (c) => c.age >= 16 && free(c) && c.s.time < 2010 && !!c.band,
+    price: (c) => c.krw(60000),
     run: (c) => {
       c.money(-c.krw(60000), '포스터 인쇄');
       c.inc('promo');
@@ -334,6 +342,7 @@ export const ACTIONS: ActionDef[] = [
     id: 'network', label: '뒤풀이·인맥', emoji: '🍻', scene: 'pub', energy: 14,
     desc: () => '공연 끝난 클럽 뒤풀이. 사람이 곧 기회다.',
     when: (c) => c.age >= 19 && free(c) && c.age < 70,
+    price: (c) => c.krw(40000),
     run: (c) => {
       c.money(-c.krw(40000), '술값');
       c.stat('happiness', 3);
@@ -367,7 +376,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: 'parttime', label: '아르바이트', emoji: '🧋', scene: 'street', energy: 20,
     desc: (c) => `최저시급 약 ${Math.round(minWage(c.s.time) * c.country.wageMul).toLocaleString()}원${c.country.id !== 'KR' ? '(원화 환산)' : ''} · ${Math.floor(c.s.time)}년. 반년 동안 주 20시간.`,
-    when: (c) => c.age >= 16 && free(c) && c.p.job !== 'office' && c.age < 70,
+    when: (c) => c.age >= 16 && free(c) && c.age < 70,
+    locked: (c) => (c.p.job === 'office' ? '회사에 다니는 중이라 알바할 시간이 없다' : null),
     run: (c) => {
       const pay = minWage(c.s.time) * c.country.wageMul * 20 * 26;
       c.money(pay, '알바비');
@@ -422,6 +432,7 @@ export const ACTIONS: ActionDef[] = [
     id: 'checkup', label: '건강검진', emoji: '🩺', scene: 'hospital', energy: 5,
     desc: () => '나이가 들면 몸이 악기다. 병을 일찍 찾는다.',
     when: (c) => c.age >= 35,
+    price: (c) => c.krw(300000),
     run: (c) => {
       c.money(-c.krw(300000), '검진비');
       c.stat('health', 4);
@@ -459,7 +470,13 @@ export const ACTIONS: ActionDef[] = [
 export const actionById = (id: string) => ACTIONS.find((a) => a.id === id);
 
 export function availableActions(c: Ctx): { def: ActionDef; locked: string | null }[] {
-  return ACTIONS.filter((a) => a.when(c)).map((def) => ({ def, locked: def.locked?.(c) ?? null }));
+  return ACTIONS.filter((a) => a.when(c)).map((def) => {
+    let locked = def.locked?.(c) ?? null;
+    if (!locked && def.id === 'rehearse' && !c.band) locked = '밴드가 없다 — 밴드 결성부터';
+    const price = !locked && def.price ? Math.round(def.price(c)) : 0;
+    if (!locked && price > 0 && c.p.money < price) locked = `돈이 부족하다 (필요 ${won(price)} · 통장 ${won(Math.max(0, c.p.money))})`;
+    return { def, locked };
+  });
 }
 
 export function missingInst(c: Ctx): Inst[] {

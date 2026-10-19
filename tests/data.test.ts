@@ -147,4 +147,25 @@ describe('데이터 파일', () => {
       for (let i = 1; i < eras.length; i++) expect(eras[i].from, `${scope} 시대 구분이 빈틈없이 이어져야 한다`).toBeCloseTo(eras[i - 1].to + 0.01, 1);
     }
   });
+
+  it('실존 밴드: 장르는 실제 스타일에서만 나온다 (뮤즈가 메탈이 되지 않게)', () => {
+    // 스타일 낱말 → 허용되는 게임 장르. 스타일에 근거가 없는 장르 태그는 틀린 것이다.
+    const RULES: [string, RegExp][] = [
+      ['shoegaze', /슈게이즈|드림팝/],
+      ['metal', /메탈|하드 록|하드록/],
+      ['punk', /펑크 록|펑크$|팝 펑크|포스트펑크|이모|하드코어|코믹 펑크|록·펑크/],
+      ['folk', /포크|루츠|트로피칼리아|MPB/],
+      ['indiepop', /팝|뉴웨이브|일렉트로닉|신스|스카|레게|매드체스터/],
+      ['indierock', /록|그런지|크라우트|포스트펑크|브릿팝|뉴웨이브|매드체스터|비주얼/],
+    ];
+    const bad: string[] = [];
+    for (const b of read('era/bands.json').data) {
+      if (typeof b.style !== 'string' || !b.style) { bad.push(`${b.name}: 스타일 없음`); continue; }
+      for (const g of b.genres) {
+        const rule = RULES.find(([k]) => k === g);
+        if (!rule || !rule[1].test(b.style)) bad.push(`${b.name}(${b.style}) → ${g}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
 });

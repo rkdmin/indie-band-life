@@ -46,7 +46,8 @@ describe('다양성', () => {
     };
     console.log('[variety]', JSON.stringify(report));
     expect(sim).toBeLessThan(0.45);
-    expect(endings.size).toBeGreaterThanOrEqual(6);
+    // 표본이 작으면(빠른 점검용 VARIETY_N) 엔딩 종류도 적게 나온다 — 기준을 표본 크기에 맞춘다
+    expect(endings.size).toBeGreaterThanOrEqual(Math.min(6, Math.ceil(N / 3)));
     expect(fateCombos.size).toBeGreaterThan(N * 0.5);
   });
 

@@ -11,7 +11,7 @@ import { ARTIST_SURVEY, facts } from '../sim/data/reality';
 import { countryOf, hasMinWage } from '../sim/data/countries';
 import { count, won } from '../sim/korean';
 import { actionById } from '../sim/actions';
-import { planOptions, recommendedPlan } from '../sim/plan';
+import { planOptions, recommendedPlan, togglePlan } from '../sim/plan';
 import { Ctx } from '../sim/ctx';
 import { Rng } from '../sim/rng';
 import { PixelScene } from '../art/PixelScene';
@@ -36,6 +36,8 @@ import type { Meta } from './save';
 import { npcAppearance, playerAppearance } from '../sim/appearance';
 import { charmWord, heightAt } from '../sim/appearance';
 import { useArmed } from './useArmed';
+import { EventCut } from './EventCut';
+import { Flag } from './Flag';
 
 type Speed = 0 | 1 | 2 | 4 | 8;
 type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'data' | 'settings' | 'plan';
@@ -328,7 +330,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
             <div className="stage-view"><PixelScene id={sceneId} people={people} crowd={Math.min(1, ((s.flags.lastGigAudience as number) || 40) / 300)} night={month >= 9 || month <= 2 || sceneId === 'rooftop'} seed={s.seed + s.turn} label={SCENE_LABEL[sceneId]} /></div>
             <div className="stage-cap">
               <span><b>{SCENE_LABEL[sceneId]}</b> · {SEASON[month - 1]}</span>
-              <span className="dim"><span className="cc">{s.player.country ?? 'KR'}</span> {periodText(countryOf(s.player.country).regions[s.player.region], s.time, s.player.country)}</span>
+              <span className="dim"><Flag c={countryOf(s.player.country).id} size={11} /> {periodText(countryOf(s.player.country).regions[s.player.region], s.time, s.player.country)}</span>
             </div>
           </div>
           <div className="pops-anchor"><StatPops pops={pops} /></div>
@@ -337,8 +339,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
         </div>
       </div>
 
-      {!coach && ev && isDraft(ev.id) && !ev.result && !ev.pending && <MemberDraft s={s} onChoose={onChoose} />}
-      {!coach && ev && ev.cards && !ev.result && !ev.pending && <CardPick s={s} onChoose={onChoose} />}
+      {!coach && ev && isDraft(ev.id) && !ev.result && !ev.pending && <MemberDraft s={s} onChoose={onChoose} cut={<EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={peopleFor(s, ev.scene, Object.values(ev.bind))} night seed={s.seed + Math.round(ev.at * 12)} onDone={() => undefined} />} />}
+      {!coach && ev && ev.cards && !ev.result && !ev.pending && <CardPick s={s} onChoose={onChoose} cut={<EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={peopleFor(s, ev.scene, Object.values(ev.bind))} night={false} seed={s.seed + Math.round(ev.at * 12)} onDone={() => undefined} />} />}
       {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && !(ev.cards && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} />}
       {!coach && ev && ev.big && (
         <Cinematic
@@ -433,7 +435,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
         <div>
           <div className="idname">{p.name}</div>
           <dl className="idfields">
-            <dt>출생</dt><dd>{p.birthYear} · <span className="cc">{p.country ?? 'KR'}</span> {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
+            <dt>출생</dt><dd>{p.birthYear} · <Flag c={countryOf(p.country).id} size={11} /> {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
             <dt>외모</dt><dd>{heightAt(playerAppearance({ ...p, country: p.country }), a, p.gender)}cm · {charmWord(playerAppearance({ ...p, country: p.country }).charm)}</dd>
             {a >= 18 && <><dt>직업</dt><dd>{String(s.flags.jobTitle ?? JOB_LABEL[p.job] ?? '—')}</dd></>}
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
@@ -499,21 +501,30 @@ function PlanSheet({ s, onClose, onSave }: { s: GameState; onClose: () => void; 
   const opts = planOptions(s);
   const c = useMemo(() => new Ctx(s, new Rng(1)), [s]);
   const [auto, setAuto] = useState(s.autoPlan);
-  const [sel, setSel] = useState<string[]>(() => (s.autoPlan ? recommendedPlan(s) : s.plan).map((p) => p.id).slice(0, slots));
+  // 지금 고를 수 있는 것만 — 예전 계획에 지금은 잠긴 활동이 남아 있으면 뺀다
+  const open = new Set(opts.filter((o) => !o.locked).map((o) => o.def.id));
+  const [sel, setSel] = useState<string[]>(() => (s.autoPlan ? [] : s.plan.map((p) => p.id).filter((id) => open.has(id)).slice(0, slots)));
+  const [full, setFull] = useState(false);
+  // ‘알아서’에서 처음 고르면 새로 시작한다 (추천 목록이 몰래 남아 두 개가 같이 켜지던 문제)
+  // 칸이 다 찼으면 몰래 바꾸지 않고, 하나를 먼저 빼 달라고 알려 준다
   const toggle = (id: string) => {
-    setAuto(false);
-    setSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : slots === 1 ? [id] : cur.length >= slots ? [...cur.slice(1), id] : [...cur, id]));
+    const next = togglePlan({ auto, sel }, id, slots);
+    setAuto(next.auto);
+    setSel(next.sel);
+    setFull(next.full);
   };
   return (
     <Sheet title="생활 계획" onClose={onClose}>
-      <div className="dim">한 번에 {slots}가지에 집중할 수 있다. 정해 두면 바꿀 때까지 계속 그렇게 산다.</div>
-      <button className={`pick ${auto ? 'on' : ''}`} onClick={() => setAuto(true)}>
+      <div className="dim">한 번에 {slots}가지에 집중할 수 있다 — {auto ? '지금은 알아서 산다' : `${sel.length}/${slots} 골랐다`}. 정해 두면 바꿀 때까지 계속 그렇게 산다.</div>
+      {full && <div className="plan-full">🔒 {slots}가지까지만 — 하나를 먼저 빼고 고르세요</div>}
+      <button className={`pick ${auto ? 'on' : ''}`} onClick={() => { setAuto(true); setSel([]); setFull(false); }}>
         알아서 살기
         <small>나이·돈·컨디션에 맞춰 그때그때 정한다</small>
       </button>
       <div className="picker-grid">
         {opts.map(({ def, locked }) => (
-          <button key={def.id} className={`pick ${!auto && sel.includes(def.id) ? 'on' : ''}`} disabled={!!locked} onClick={() => toggle(def.id)}>
+          <button key={def.id} className={`pick ${!auto && sel.includes(def.id) ? 'on' : ''}`} disabled={!!locked} aria-pressed={!auto && sel.includes(def.id)} onClick={() => toggle(def.id)}>
+            {!auto && sel.includes(def.id) && <span className="pick-n">{sel.indexOf(def.id) + 1}</span>}
             {periodText(def.label, s.time, s.player.country)}
             <small>{periodText(locked ? `🔒 ${locked}` : def.desc(c), s.time, s.player.country)}</small>
           </button>
@@ -667,9 +678,15 @@ function Fork({ s, onChoose, onNext, onAuto }: { s: GameState; onChoose: (i: num
   useEffect(() => sfx('page'), [ev.id]);
   const a = Math.max(0, Math.floor(ev.at - s.player.birthYear));
   const m = Math.min(12, Math.floor((ev.at - Math.floor(ev.at)) * 12) + 1);
+  // 사건마다 짧은 컷신 — 끝나면(또는 탭하면) 선택지가 열린다. 자동 결정 중이면 건너뛴다
+  const people = useMemo(() => peopleFor(s, ev.scene, Object.values(ev.bind)), [ev.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [cutFor, setCutFor] = useState<string | null>(null);
+  const key = `${ev.id}:${ev.at}`;
+  const ready = cutFor === key || !!ev.result || s.autoDecide;
   return (
     <div className="modal-back">
       <div className="fork" role="dialog" aria-modal="true" aria-label={ev.title}>
+        <EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={people} night={m >= 10 || m <= 2 || ev.scene === 'club' || ev.scene === 'pub'} seed={s.seed + Math.round(ev.at * 12)} onDone={() => setCutFor(key)} />
         <div className="fork-head">
           <span className="k">갈림길</span>
           <span>{a}세 · {Math.floor(ev.at)}년 {m}월</span>
@@ -678,7 +695,7 @@ function Fork({ s, onChoose, onNext, onAuto }: { s: GameState; onChoose: (i: num
           <WhoBar s={s} />
           <h2>{ev.title}</h2>
           <div className="text">{ev.text}</div>
-          <EventChoices s={s} onChoose={onChoose} onNext={onNext} />
+          {ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
         </div>
         {!ev.result && !s.autoDecide && (
           <div className="fork-foot">
