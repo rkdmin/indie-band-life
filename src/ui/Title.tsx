@@ -76,7 +76,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
     const birthYear = r.int(e.from, e.to);
     const g: Gender = gender === 'random' ? (r.chance(0.51) ? 'm' : 'f') : gender;
     const ct: CountryId = country === 'random' ? rollCountry(r) : country;
-    const nm = custom && name.trim().length >= 2 ? name.trim() : ct === 'KR' ? randomName(r, g, birthYear) : foreignName(r, COUNTRIES[ct], g);
+    const nm = custom && name.trim().length >= 2 ? name.trim() : ct === 'KR' ? randomName(r, g, birthYear) : foreignName(r, COUNTRIES[ct], g, birthYear);
     onBorn({ name: nm, gender: g, birthYear, country: ct }, pace);
   };
 

@@ -6,6 +6,7 @@
 import type { Gender, Region } from '../types';
 import type { Rng } from '../rng';
 import countriesJson from '../../data/world/countries.json';
+import { givenNamesFor } from '../names';
 
 export type CountryId = 'KR' | 'JP' | 'US' | 'UK' | 'DE' | 'BR';
 
@@ -53,8 +54,9 @@ export function countryBirthShare(id: CountryId): number {
   return COUNTRIES[id].births / total;
 }
 
-export function foreignName(rng: Rng, c: Country, gender: Gender): string {
-  const g = rng.pick(c.given[gender]);
+export function foreignName(rng: Rng, c: Country, gender: Gender, birthYear?: number): string {
+  // 그 해에 태어난 아이에게 흔했던 이름 — 1955년생 미국인은 ‘리암’이 아니라 ‘제임스’
+  const g = rng.pick((birthYear !== undefined ? givenNamesFor(c.id, gender, birthYear) : null) ?? c.given[gender]);
   const s = rng.pick(c.surnames);
   return c.westernOrder ? `${g} ${s}` : `${s} ${g}`;
 }

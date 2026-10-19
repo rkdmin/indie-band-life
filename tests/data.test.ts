@@ -114,6 +114,20 @@ describe('데이터 파일', () => {
     }
   });
 
+  it('이름: 나라·성별마다 연대 순서, 한글만', () => {
+    const given = read('names/given.json').data as Record<string, Record<string, [number, string[]][]>>;
+    for (const c of COUNTRIES) {
+      for (const g of ['m', 'f']) {
+        const t = given[c]?.[g];
+        expect(t && t.length >= 6, `${c}/${g} 연대 수`).toBeTruthy();
+        const ys = t.map((r) => r[0]);
+        expect([...ys].sort((a, b) => a - b), `${c}/${g} 연대 오름차순`).toEqual(ys);
+        expect(ys[0], `${c}/${g} 1950년대부터`).toBeLessThanOrEqual(1950);
+        for (const [, names] of t) for (const n of names) expect(/^[가-힣]+$/.test(n), `${c}/${g} 이름 ‘${n}’`).toBe(true);
+      }
+    }
+  });
+
   it('세계·운명 표', () => {
     for (const c of Object.values(read('world/countries.json').data) as { id: string; births: number; lifeExp: number; simReach10k: number }[]) {
       expect(isCountry(c.id) && c.births > 0 && c.lifeExp > 40 && c.simReach10k >= 0, c.id).toBe(true);

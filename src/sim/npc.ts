@@ -75,9 +75,9 @@ export interface NpcSpec {
 }
 
 /** 외국 이름도 이미 있는 사람(나 포함)과 부르는 이름이 겹치지 않게 */
-function uniqueForeign(rng: Rng, country: string, gender: Gender, used: Set<string>): string {
-  let name = foreignName(rng, countryOf(country), gender);
-  for (let i = 0; i < 12 && used.has(given(name)); i++) name = foreignName(rng, countryOf(country), gender);
+function uniqueForeign(rng: Rng, country: string, gender: Gender, used: Set<string>, birthYear: number): string {
+  let name = foreignName(rng, countryOf(country), gender, birthYear);
+  for (let i = 0; i < 12 && used.has(given(name)); i++) name = foreignName(rng, countryOf(country), gender, birthYear);
   return name;
 }
 
@@ -92,7 +92,7 @@ export function createNpc(s: GameState, rng: Rng, spec: NpcSpec): Npc {
   if (t2 === t1) t2 = TRAITS[(TRAITS.indexOf(t1) + 3) % TRAITS.length];
   const npc: Npc = {
     id,
-    name: s.player.country && s.player.country !== 'KR' ? uniqueForeign(rng, s.player.country, gender, used) : randomName(rng, gender, birthYear, used),
+    name: s.player.country && s.player.country !== 'KR' ? uniqueForeign(rng, s.player.country, gender, used, birthYear) : randomName(rng, gender, birthYear, used),
     gender,
     birthYear,
     look: rng.int(1, 1_000_000),
