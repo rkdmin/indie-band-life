@@ -31,6 +31,7 @@ import { historyBetween } from './data/history';
 import { inheritAppearance, npcAppearance } from './appearance';
 import { parentJobsFor } from './data/fate';
 import type { NpcCareer } from './types';
+import { effectsOf, rollBirth } from './birth';
 
 export const SAVE_VERSION = 5;
 
@@ -198,6 +199,16 @@ export function newGame(o: NewGameOptions): GameState {
   }
   if (fate.pet) s.flags.pet = 1;
   if (fate.perfectPitch) s.flags.perfectPitch = true;
+  // 태어나는 순간: 혈액형·출생 장소·조산·태몽·타고난 특징 (별도 시드라 다른 운명과 섞이지 않는다)
+  {
+    const b = rollBirth(seed, s);
+    s.player.birth = b.info;
+    fate.draws.push(...b.draws);
+    s.player.rarityLog += b.draws.reduce((a, d) => a - Math.log10(Math.max(1e-9, d.p)), 0);
+    // 재능은 태어날 때 바로 반영한다 (기술·상태는 첫 사건에서 기록과 함께)
+    const tal = s.player.talents as Record<string, number>;
+    for (const e of effectsOf(b.info)) for (const [k, v] of Object.entries(e)) if (k in tal) tal[k] = clamp(tal[k] + (v ?? 0), 5, 98);
+  }
   if (fate.lefty) s.flags.lefty = true;
   if (fate.divorceAge !== null) s.flags.divorceAge = fate.divorceAge;
   if (fate.jobLossAge !== null) s.flags.jobLossAge = fate.jobLossAge;
@@ -241,6 +252,23 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       };
     });
     if (!choices.some((x) => !x.disabled)) return null;
+    // ── 선택지를 매번 다르게: 순서를 섞고, 많으면 일부만, 가끔 ‘운에 맡긴다’ ──
+    const PASS = /않는다|안 한다|그냥|거절|못 간다|아무도|다음에|지켜본다|넘어간다|둔다$|포기한다/;
+    const shown = choices.map((x, i) => i).filter((i) => !choices[i].hidden);
+    const lastI = shown[shown.length - 1];
+    const keepLast = shown.length >= 3 && PASS.test(choices[lastI].label);
+    const body = keepLast ? shown.slice(0, -1) : [...shown];
+    const custom = id === 'pick_member' || id === 'member_walkin';
+    if (!custom) {
+      // 다섯 개 이상이면 네 개만 — 열려 있는 선택지 중에서
+      const live = body.filter((i) => !choices[i].disabled);
+      if (live.length >= 5) {
+        const drop = rng.shuffle([...live]).slice(0, live.length - 4);
+        for (const i of drop) choices[i].hidden = true;
+      }
+    }
+    const order = custom ? shown : [...rng.shuffle(body.filter((i) => !choices[i].hidden)), ...(keepLast ? [lastI] : [])];
+    const wild = !custom && !def.queued && !def.cards && order.filter((i) => !choices[i].disabled).length >= 2 && rng.chance(0.12);
     return {
       id,
       bind: c.bind,
@@ -249,6 +277,8 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       text: periodText(def.text(c), at, s.player.country),
       scene: ageScene(typeof def.scene === 'function' ? def.scene(c) : def.scene, age(s)),
       choices,
+      order,
+      wild,
       cards: def.cards,
       kicker: def.kicker,
       at,
@@ -405,8 +435,15 @@ export function choose(prev: GameState, idx: number): GameState {
   if (!ev || ev.result || ev.pending) return s;
   const def = eventById(ev.id);
   if (!def) return s;
-  const ch = def.choices[idx];
   const rng = new Rng(s.rng);
+  // ‘운에 맡긴다’: 보이는 선택지 중 하나를 무작위로 — 영감 +1
+  if (ev.wild && idx === def.choices.length) {
+    const live = (ev.order ?? ev.choices.map((_, i) => i)).filter((i) => !ev.choices[i].disabled && !ev.choices[i].hidden);
+    if (!live.length) return s;
+    idx = rng.pick(live);
+    s.flags.wildPick = 1;
+  }
+  const ch = def.choices[idx];
   const c = new Ctx(s, rng, ev.bind, ev.vars ?? {});
   if (!ch || (ch.if && !ch.if(c))) return s;
   // 판정이 있는 선택지는 먼저 주사위만 굴린다 (결과 적용은 resolveRoll)
@@ -467,6 +504,12 @@ function applyChoice(s: GameState, idx: number, pd?: PendingRoll): GameState {
   c.choicesOdds = pd?.odds ?? ch.odds?.(c);
   c.preset = pd ?? null;
   const sayBefore = s.lastResults.length;
+  if (s.flags.wildPick) {
+    delete s.flags.wildPick;
+    if (s.player.inspiration < 3) s.player.inspiration++;
+    c.lines.push({ text: `🎲 운에 맡겼다 — ‘${typeof ch.label === 'function' ? ch.label(c) : ch.label}’`, tone: 'big' });
+    c.lines.push({ text: '영감 +1', tone: 'good', delta: true });
+  }
   const fans0 = s.player.fans;
   const money0 = s.player.money;
   const text = periodText(ch.run(c) || '', ev.at, s.player.country);

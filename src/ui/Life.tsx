@@ -35,6 +35,7 @@ import { useBackButton } from '../platform';
 import type { Meta } from './save';
 import { npcAppearance, playerAppearance } from '../sim/appearance';
 import { charmWord, heightAt } from '../sim/appearance';
+import { useArmed } from './useArmed';
 
 type Speed = 0 | 1 | 2 | 4 | 8;
 type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'data' | 'settings' | 'plan';
@@ -593,11 +594,21 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   const ev = s.active!;
   const res = ev.result;
   const deltas = res?.lines.filter((l) => l.delta).map((l) => l.text).join(' · ');
-  const notes = res?.lines.filter((l) => !l.delta && l.tone === 'big').map((l) => l.text);
+  const bigs = res?.lines.filter((l) => !l.delta && l.tone === 'big').map((l) => l.text) ?? [];
+  // ‘운에 맡겼다’ 줄은 결과보다 먼저 — 무엇이 골라졌는지부터 보여 준다
+  const picked = bigs.filter((t) => t.startsWith('🎲'));
+  const notes = bigs.filter((t) => !t.startsWith('🎲'));
   useEffect(() => {
     if (!res) return;
     const tones = res.lines.map((l) => l.tone);
     sfx(tones.includes('big') ? 'good' : tones.includes('bad') && !tones.includes('good') ? 'bad' : 'good');
+  }, [res]);
+  // 새 사건·결과가 뜬 직후의 탭은 무시한다 (선택지를 누른 손가락이 ‘계속’까지 누르지 않게)
+  const armedPick = useArmed(ev.id, 250);
+  const armedNext = useArmed(res, 450);
+  const resRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (res) resRef.current?.scrollIntoView({ block: 'nearest' });
   }, [res]);
   // 주사위가 굴러가는 동안에는 결과 문장을 잠깐 숨긴다
   const [revealed, setRevealed] = useState(false);
@@ -609,9 +620,9 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   if (!res)
     return (
       <div className="choices">
-        {ev.choices.map((ch, i) => ch.hidden ? null : (
-          <button key={i} className="choice" disabled={ch.disabled} onClick={(e) => { e.stopPropagation(); sfx('tap'); onChoose(i); }}>
-            <span className="num">{i + 1}</span>
+        {(ev.order ?? ev.choices.map((_, i) => i)).map((i, pos) => { const ch = ev.choices[i]; return ch.hidden ? null : (
+          <button key={`${ev.id}:${i}`} className="choice" disabled={ch.disabled} onClick={(e) => { e.stopPropagation(); if (!armedPick) return; sfx('tap'); onChoose(i); }}>
+            <span className="num">{pos + 1}</span>
             <span>
               <RiskTag risk={ch.risk} />
               {ch.odds && <span className="checktag">[{ch.odds.ability} · 난이도 {ch.odds.dc}]</span>}
@@ -621,21 +632,28 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
               {ch.odds && <OddsBar o={ch.odds} />}
             </span>
           </button>
-        ))}
+        ); })}
+        {ev.wild && (
+          <button key={`${ev.id}:wild`} className="choice wild" onClick={(e) => { e.stopPropagation(); if (!armedPick) return; sfx('tap'); onChoose(ev.choices.length); }}>
+            <span className="num">?</span>
+            <span>🎲 운에 맡긴다 <span className="hint">위 선택지 중 하나가 무작위로 · 영감 +1</span></span>
+          </button>
+        )}
       </div>
     );
   return (
-    <div>
+    <div ref={resRef}>
       {revealed && res.jackpot && <JackpotBurst j={res.jackpot} />}
-      {revealed && (res.text || notes?.length) && (
+      {revealed && !!(res.text || notes.length || picked.length) && (
         <div className="fork-result">
+          {picked.length ? `${picked.join('\n')}\n` : ''}
           {res.text}
-          {notes?.length ? `${res.text ? '\n' : ''}${notes.join('\n')}` : ''}
+          {notes.length ? `${res.text ? '\n' : ''}${notes.join('\n')}` : ''}
         </div>
       )}
       {revealed && deltas && <div className="deltas-line">{deltas}</div>}
       <div className={dark ? 'cine-next' : ''} style={{ marginTop: 14, opacity: revealed ? 1 : 0.3 }}>
-        <button className="btn primary" onClick={(e) => { e.stopPropagation(); sfx('page'); onNext(); }}>
+        <button className="btn primary" onClick={(e) => { e.stopPropagation(); if (!armedNext) return; sfx('page'); onNext(); }}>
           계속 살기 →
         </button>
       </div>

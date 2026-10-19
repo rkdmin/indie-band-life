@@ -6,6 +6,7 @@ import type { PixelPerson } from '../art/pixel';
 import { PixelScene } from '../art/PixelScene';
 import { playSong, sfx, stopSong, type SongLike } from '../audio/player';
 import { useBackButton } from '../platform';
+import { useArmed } from './useArmed';
 
 interface Props {
   scene: SceneId;
@@ -47,6 +48,8 @@ export function Cinematic({ scene, people, crowd = 0.8, seed, kicker, title, sub
   }, [autoCloseMs, onDone, children]);
 
   useBackButton(() => onDone?.(), !!onDone);
+  // 선택지는 제목이 다 찍힌 뒤 서서히 나타난다 — 그 전(투명할 때)에는 눌리지 않는다
+  const armed = useArmed(title, (subDelay + 0.5) * 1000 + 200);
 
   return (
     <div className="cine" role="dialog" aria-modal="true" aria-label={title} onClick={() => !done && setTyped(title.length)}>
@@ -70,9 +73,9 @@ export function Cinematic({ scene, people, crowd = 0.8, seed, kicker, title, sub
             <span className="eq"><i /><i /><i /></span> 〈{song.title}〉 재생 중
           </div>
         )}
-        {children && <div style={{ animationDelay: `${subDelay + 0.5}s` }} className="choices-wrap">{children}</div>}
+        {children && <div style={{ animationDelay: `${subDelay + 0.5}s`, pointerEvents: armed ? undefined : 'none' }} className="choices-wrap">{children}</div>}
         {!children && onDone && (
-          <div className="cine-next" style={{ animationDelay: `${subDelay + 0.4}s` }}>
+          <div className="cine-next" style={{ animationDelay: `${subDelay + 0.4}s`, pointerEvents: armed ? undefined : 'none' }}>
             <button className="btn primary" onClick={(e) => { e.stopPropagation(); sfx('page'); onDone(); }}>
               계속 →
             </button>

@@ -96,6 +96,8 @@ export interface Player {
   traits: Trait[];
   /** 태어날 때 정해진 인생 변수 (data/fate.ts) */
   fate: import('./data/fate').FateResult;
+  /** 태어나는 순간 (data/fate/birth.json) */
+  birth?: import('./birth').BirthInfo;
   /** 이런 인생이 나올 확률의 log10(1/p) */
   rarityLog: number;
   rep: number; // 평판/업계 인지도 0~100
@@ -293,6 +295,10 @@ export interface ActiveEvent extends PendingEvent {
   /** 선택지를 카드로 펼쳐 보여 준다 */
   cards?: boolean;
   kicker?: string;
+  /** 이번에 보여 줄 순서 (매번 섞인다) */
+  order?: number[];
+  /** ‘운에 맡긴다’ 선택지가 끼어들었다 */
+  wild?: boolean;
   result?: { text: string; lines: ResultLine[]; rolls?: Roll[]; jackpot?: Jackpot };
   pending?: PendingRoll;
   at: number;

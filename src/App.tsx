@@ -19,6 +19,15 @@ export function App() {
   const [meta, setMeta] = useState<Meta>(() => loadMeta());
   const [lastOpts, setLastOpts] = useState<{ o: NewGameOptions; pace: number } | null>(null);
 
+  // 화면이 바뀌면 맨 위에서 시작한다 — 아래쪽 버튼을 누르고 넘어가면 다음 화면이 중간부터 보이던 문제
+  const ended = game?.phase === 'ending';
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen, game?.id, ended]);
+  useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  }, []);
+
   // 첫 터치에서 오디오 잠금 해제 (모바일 자동재생 정책)
   useEffect(() => {
     const h = () => unlock();

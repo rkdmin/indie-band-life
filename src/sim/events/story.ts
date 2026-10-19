@@ -13,6 +13,7 @@ import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
 import { clamp } from '../rng';
 import { careerLabel } from '../npc';
+import { effectsOf } from '../birth';
 
 const between = (c: Ctx, a: number, b: number) => c.age >= a && c.age < b;
 const mom = (c: Ctx) => c.s.npcs[c.s.flags.mom as string];
@@ -52,7 +53,29 @@ export const STORY: EventDef[] = [
       return `${c.year}년, ${r.label}의 ${inc} 집에서 ${josa(c.p.name, '이/가')} 태어났다.\n엄마 ${given(mom(c).name)}, 아빠 ${given(dad(c).name)}.\n${r.desc}.${c.p.instrumentAtHome ? '\n거실 구석에는 아무도 안 치는 악기가 하나 있다.' : ''}`;
     },
     choices: [
-      { label: '세상을 향해 첫 울음을 터뜨린다', run: (c) => { c.chron(`${c.p.name}, 세상에 태어나다`, 'big'); c.skill('vocal', 2); return '폐활량 하나는 타고났다고, 간호사가 웃었다.'; } },
+      {
+        label: (c) => c.p.birth?.gifts.some((g) => g.id === 'calm_baby') ? '조용히 눈을 뜬다' : c.p.birth?.gifts.some((g) => g.id === 'loud_cry') ? '세상이 떠나가라 운다' : '세상을 향해 첫 울음을 터뜨린다',
+        run: (c) => {
+          c.chron(`${c.p.name}, 세상에 태어나다`, 'big');
+          const b = c.p.birth;
+          if (!b) { c.skill('vocal', 1); return '첫 울음이 방 안을 채웠다.'; }
+          // 태어난 날의 장면과 타고난 특징 — 기술·상태 효과는 여기서 적용한다 (재능은 태어날 때 이미 반영)
+          const SK = ['vocal', 'guitar', 'bass', 'drums', 'keys', 'compose', 'stage'] as const;
+          for (const e of effectsOf(b)) {
+            for (const k of SK) if (e[k]) c.skill(k, e[k]!);
+            if (e.health) c.stat('health', e.health);
+            if (e.happiness) c.stat('happiness', e.happiness);
+            if (e.stress) c.stat('stress', e.stress);
+            if (e.money) c.money(c.krw(e.money), '태몽 덕');
+          }
+          const lines = [...b.moments];
+          if (b.dream) lines.push(b.dream.line);
+          for (const g of b.gifts.slice(0, 3)) lines.push(g.line);
+          if (b.preterm) lines.push('예정보다 일찍 나와 인큐베이터에서 며칠을 보냈다.');
+          else if (b.lowWeight) lines.push('2.5kg이 안 되는 작은 몸이었다.');
+          return lines.join('\n');
+        },
+      },
     ],
   },
   {

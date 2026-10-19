@@ -4,7 +4,7 @@
   padding: 14px 12px 12px; border-radius: 10px; border: 2.5px solid var(--ink); background: var(--card); color: var(--ink);
   box-shadow: 5px 5px 0 var(--pink); animation: cardDeal 0.45s cubic-bezier(.2,1.4,.4,1) both; transition: transform 0.18s, box-shadow 0.18s;
 }
-.gcard:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: 8px 10px 0 var(--yellow); }
+@media (hover: hover) { .gcard:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: 8px 10px 0 var(--yellow); } }
 .gcard.gc-safe { box-shadow: 5px 5px 0 #0f8a6a; }
 .gcard.gc-risky { box-shadow: 5px 5px 0 var(--blue); }
 .gcard.gc-gamble { box-shadow: 5px 5px 0 var(--pink); background: linear-gradient(160deg, #fff7fb, var(--card) 55%); }
@@ -45,3 +45,4 @@
 .jp-confetti i:nth-child(3n + 1) { background: #1a1830; }
 @keyframes confetti { to { transform: translateY(140px) rotate(540deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .jp-confetti { display: none; } .jackpot, .gcard { animation: none; } }
+.choice.wild { border-style: dashed; background: #fffbe0; }

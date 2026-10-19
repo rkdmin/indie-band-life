@@ -59,6 +59,8 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             {y}년 {month}월, {region.label}의 {INCOME[p.income]}에서 {p.gender === 'm' ? '남자' : '여자'}아이로 태어났습니다.
             엄마 {mom ? given(mom.name) : ''}, 아빠 {dad ? given(dad.name) : ''}. 집에는 늘 {josa(TASTE[p.parentTaste] ?? '라디오', '이/가')} 흐릅니다.
             {p.instrumentAtHome ? ' 거실 구석에는 아무도 치지 않는 악기가 하나 있습니다.' : ''}
+            {p.birth?.moments[0] ? <><br /><span className="dim">{p.birth.moments[0]}</span></> : null}
+            {p.birth?.dream ? <><br /><span className="dim">태몽 — {p.birth.dream.label}.</span></> : null}
           </p>
           <div className="country-box">
             <span className="cflag">{ct.flag}</span>
@@ -83,6 +85,9 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div><span className="label">출생지</span><div className="v">{region.label}</div></div>
             <div><span className="label">가정 형편</span><div className="v"><span className="dots">{INCOME_DOTS[p.income]}</span></div></div>
             <div><span className="label">부모님 음악</span><div className="v">{TASTE[p.parentTaste] ?? '—'}</div></div>
+            {p.birth && <div><span className="label">혈액형</span><div className="v">{p.birth.blood}형</div></div>}
+            {p.birth && <div><span className="label">태어난 곳</span><div className="v">{p.birth.place === 'home' ? '집' : '병원'}{p.birth.preterm ? ' · 조산' : p.birth.lowWeight ? ' · 저체중' : ''}</div></div>}
+            {p.birth && <div><span className="label">엄마 나이</span><div className="v">{p.birth.motherAge}세</div></div>}
             <div><span className="label">집의 악기</span><div className="v">{p.instrumentAtHome ? '있음' : '없음'}</div></div>
             <div className="wide"><span className="label">물려받은 외모</span><div className="v">{inherited}</div></div>
             <div><span className="label">기대수명</span><div className="v">{lifeExpAt(ct, y)}세</div></div>

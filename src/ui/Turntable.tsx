@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PendingRoll } from '../sim/types';
 import { sfx } from '../audio/player';
 import { useBackButton } from '../platform';
+import { useArmed } from './useArmed';
 
 interface Props {
   pending: PendingRoll;
@@ -38,6 +39,7 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
   const raf = useRef(0);
   const lastTick = useRef(0);
   const landedRef = useRef(false);
+  const armed = useArmed(`${stage}:${pending.nat}:${pending.rerolled ?? ''}`, 450);
   const nats = pending.nat2 !== undefined ? [pending.nat, pending.nat2] : [pending.nat];
   const best = Math.max(...nats);
   const total = best + o.mod;
@@ -285,7 +287,7 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
           </button>
         )}
         {stage === 'verdict' && (
-          <button className="btn primary" onClick={onAccept} autoFocus>
+          <button className="btn primary" onClick={() => armed && onAccept()}>
             {canReroll ? '결과 받아들이기' : '계속 →'}
           </button>
         )}

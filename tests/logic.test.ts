@@ -76,3 +76,43 @@ describe('논리 모순', () => {
     expect(bad.slice(0, 15)).toEqual([]);
   });
 });
+
+describe('태어나는 순간', () => {
+  it('출생 변수끼리 서로 모순되지 않고, 인생마다 다르다', async () => {
+    const B = (await import('../src/data/fate/birth.json')).default.data as unknown as {
+      gifts: { list: { id: string; conflicts?: string[]; notIf?: string[] }[] };
+      moments: { list: { t: string; place?: string; c?: string[]; months?: number[]; groups?: string[]; notIf?: string[] }[] };
+    };
+    const gift = Object.fromEntries(B.gifts.list.map((g) => [g.id, g]));
+    const moment = new Map(B.moments.list.map((m) => [m.t, m]));
+    const bad: string[] = [];
+    const seen = new Set<string>();
+    const cts: CountryId[] = ['KR', 'US', 'UK', 'JP', 'DE', 'BR'];
+    const M = N * 8;
+    for (let i = 0; i < M; i++) {
+      const ct = cts[i % cts.length];
+      const s = newGame({ name: '출생 검사', gender: i % 2 ? 'm' : 'f', birthYear: 1950 + ((i * 11) % 76), seed: 77000 + i * 13, country: ct });
+      const b = s.player.birth!;
+      const cond: Record<string, boolean> = { lowWeight: b.lowWeight, preterm: b.preterm };
+      const ids = b.gifts.map((g) => g.id);
+      for (const id of ids) {
+        for (const c of gift[id].conflicts ?? []) if (ids.includes(c)) bad.push(`${id} 와 ${c} 가 함께`);
+        for (const k of gift[id].notIf ?? []) if (cond[k]) bad.push(`${id} 인데 ${k}`);
+      }
+      if (b.dream && ct !== 'KR') bad.push(`${ct} 에서 태몽`);
+      const ms = b.moments.map((t) => moment.get(t)!);
+      for (const m of ms) {
+        if (m.c && !m.c.includes(ct)) bad.push(`${ct} 에 맞지 않는 장면 ‘${m.t.slice(0, 15)}’`);
+        if (m.months && !m.months.includes(b.month)) bad.push(`${b.month}월인데 ‘${m.t.slice(0, 15)}’`);
+        if (m.place && m.place !== b.place) bad.push(`${b.place} 출생인데 ‘${m.t.slice(0, 15)}’`);
+        for (const k of m.notIf ?? []) if (cond[k]) bad.push(`${k} 인데 ‘${m.t.slice(0, 15)}’`);
+        if (/술|담배|소주|맥주/.test(m.t)) bad.push(`출생 장면에 술·담배 ‘${m.t.slice(0, 15)}’`);
+      }
+      if (ms.length === 2 && (ms[0].groups ?? []).some((g) => (ms[1].groups ?? []).includes(g))) bad.push(`같은 묶음 두 장면 ‘${ms[0].t.slice(0, 10)}’ ‘${ms[1].t.slice(0, 10)}’`);
+      seen.add([b.blood, b.place, b.dream?.id, ...ids, ...b.moments].join('|'));
+    }
+    expect(bad.slice(0, 15)).toEqual([]);
+    // 거의 모든 인생이 서로 다르게 태어난다
+    expect(seen.size).toBeGreaterThan(M * 0.9);
+  });
+});

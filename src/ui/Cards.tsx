@@ -5,6 +5,7 @@ import type { GameState, Jackpot, Risk } from '../sim/types';
 import { Portrait } from '../art/Portrait';
 import { sfx } from '../audio/player';
 import { won, count } from '../sim/korean';
+import { useArmed } from './useArmed';
 
 export const RISK_LABEL: Record<Risk, string> = { safe: '안정', risky: '모험', gamble: '도박' };
 
@@ -15,9 +16,11 @@ export function RiskTag({ risk }: { risk?: Risk }) {
 
 export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) => void }) {
   const ev = s.active!;
-  const items = ev.choices.map((ch, i) => ({ ch, i })).filter(({ ch }) => !ch.hidden && !ch.disabled && ch.card);
-  const rest = ev.choices.map((ch, i) => ({ ch, i })).filter(({ ch }) => !ch.hidden && !ch.disabled && !ch.card);
+  const idx = ev.order ?? ev.choices.map((_, i) => i);
+  const items = idx.map((i) => ({ ch: ev.choices[i], i })).filter(({ ch }) => !ch.hidden && !ch.disabled && ch.card);
+  const rest = idx.map((i) => ({ ch: ev.choices[i], i })).filter(({ ch }) => !ch.hidden && !ch.disabled && !ch.card);
   useEffect(() => sfx('page'), [ev.id]);
+  const armed = useArmed(ev.id, 350);
   return (
     <div className="draft-back">
       <div className="draft gdraft" role="dialog" aria-modal="true" aria-label={ev.title}>
@@ -31,7 +34,7 @@ export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) 
             const c = ch.card!;
             const pct = ch.odds ? Math.round(ch.odds.p * 100) : null;
             return (
-              <button key={i} className={`gcard gc-${ch.risk ?? 'none'}`} style={{ animationDelay: `${k * 0.1}s` }} onClick={() => { sfx('tap'); onChoose(i); }}>
+              <button key={i} className={`gcard gc-${ch.risk ?? 'none'}`} style={{ animationDelay: `${k * 0.1}s` }} onClick={() => { if (!armed) return; sfx('tap'); onChoose(i); }}>
                 <span className="gcard-top">
                   {c.tag && <span className="gcard-tag">{c.tag}</span>}
                   <RiskTag risk={ch.risk} />
@@ -67,7 +70,7 @@ export function CardPick({ s, onChoose }: { s: GameState; onChoose: (i: number) 
         {rest.length > 0 && (
           <div className="draft-foot">
             {rest.map(({ ch, i }) => (
-              <button key={i} className="linkbtn" onClick={() => onChoose(i)}>{ch.label}</button>
+              <button key={i} className="linkbtn" onClick={() => armed && onChoose(i)}>{ch.label}</button>
             ))}
           </div>
         )}

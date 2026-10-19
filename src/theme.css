@@ -75,7 +75,7 @@ body::before {
 .card.reality::before { background: #8fd4ffb0; transform: translateX(-30%) rotate(2deg); }
 .btn { border-radius: 3px; border-width: 1.5px; box-shadow: 3px 3px 0 var(--ink); }
 .btn.primary { background: var(--pink); border-color: var(--ink); color: #fff; text-shadow: 1px 1px 0 #0003; }
-.btn.primary:hover:not(:disabled) { background: var(--red-ink); }
+@media (hover: hover) { .btn.primary:hover:not(:disabled) { background: var(--red-ink); } }
 .plan-chip { border-radius: 99px; border-width: 1.5px; background: #fff; transform: rotate(-1deg); }
 .plan-chip:nth-child(2n) { transform: rotate(1.2deg); background: #fff4fa; }
 .chip { border-radius: 99px; }
@@ -96,7 +96,7 @@ body::before {
 .entry .when { color: var(--blue); }
 .checktag { color: var(--blue); border-color: #2357e666; background: #2357e612; }
 .choice { border-width: 1.5px; border-radius: 3px; }
-.choice:hover:not(:disabled) { border-color: var(--ink); background: #fff; box-shadow: 3px 3px 0 var(--pink); }
+@media (hover: hover) { .choice:hover:not(:disabled) { border-color: var(--ink); background: #fff; box-shadow: 3px 3px 0 var(--pink); } }
 .fork { border: 2px solid var(--ink); border-radius: 4px; box-shadow: 6px 6px 0 var(--pink); }
 .fork-head .k { color: var(--pink); }
 .ticker { border-left-color: var(--pink); font-family: var(--hand); font-size: 19px; }
@@ -254,7 +254,7 @@ body::before {
 .liner-rarity { margin-top: 6px; display: inline-block; font-family: var(--hand); font-size: 18px; background: var(--yellow); padding: 0 8px; transform: rotate(-1deg); }
 
 /* ── 멤버 고르기 카드 ── */
-.draft-back { position: fixed; inset: 0; z-index: 72; background: radial-gradient(ellipse at 50% 30%, #2a2050 0, #120f22 70%); overflow-y: auto; animation: fade 0.25s both; }
+.draft-back { position: fixed; inset: 0; z-index: 72; background: radial-gradient(ellipse at 50% 30%, #2a2050 0, #120f22 70%); overflow-y: auto; overscroll-behavior: contain; animation: fade 0.25s both; }
 .draft { max-width: 980px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom)); color: #f4efe6; }
 .draft-head .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.25em; color: var(--yellow); }
 .draft-head h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 6vw, 40px); margin: 4px 0 6px; text-shadow: 3px 3px 0 #f0378f88, -1px -1px 0 #2357e688; }
@@ -263,7 +263,7 @@ body::before {
 @media (max-width: 520px) { .draft-cards { grid-template-columns: 1fr 1fr; gap: 10px; } }
 .mcard { position: relative; display: grid; justify-items: start; gap: 5px; text-align: left; padding: 14px 12px 12px; border-radius: 10px; background: #fbf8f2; color: var(--ink); border: 2px solid var(--ink); box-shadow: 5px 5px 0 var(--pink); animation: dealIn 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both; transition: transform 0.15s, box-shadow 0.15s; }
 .mcard.known { box-shadow: 5px 5px 0 var(--blue); }
-.mcard:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 8px 10px 0 var(--yellow); }
+@media (hover: hover) { .mcard:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 8px 10px 0 var(--yellow); } }
 .mcard:disabled { opacity: 0.5; }
 @keyframes dealIn { from { transform: translateY(40px) rotate(6deg) scale(0.9); opacity: 0; } }
 .mcard-tag { position: absolute; top: -10px; right: 10px; font-family: var(--serif); font-size: 13px; padding: 1px 10px; border-radius: 99px; border: 2px solid var(--ink); background: var(--yellow); }

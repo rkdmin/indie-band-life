@@ -7,6 +7,7 @@ import { INST_LABEL } from '../sim/data/world';
 import { TRAIT_LABEL, careerLabel, npcAge } from '../sim/npc';
 import { sfx } from '../audio/player';
 import { charmWord, describe, npcAppearance } from '../sim/appearance';
+import { useArmed } from './useArmed';
 
 export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: number) => void }) {
   const ev = s.active!;
@@ -14,6 +15,7 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
   const n = Number(ev.vars?.n ?? 0);
   const cards = Array.from({ length: n }, (_, i) => ({ i, npc: s.npcs[ev.vars?.[`c${i}`] as string], ch: ev.choices[i] })).filter((x) => x.npc);
   const passIdx = ev.choices.length - 1;
+  const armed = useArmed(ev.id, 350);
   return (
     <div className="draft-back">
       <div className="draft" role="dialog" aria-modal="true" aria-label={ev.title}>
@@ -29,7 +31,7 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
             const odds = ch.odds;
             const pct = odds ? Math.round(odds.p * 100) : 0;
             return (
-              <button key={npc.id} className={`mcard ${known ? 'known' : 'stranger'}`} style={{ animationDelay: `${k * 0.12}s` }} disabled={ch.disabled} onClick={() => { sfx('tap'); onChoose(i); }}>
+              <button key={npc.id} className={`mcard ${known ? 'known' : 'stranger'}`} style={{ animationDelay: `${k * 0.12}s` }} disabled={ch.disabled} onClick={() => { if (!armed) return; sfx('tap'); onChoose(i); }}>
                 <span className="mcard-tag">{known ? '인연' : '우연'}</span>
                 <span className="mcard-face">
                   <Portrait person={{ look: npc.look, gender: npc.gender, age: npcAge(s, npc), mood: 50 + npc.affinity / 2, app: npcAppearance(npc, s.player.country), style: npc.genre }} />
@@ -64,7 +66,7 @@ export function MemberDraft({ s, onChoose }: { s: GameState; onChoose: (i: numbe
           })}
         </div>
         <div className="draft-foot">
-          <button className="linkbtn" onClick={() => onChoose(passIdx)}>{ev.choices[passIdx]?.label}</button>
+          <button className="linkbtn" onClick={() => armed && onChoose(passIdx)}>{ev.choices[passIdx]?.label}</button>
         </div>
       </div>
     </div>
