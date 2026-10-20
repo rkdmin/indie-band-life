@@ -6,14 +6,14 @@ import { Rng } from '../sim/rng';
 import { cleanBandName } from '../sim/engine';
 import { sfx } from '../audio/player';
 
-export function BandNamer({ current, seed, onConfirm, confirmLabel = '이 이름으로 결성' }: { current: string; seed: number; onConfirm: (name: string) => void; confirmLabel?: string }) {
+export function BandNamer({ current, seed, onConfirm, confirmLabel = '이 이름으로 결성', country }: { current: string; seed: number; country?: string; onConfirm: (name: string) => void; confirmLabel?: string }) {
   const [name, setName] = useState(current);
   const [roll, setRoll] = useState(0);
   const ideas = useMemo(() => {
     const r = new Rng(seed + roll * 7919);
     const out = new Set<string>();
     for (let i = 0; i < 20 && out.size < 4; i++) {
-      const n = randomBandName(r);
+      const n = randomBandName(r, country);
       if (n !== current) out.add(n);
     }
     return [...out];

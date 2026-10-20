@@ -3,7 +3,7 @@ import { REGIONS, birthsIn, eraOf, minWage } from '../sim/data/world';
 import { Portrait } from '../art/Portrait';
 import { given, josa } from '../sim/korean';
 import { periodText } from '../sim/data/anachronism';
-import { countryOf, hasMinWage, lifeExpAt, successStars } from '../sim/data/countries';
+import { birthsAt, countryOf, hasMinWage, lifeExpAt, successStars } from '../sim/data/countries';
 import { TALENTS, TALENT_LABEL, rarityText, stars } from '../sim/data/fate';
 import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
@@ -138,7 +138,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             </div>
           </div>
           <div className="cert-note">
-            {ct.id === 'KR' ? <>{y}년 대한민국에서 태어난 아기는 약 {Math.floor(births / 10000)}만 {Math.round((births % 10000) / 1000) ? `${Math.round((births % 10000) / 1000)}천` : ''}명. 그중 한 명입니다.</> : <>올해 {ct.name}에서 태어나는 아기는 약 {Math.round(ct.births / 10000).toLocaleString()}만 명. 그중 한 명입니다.</>}
+            {ct.id === 'KR' ? <>{y}년 대한민국에서 태어난 아기는 약 {Math.floor(births / 10000)}만 {Math.round((births % 10000) / 1000) ? `${Math.round((births % 10000) / 1000)}천` : ''}명. 그중 한 명입니다.</> : <>{y}년 {ct.name}에서 태어난 아기는 약 {Math.round(birthsAt(ct, y) / 10000).toLocaleString()}만 명. 그중 한 명입니다.</>}
             <br />
             스무 살이 되는 {y + 20}년 무렵은 ‘{era20.name}’ — {era20.desc}.
           </div>

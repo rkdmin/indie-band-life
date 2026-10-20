@@ -8,6 +8,8 @@ import { GENRE_INFO, INST_LABEL, REGIONS, VENUES, eraOf, serviceYears } from '..
 import { GENRE_ERAS, genreLabel } from '../data/era/genres';
 import { hasMedia } from '../data/era/media';
 import type { CountryId } from '../data/countries';
+import { countryOf } from '../data/countries';
+import { regionDesc } from '../data/localize';
 import { actionById, addWalkIn, disband, formBand, playGig } from '../actions';
 import { unreleased } from '../songs';
 import { josa, won, count, given } from '../korean';
@@ -48,7 +50,9 @@ export const STORY: EventDef[] = [
     id: 'birth', scene: 'nursery', title: '응애', priority: 200, once: true, chance: 1,
     when: (c) => c.age >= 0 && c.age < 1,
     text: (c) => {
-      const r = REGIONS.find((x) => x.id === c.p.region)!;
+      const kr = REGIONS.find((x) => x.id === c.p.region)!;
+      // 한국 밖이면 그 나라의 지역 이름·한 줄 (브라질에서 ‘경기·인천, 광역버스 막차’가 나오지 않게)
+      const r = { label: countryOf(c.p.country).regions[kr.id] ?? kr.label, desc: regionDesc(c.p.country, kr.id) ?? kr.desc };
       const inc = { low: '넉넉하진 않지만 웃음은 많은', mid: '평범하고 바쁜', high: '여유 있는' }[c.p.income];
       return `${c.year}년, ${r.label}의 ${inc} 집에서 ${josa(c.p.name, '이/가')} 태어났다.\n엄마 ${given(mom(c).name)}, 아빠 ${given(dad(c).name)}.\n${r.desc}.${c.p.instrumentAtHome ? '\n거실 구석에는 아무도 안 치는 악기가 하나 있다.' : ''}`;
     },

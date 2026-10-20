@@ -490,7 +490,7 @@ export function formBand(c: Ctx, name?: string, genre?: Genre, ask = !name) {
   const inst = c.p.mainInst ?? 'guitar';
   const band = {
     id: `b${c.s.pastBands.length + 1}`,
-    name: name ?? randomBandName(c.rng),
+    name: name ?? randomBandName(c.rng, c.p.country),
     genre: g,
     formedYear: c.year,
     endedYear: null,

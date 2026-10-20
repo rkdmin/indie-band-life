@@ -6,6 +6,7 @@
 import type { CountryId } from './countries';
 import { TERMS, applies, termYear, type Term } from './era/terms';
 import ageJson from '../../data/era/age_rules.json';
+import { localize, replaceWithJosa } from './localize';
 
 export { TERMS };
 
@@ -66,7 +67,7 @@ export function tieNumbers(text: string): string {
 }
 
 export function periodText(text: string, year: number, country?: string): string {
-  return tieNumbers(periodTextRaw(text, year, country));
+  return tieNumbers(periodTextRaw(localize(text, country), year, country));
 }
 
 function periodTextRaw(text: string, year: number, country?: string): string {
@@ -83,7 +84,8 @@ function periodTextRaw(text: string, year: number, country?: string): string {
       continue;
     }
     t.re.lastIndex = 0;
-    out = out.replace(t.re, rep);
+    // 조사도 바뀐 말에 맞춘다 (카세트테이프를 → 카세트를)
+    out = replaceWithJosa(out, t.re, rep);
   }
   if (!drops.length) return out;
   const bad = (s: string) => drops.some((re) => ((re.lastIndex = 0), re.test(s)));

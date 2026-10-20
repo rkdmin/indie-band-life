@@ -33,9 +33,14 @@ const BAND_A = bandWords.data.a;
 const BAND_B = bandWords.data.b;
 const BAND_EN = bandWords.data.en;
 
-export function randomBandName(rng: Rng): string {
+// 한국에만 있는 말 — 다른 나라 밴드 이름엔 쓰지 않는다
+const KR_ONLY_WORDS = new Set(['반지하', '옥상', '세탁소']);
+export function randomBandName(rng: Rng, country?: string): string {
+  const kr = (country ?? 'KR') === 'KR';
+  const a = kr ? BAND_A : BAND_A.filter((w) => !KR_ONLY_WORDS.has(w));
+  const b = kr ? BAND_B : BAND_B.filter((w) => !KR_ONLY_WORDS.has(w));
   const r = rng.next();
-  if (r < 0.62) return `${rng.pick(BAND_A)} ${rng.pick(BAND_B)}`;
+  if (r < 0.62) return `${rng.pick(a)} ${rng.pick(b)}`;
   if (r < 0.82) return rng.pick(BAND_EN);
-  return `${rng.pick(BAND_B)}${rng.pick(['들', '클럽', '연구소', '단', ' 공장', ' 다방'])}`;
+  return `${rng.pick(b)}${rng.pick(kr ? ['들', '클럽', '연구소', '단', ' 공장', ' 다방'] : ['들', '클럽', '연구소', '단', ' 공장'])}`;
 }

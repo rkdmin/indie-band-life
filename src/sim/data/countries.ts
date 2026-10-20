@@ -37,6 +37,9 @@ export interface Country {
   minWageSince: number;
   /** [출생 연도, 기대수명] — 연도 사이는 선형 보간 [근사] */
   lifeExpTable: [number, number][];
+  /** [해, 합계출산율] · [해, 출생아 수] — 한국은 data/fate 표를 쓴다 [근사] */
+  tfrTable?: [number, number][];
+  birthsTable?: [number, number][];
 }
 
 export const COUNTRIES: Record<CountryId, Country> = countriesJson.data as never;
@@ -64,6 +67,24 @@ export function foreignName(rng: Rng, c: Country, gender: Gender, birthYear?: nu
 /** 음악으로 성공하기 좋은 정도 (별 1~5) — 시뮬레이션에서 팬 1만 명에 도달한 비율로 매긴다 */
 export function successStars(c: Country): number {
   return Math.max(1, Math.min(5, Math.round(c.simReach10k / 11)));
+}
+
+function lerp(t: [number, number][], year: number): number {
+  if (year <= t[0][0]) return t[0][1];
+  for (let i = 1; i < t.length; i++) {
+    const [y1, v1] = t[i];
+    const [y0, v0] = t[i - 1];
+    if (year <= y1) return v0 + ((year - y0) / (y1 - y0)) * (v1 - v0);
+  }
+  return t[t.length - 1][1];
+}
+/** 그 해 그 나라의 합계출산율 — 1967년 브라질은 5명대, 2024년은 1.6명 [근사] */
+export function tfrAt(c: Country, year: number): number {
+  return c.tfrTable ? Math.round(lerp(c.tfrTable, year) * 100) / 100 : c.tfr;
+}
+/** 그 해 그 나라의 출생아 수 [근사] */
+export function birthsAt(c: Country, year: number): number {
+  return c.birthsTable ? Math.round(lerp(c.birthsTable, year) / 1000) * 1000 : c.births;
 }
 
 /** 그 해에 태어난 사람의 기대수명 (data/world/countries.json 의 lifeExpTable) */

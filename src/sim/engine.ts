@@ -246,7 +246,7 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       // 선택지 자체가 그 시대에 없던 일이면(예: 1980년의 ‘숏폼에 올린다’) 숨긴다
       const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > age(s));
       const card = ch.card?.(c);
-      const lock = why || short || undefined;
+      const lock = (why && periodText(why, at, s.player.country)) || short || undefined;
       const odds = ok && !hidden && !lock ? ch.odds?.(c) : undefined;
       const soft = ok && !hidden && !lock ? softWhy(ch, c, odds, price) : [];
       return {
@@ -261,7 +261,13 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
         odds,
         risk: ch.risk,
         range: ch.range?.(c),
-        card: card && { ...card, title: periodText(card.title, at, s.player.country), sub: card.sub && periodText(card.sub, at, s.player.country) },
+        card: card && {
+          ...card,
+          title: periodText(card.title, at, s.player.country),
+          sub: card.sub && periodText(card.sub, at, s.player.country),
+          data: card.data && periodText(card.data, at, s.player.country),
+          stats: card.stats?.map(([k, v]) => [periodText(k, at, s.player.country), periodText(String(v), at, s.player.country)] as [string, string]),
+        },
       };
     });
     // 이유는 선택지끼리 겹치지 않게 나눠 준다

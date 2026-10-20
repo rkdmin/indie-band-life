@@ -717,7 +717,7 @@ function Fork({ s, onChoose, onNext, onAuto, onRename }: { s: GameState; onChoos
           <WhoBar s={s} />
           <h2>{ev.title}</h2>
           <div className="text">{ev.text}</div>
-          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
+          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} country={s.player.country} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
         </div>
         {!ev.result && !s.autoDecide && (
           <div className="fork-foot">

@@ -7,6 +7,22 @@ import { GENRE_INFO, INST_LABEL } from '../data/world';
 import { given, josa, withFamilyName } from '../korean';
 import { createNpc } from '../npc';
 import { clamp } from '../rng';
+import lotteryJson from '../../data/fate/lottery.json';
+
+type Lottery = { name: string; where: string; rules: [number, number][]; mid: number; small: number; jackpotMul: number };
+const LOTTERY = lotteryJson.data as unknown as Record<string, Lottery>;
+/** 그 해 그 나라의 복권 — 아직 없으면 null (한국 로또는 2002년 12월부터) */
+const lotto = (c: Ctx) => {
+  const l = LOTTERY[c.p.country ?? 'KR'];
+  const rule = l && [...l.rules].reverse().find(([from]) => c.s.time >= from);
+  return rule ? { ...l, jackpot: rule[1] } : null;
+};
+/** 8145060 → ‘814만 5,060분의 1’ */
+const odds = (n: number) => {
+  const hi = Math.floor(n / 10_000);
+  const lo = n % 10_000;
+  return hi ? `${hi.toLocaleString('ko-KR')}만${lo ? ` ${lo.toLocaleString('ko-KR')}` : ''}분의 1` : `${n.toLocaleString('ko-KR')}분의 1`;
+};
 
 const between = (c: Ctx, a: number, b: number) => c.age >= a && c.age < b;
 const npcOf = (c: Ctx, flag: string) => {
@@ -221,23 +237,26 @@ export const FATE: EventDef[] = [
       },
     ],
   },
-  // ───────── 확률 놀이: 로또 (6/45, 실제 수학) ─────────
+  // ───────── 확률 놀이: 복권 — 나라마다 이름·시작한 해·1등 확률이 다르다 (data/fate/lottery.json) ─────────
   {
-    id: 'fate_lotto', scene: 'street', title: '편의점 로또', cooldown: 10, chance: 0.06,
-    when: (c) => c.age >= 20 && c.age < 80,
-    text: () => '편의점 계산대 옆 로또 용지. 천 원이면 일주일 동안 꿈을 꿀 수 있다.\n1등 확률은 814만 5,060분의 1. 번개를 맞을 확률보다 낮다고들 한다.',
+    id: 'fate_lotto', scene: 'street', title: (c) => lotto(c)!.name, cooldown: 10, chance: 0.06,
+    when: (c) => c.age >= 20 && c.age < 80 && !!lotto(c),
+    text: (c) => {
+      const l = lotto(c)!;
+      return `${l.where}. 한 장이면 일주일 동안 꿈을 꿀 수 있다.
+1등 확률은 ${odds(l.jackpot)}. 번개를 맞을 확률보다 낮다고들 한다.`;
+    },
     choices: [
       {
         label: '한 장 산다',
         run: (c) => {
-          c.money(-1000, '로또');
+          const l = lotto(c)!;
+          c.money(-c.krw(1000), l.name);
           const r = c.rng.next();
-          // 6/45 등수별 확률: 1등 1/8,145,060 · 2등 6/8,145,060 · 3등 1/35,724 · 4등 1/733 · 5등 1/45
-          if (r < 1 / 8_145_060) { c.money(c.krw(2_000_000_000), '로또 1등'); c.chron('로또 1등에 당첨됐다 — 814만 분의 1', 'big'); c.set('lotto1'); return '숫자 여섯 개가 다 맞았다. 손이 떨려서 사진도 못 찍었다.'; }
-          if (r < 7 / 8_145_060) { c.money(c.krw(60_000_000), '로또 2등'); c.chron('로또 2등 당첨 — 135만 분의 1', 'big'); return '보너스 번호까지. 장비를 전부 바꿨다.'; }
-          if (r < 1 / 35_724) { c.money(c.krw(1_500_000), '로또 3등'); return '3등! 3만 5천 분의 1. 멤버들에게 고기를 샀다.'; }
-          if (r < 1 / 733) { c.money(50_000, '로또 4등'); return '4등, 오만 원. 합주실비가 생겼다.'; }
-          if (r < 1 / 45) { c.money(5_000, '로또 5등'); return '5등, 오천 원. 다음 주 로또를 또 샀다.'; }
+          // 1등은 실제 규칙에서 계산한 확률, 그 아래 등수는 [근사]
+          if (r < 1 / l.jackpot) { c.money(c.krw(2_000_000_000 * l.jackpotMul), `${l.name} 1등`); c.chron(`${l.name} 1등에 당첨됐다 — ${odds(l.jackpot)}`, 'big'); c.set('lotto1'); return '숫자가 다 맞았다. 손이 떨려서 사진도 못 찍었다.'; }
+          if (r < 1 / l.mid) { c.money(c.krw(1_500_000), `${l.name} 당첨`); return `큰 당첨! ${odds(l.mid)}. 멤버들에게 고기를 샀다.`; }
+          if (r < 1 / l.small) { c.money(c.krw(5_000), `${l.name} 당첨`); return `작은 당첨. 본전은 건졌다. 다음 주에 또 샀다.`; }
           return '꽝. 일주일치 꿈값으로는 나쁘지 않았다.';
         },
       },

@@ -82,7 +82,7 @@ export const FAMILY_MONEY: EventDef[] = [
     bind: bindPartner,
     text: (c) => `부동산 창문에 붙은 매물표를 ${c.nj('pt', '과/와')} 한참 봤다.\n“합주실이랑 가까우면 좋겠어.” “그럼 역이랑 멀어.”\n전세냐 월세냐, 그것이 문제다.`,
     choices: [
-      { label: '전세자금대출로 전세를 얻는다', hint: () => '연 4.0%', run: (c) => { c.set('fmHome'); loan(c, 150_000_000, 0.04, '전세자금대출'); c.money(-c.krw(150_000_000), '전세 보증금'); c.stat('happiness', 6); c.rel('pt', 6, '처음 우리 집 열쇠'); return '방 하나를 작업실로 만들었다. 벽에 흡음재를 붙이던 날, 둘 다 웃고 있었다.'; } },
+      { label: '전세자금대출로 전세를 얻는다', if: (c) => (c.p.country ?? 'KR') === 'KR', hint: () => '연 4.0%', run: (c) => { c.set('fmHome'); loan(c, 150_000_000, 0.04, '전세자금대출'); c.money(-c.krw(150_000_000), '전세 보증금'); c.stat('happiness', 6); c.rel('pt', 6, '처음 우리 집 열쇠'); return '방 하나를 작업실로 만들었다. 벽에 흡음재를 붙이던 날, 둘 다 웃고 있었다.'; } },
       { label: '월세로 버틴다', run: (c) => { c.set('fmHome'); c.money(-c.krw(10_000_000), '월세 보증금'); c.stat('stress', 4); return '보증금 천만 원에 월세. 매달 25일이 조금 무섭다.'; } },
       { label: '당분간 부모님 집에 들어간다', if: parentAlive, run: (c) => { c.set('fmHome'); c.rel('pt', -5); c.stat('stress', 6); c.money(c.krw(2_000_000), '아낀 생활비'); return '돈은 모였다. 대신 밤 열 시 이후엔 기타를 칠 수 없었다.'; } },
     ],
