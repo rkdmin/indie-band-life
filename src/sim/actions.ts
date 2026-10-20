@@ -1,5 +1,7 @@
 // 매 시기 플레이어가 고르는 행동. 비용(컨디션·돈)과 결과는 여기서만 계산한다.
 
+import { chosenSetlist, repertoire, scoreSetlist } from './setlist';
+import { createRival } from './rival';
 import type { Genre, Inst, Mood, SceneId } from './types';
 import { GENRES, INSTRUMENTS } from './types';
 import { Ctx } from './ctx';
@@ -61,7 +63,13 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   const DC: Record<string, number> = { openmic: 8, club_group: 11, club_solo: 13, hall: 15, local_fest: 14, big_fest: 17, arena: 18 };
   const dc = DC[v.id] ?? 12;
   const chem = c.band?.chemistry ?? 50;
-  const mod = c.m(bandSkill(c)) + Math.floor(c.m(c.p.skills.stage) / 2) + (chem >= 70 ? 2 : chem < 40 ? -2 : 0) + (c.p.stats.energy < 30 ? -2 : 0);
+  // 이번 공연을 위해 짠 셋리스트가 있으면 흐름이 판정과 관객 반응에 붙는다 (sim/setlist.ts)
+  const set = chosenSetlist(c.s);
+  const sc = set ? scoreSetlist(set, repertoire(c.s)) : null;
+  delete c.s.flags.setlist;
+  const setMod = sc ? Math.max(-3, Math.min(4, Math.round((sc.score - 50) / 12))) : 0;
+  if (sc) c.lines.push({ text: `셋리스트 ${sc.score}점 → 판정 ${setMod >= 0 ? '+' : ''}${setMod}`, tone: setMod >= 0 ? 'good' : 'bad', delta: true });
+  const mod = c.m(bandSkill(c)) + Math.floor(c.m(c.p.skills.stage) / 2) + (chem >= 70 ? 2 : chem < 40 ? -2 : 0) + (c.p.stats.energy < 30 ? -2 : 0) + setMod;
   const nat = c.rng.int(1, 20);
   const total = nat + mod;
   const grade = nat === 20 || total >= dc + 5 ? 'great' : nat !== 1 && total >= dc ? 'good' : 'bad';
@@ -78,7 +86,7 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
 
   // 관객 대부분은 이미 팬이다. 새 팬은 데려온 친구들과 페스티벌의 처음 보는 관객에게서 [가정]
   const conv = fest ? (grade === 'great' ? 0.08 : grade === 'good' ? 0.03 : 0.004) : grade === 'great' ? 0.22 : grade === 'good' ? 0.09 : 0.01;
-  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul);
+  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul * (sc ? 0.7 + sc.score / 100 * 0.6 : 1));
   if (grade === 'great') {
     c.line(`${v.label} — 관객 ${draw.toLocaleString()}명이 떼창했다!`, 'big');
     if (fest || v.capacity >= 700 || !c.flag('firstGreatGig')) {
@@ -375,7 +383,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'parttime', label: '아르바이트', emoji: '🧋', scene: 'street', energy: 20,
-    desc: (c) => `최저시급 약 ${Math.round(minWage(c.s.time) * c.country.wageMul).toLocaleString()}원${c.country.id !== 'KR' ? '(원화 환산)' : ''} · ${Math.floor(c.s.time)}년. 반년 동안 주 20시간.`,
+    desc: (c) => `최저시급 약 ${won(Math.round(minWage(c.s.time) * c.country.wageMul))} · ${Math.floor(c.s.time)}년. 반년 동안 주 20시간.`,
     when: (c) => c.age >= 16 && free(c) && c.age < 70,
     locked: (c) => (c.p.job === 'office' ? '회사에 다니는 중이라 알바할 시간이 없다' : null),
     run: (c) => {
@@ -502,6 +510,8 @@ export function formBand(c: Ctx, name?: string, genre?: Genre, ask = !name) {
     bestGig: null,
   };
   c.s.band = band;
+  // 처음 밴드를 만들 때, 비슷한 때 시작한 라이벌 밴드도 하나 생긴다 (sim/rival.ts)
+  if (!c.s.rival) c.s.rival = createRival(c.s, c.rng) ?? undefined;
   // 멤버는 카드로 직접 고른다 (events/draft.ts) — 결성 직후 첫 카드를 띄운다
   c.queue('pick_member', {}, { src: 'form', round: 1 });
   band.chemistry = clamp(40 + c.members.reduce((a, m) => a + m.affinity, 0) / Math.max(1, c.members.length) / 3);

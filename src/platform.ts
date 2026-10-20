@@ -61,6 +61,24 @@ export async function shareFile(blob: Blob, filename: string, text?: string, tit
 }
 
 /**
+ * 글을 공유한다 (운명 코드처럼 짧은 것). 네이티브 → 공유 시트, 웹 → Web Share API, 아니면 클립보드에 복사.
+ * 사용자가 취소하면 throw 한다.
+ */
+export async function shareText(text: string, title?: string): Promise<'shared' | 'copied'> {
+  if (isNative()) {
+    await Share.share({ text, title, dialogTitle: title });
+    return 'shared';
+  }
+  const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+  if (nav.share && matchMedia('(pointer: coarse)').matches) {
+    await nav.share({ text, title });
+    return 'shared';
+  }
+  await navigator.clipboard.writeText(text);
+  return 'copied';
+}
+
+/**
  * 파일을 저장한다. 웹 → 다운로드. 네이티브는 WebView 가 a[download] 를 처리하지 못하므로
  * 공유 시트를 열어 사용자가 저장 위치(파일·드라이브 등)를 고르게 한다 — 저장소 권한이 필요 없다.
  */

@@ -1,6 +1,7 @@
 // 데이터로 본 내 인생 — 게임이 쓰는 실제 통계·근사 데이터를, 내가 산 시간 위에 겹쳐 보여 준다.
 // 모든 숫자는 src/data/*.json 에서 온다. 그래프 위에 손을 올리면 그 해의 값이 보인다.
 
+import { moneyAt } from '../sim/money';
 import { useMemo, useState } from 'react';
 import type { GameState } from '../sim/types';
 import { GENRES } from '../sim/types';
@@ -203,7 +204,7 @@ export function DataSheet({ s }: { s: GameState }) {
 
       <LineChart
         title={hasMinWage(c, born + 16) ? '최저시급의 흐름' : '시급의 흐름'}
-        sub={`열여섯 살 ${born + 16}년의 시급 약 ${Math.round(minWage(born + 16) * c.wageMul).toLocaleString()}원${hasMinWage(c, born + 16) ? '' : ' (최저임금제 이전 추정)'}`}
+        sub={`열여섯 살 ${born + 16}년의 시급 약 ${moneyAt(minWage(born + 16) * c.wageMul, born + 16, c.id)}${hasMinWage(c, born + 16) ? '' : ' (최저임금제 이전 추정)'}`}
         points={wage}
         fmt={(v) => (v >= 10000 ? `${(v / 10000).toFixed(1)}만` : `${Math.round(v).toLocaleString()}`)}
         marks={[{ x: born + 16, label: '16세' }]}

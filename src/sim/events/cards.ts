@@ -2,6 +2,7 @@
 // 카드마다 위험도(안정·모험·도박)와 최선·최악 범위가 보인다. 숫자는 data/fate/money.json·jobs.json 의 실제 통계·근사에서 온다.
 //  · 생계 직업 카드 · 돈 굴리기(예금·주식·코인·동업) · 공연 기회 · 레이블 제안 비교 · 타이틀곡 고르기 · 협찬 제안 · 장비 사기
 
+import { countryOf, hasMinWage } from '../data/countries';
 import type { EventDef, Ctx } from '../ctx';
 import type { CardInfo, Job, Song } from '../types';
 import { release, unreleased } from '../songs';
@@ -122,7 +123,7 @@ export const CARD_EVENTS: EventDef[] = [
             ['음악에 남는 여력', MUSIC[j.music]],
           ],
           sub: j.note,
-          data: `최저시급 ${minWage(c.year).toLocaleString()}원 × ${j.pay}배 기준 [근사]`,
+          data: `${hasMinWage(countryOf(c.p.country), c.year) ? '최저시급' : '시급(추정)'} ${won(minWage(c.year) * countryOf(c.p.country).wageMul)} × ${j.pay}배 기준 [근사]`,
         };
       },
       run: (c: Ctx) => {

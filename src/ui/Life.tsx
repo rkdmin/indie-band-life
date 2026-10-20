@@ -1,12 +1,13 @@
 // 실시간으로 흘러가는 인생 화면.
 // 시계는 화면에만 있고, 엔진은 시기(period) 단위로 계산한다. 시계가 사건·연출·시기 끝에 닿으면 멈추고 엔진을 부른다.
 
+import { goalDef, goalProgress } from '../sim/goals';
 import { genreLabel } from '../sim/data/era/genres';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedEntry, GameState, SceneId } from '../sim/types';
-import { autoChoose, beginPeriod, canRetire, choose, renameBand, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
+import { autoChoose, beginPeriod, canRetire, choose, renameBand, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan, setSetlist } from '../sim/engine';
 import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
-import { INST_LABEL, minWage } from '../sim/data/world';
+import { GENRE_INFO, INST_LABEL, minWage } from '../sim/data/world';
 import { ARTIST_SURVEY, facts, incomeBar } from '../sim/data/reality';
 import { countryOf, hasMinWage } from '../sim/data/countries';
 import { count, won } from '../sim/korean';
@@ -38,6 +39,7 @@ import { charmWord, heightAt } from '../sim/appearance';
 import { useArmed } from './useArmed';
 import { EventCut } from './EventCut';
 import { BandNamer } from './BandNamer';
+import { SetlistBuilder } from './SetlistBuilder';
 import { Flag } from './Flag';
 import { useScrollLock } from './useScrollLock';
 
@@ -317,6 +319,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           <div className="idcard-wrap"><IdCard s={s} clock={clock} /></div>
           {a >= 6 && <div className="goals-wrap"><GoalsCard s={s} /></div>}
           <div className="plan-wrap"><PlanCard s={s} onEdit={() => setTab('plan')} onChange={commit} /></div>
+          {s.rival?.tone && a >= 15 && <div className="rival-wrap"><RivalCard s={s} /></div>}
           {a >= 15 && <div className="reality-wrap"><RealityCard s={s} clock={clock} /></div>}
           <nav className="tabs" aria-label="기록">
             <button className={`mobile-only ${tab === 'plan' ? 'on' : ''}`} aria-pressed={tab === 'plan'} onClick={() => setTab('plan')}>계획</button>
@@ -343,7 +346,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
 
       {!coach && ev && isDraft(ev.id) && !ev.result && !ev.pending && <MemberDraft s={s} onChoose={onChoose} cut={<EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={peopleFor(s, ev.scene, Object.values(ev.bind))} night seed={s.seed + Math.round(ev.at * 12)} onDone={() => undefined} />} />}
       {!coach && ev && ev.cards && !ev.result && !ev.pending && <CardPick s={s} onChoose={onChoose} cut={<EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={peopleFor(s, ev.scene, Object.values(ev.bind))} night={false} seed={s.seed + Math.round(ev.at * 12)} onDone={() => undefined} />} />}
-      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && !(ev.cards && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} onRename={(n) => commit(renameBand(stRef.current, n))} />}
+      {!coach && ev && !ev.big && !(isDraft(ev.id) && !ev.result) && !(ev.cards && !ev.result) && <Fork s={s} onChoose={onChoose} onNext={onProceed} onAuto={() => commit(setAutoDecide(stRef.current, true))} onRename={(n) => commit(renameBand(stRef.current, n))} onSetlist={(ids) => commit(setSetlist(stRef.current, ids))} />}
       {!coach && ev && ev.big && (
         <Cinematic
           key={`${ev.id}-${ev.at}`}
@@ -484,6 +487,7 @@ function PlanCard({ s, onEdit }: { s: GameState; onEdit: () => void; onChange: (
         <div className="focus-note" style={{ marginTop: 6 }}>{a < 0 ? '아직 세상에 나오기 전.' : '아직은 어려서, 부모님 품에서 자라는 중.'}</div>
       ) : (
         <>
+          {s.goal && <GoalBar s={s} />}
           <div className="plan-chips">
             {s.autoPlan && <span className="plan-chip" style={{ borderStyle: 'dashed' }}>알아서</span>}
             {picks.map((p) => {
@@ -494,6 +498,46 @@ function PlanCard({ s, onEdit }: { s: GameState; onEdit: () => void; onChange: (
           <div className="dim">시간이 흐르는 동안 이 계획대로 산다. 언제든 바꿀 수 있다.</div>
         </>
       )}
+    </div>
+  );
+}
+
+/** 라이벌 밴드 — 저들과 나, 지금 어디쯤인지 */
+function RivalCard({ s }: { s: GameState }) {
+  const r = s.rival!;
+  const max = Math.max(1, r.fans, s.player.fans);
+  const me = s.band?.name ?? s.player.name;
+  const lead = s.player.fans >= r.fans;
+  return (
+    <div className="card rival">
+      <div className="section-title">
+        <h3>🥊 라이벌</h3>
+        <span className="dim">{r.status === 'split' ? `${r.splitYear}년 해체` : r.label === 'major' ? '대형 기획사' : r.label === 'indie' ? '인디 레이블' : '자체 활동'} · 음반 {r.albums}장</span>
+      </div>
+      <div className="rv-name">〈{r.name}〉 <span className="dim">{GENRE_INFO[r.genre].label}</span></div>
+      <div className="rv-rows">
+        <div className="rv-row"><span className="rv-who">〈{me}〉</span><span className="rv-track"><i className="me" style={{ width: `${(s.player.fans / max) * 100}%` }} /></span><span className="rv-n">{count(s.player.fans)}</span></div>
+        <div className="rv-row"><span className="rv-who">〈{r.name}〉</span><span className="rv-track"><i style={{ width: `${(r.fans / max) * 100}%` }} /></span><span className="rv-n">{count(r.fans)}</span></div>
+      </div>
+      <div className="dim" style={{ marginTop: 4 }}>{r.status === 'split' ? '저들은 무대를 떠났다. 버티는 쪽이 이긴다.' : lead ? '지금은 우리가 앞서 있다.' : '지금은 저들이 앞서 있다.'}</div>
+    </div>
+  );
+}
+
+/** 시즌 목표 — 무엇을 향해 사는 중인지, 얼마나 왔는지 */
+function GoalBar({ s }: { s: GameState }) {
+  const g = s.goal!;
+  const d = goalDef(g.id);
+  const pct = Math.round(goalProgress(s, g) * 100);
+  const left = Math.max(0, g.until - s.time);
+  return (
+    <div className="sg-bar" title={d?.reward ? `이루면: ${d.reward}` : undefined}>
+      <div className="sg-top">
+        <span className="sg-k">SEASON GOAL</span>
+        <span className="sg-left">{left < 0.6 ? '기한 임박' : `남은 기간 약 ${Math.round(left * 2) / 2}년`}</span>
+      </div>
+      <div className="sg-t">{d?.icon} {periodText(g.title, s.time, s.player.country)}</div>
+      <div className="sg-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${pct}%` }} /></div>
     </div>
   );
 }
@@ -694,7 +738,7 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   );
 }
 
-function Fork({ s, onChoose, onNext, onAuto, onRename }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; onAuto: () => void; onRename: (name: string) => void }) {
+function Fork({ s, onChoose, onNext, onAuto, onRename, onSetlist }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; onAuto: () => void; onRename: (name: string) => void; onSetlist: (ids: string[]) => void }) {
   const ev = s.active!;
   useScrollLock();
   useEffect(() => sfx('page'), [ev.id]);
@@ -717,7 +761,7 @@ function Fork({ s, onChoose, onNext, onAuto, onRename }: { s: GameState; onChoos
           <WhoBar s={s} />
           <h2>{ev.title}</h2>
           <div className="text">{ev.text}</div>
-          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} country={s.player.country} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
+          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} country={s.player.country} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready && ev.id === 'gig_setlist' && !ev.result ? <SetlistBuilder s={s} onConfirm={(ids) => { onSetlist(ids); onChoose(0); }} onHabit={() => onChoose(1)} /> : ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
         </div>
         {!ev.result && !s.autoDecide && (
           <div className="fork-foot">
@@ -760,7 +804,7 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
           {last.other > last.music ? ' — 음악만으론 못 산다' : last.music - last.cost > 0 ? ' — 음악이 생계였다' : ''}
         </div>
       )}
-      <div className="dim" style={{ marginTop: 4 }}>{kr ? `예술인 ${Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. ` : ''}{hasMinWage(countryOf(s.player.country), yr) ? '최저시급' : '알바 시급(추정)'} {Math.round(minWage(yr) * countryOf(s.player.country).wageMul).toLocaleString()}원.</div>
+      <div className="dim" style={{ marginTop: 4 }}>{kr ? `예술인 ${Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. ` : ''}{hasMinWage(countryOf(s.player.country), yr) ? '최저시급' : '알바 시급(추정)'} {won(Math.round(minWage(yr) * countryOf(s.player.country).wageMul))}.</div>
       {open && (
         <ul className="facts">
           {(kr ? facts(yr, minWage(yr)) : [{ id: 'bar', label: bar.label, value: won(avg), src: bar.src, kind: bar.kind }]).map((f) => (

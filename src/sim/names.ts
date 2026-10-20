@@ -34,7 +34,7 @@ const BAND_B = bandWords.data.b;
 const BAND_EN = bandWords.data.en;
 
 // 한국에만 있는 말 — 다른 나라 밴드 이름엔 쓰지 않는다
-const KR_ONLY_WORDS = new Set(['반지하', '옥상', '세탁소']);
+const KR_ONLY_WORDS = new Set(['반지하']);
 export function randomBandName(rng: Rng, country?: string): string {
   const kr = (country ?? 'KR') === 'KR';
   const a = kr ? BAND_A : BAND_A.filter((w) => !KR_ONLY_WORDS.has(w));

@@ -9,6 +9,8 @@ import { ACTIONS, availableActions, venuesFor } from './actions';
 import { actionSlots, age, favoriteGenre } from './state';
 import { availableThemes } from './songs';
 import narrationJson from '../data/text/narration.json';
+import { goalDef } from './goals';
+import narrationMore from '../data/text/narration_more.json';
 
 /** 계획에 넣을 수 없는 행동 (발매는 ‘곡이 쌓였을 때’ 갈림길로 묻는다) */
 export const PLAN_EXCLUDED = new Set(['release']);
@@ -30,6 +32,8 @@ export function recommendedPlan(s: GameState): ActionPick[] {
   else if (a < 19) ids = s.band ? pick('rehearse', 'practice') : pick('practice', a >= 17 ? 'study' : 'hangout', 'listen');
   else if (a >= 65) ids = s.flags.lifelong ? pick('gig', 'rest') : pick('rest', 'hangout');
   else {
+    // 시즌 목표가 있으면 그 목표에 맞는 활동을 먼저 넣는다
+    if (s.goal) ids.push(...(goalDef(s.goal.id)?.plan ?? []).slice(0, 2));
     const broke = p.money < 0 && p.job !== 'office' && p.job !== 'teacher' && p.job !== 'producer';
     if (p.stats.energy < 30 || p.stats.stress > 80) ids.push('rest');
     if (broke) ids.push(...pick(p.skills[p.mainInst ?? 'guitar'] >= 60 ? 'teach' : 'parttime', 'parttime'));
@@ -91,15 +95,16 @@ function autoParam(s: GameState, c: Ctx, kind: string | undefined, rng: Rng): st
 }
 
 /** 계획 행동을 이야기 문장으로 */
-type NarrLine = string | { t: string; age?: [number, number]; from?: number; to?: number; band?: boolean };
-const NARR = narrationJson.data as Record<string, NarrLine[]>;
+type NarrLine = string | { t: string; age?: [number, number]; from?: number; to?: number; band?: boolean; fans?: [number, number]; broke?: boolean };
+const NARR: Record<string, NarrLine[]> = { ...(narrationJson.data as Record<string, NarrLine[]>) };
+for (const [k, v] of Object.entries(narrationMore.data as Record<string, NarrLine[]>)) NARR[k] = [...(NARR[k] ?? []), ...v];
 
 /** 행동 한 줄 — 나이·시대·밴드 조건이 맞고, 최근 기록에 없는 줄 중에서. 다 썼으면 비워 둔다(반복보다 침묵이 낫다) */
-export function narrate(id: string, rng: Rng, o: { age?: number; year?: number; band?: boolean; recent?: Set<string> } = {}): string {
+export function narrate(id: string, rng: Rng, o: { age?: number; year?: number; band?: boolean; fans?: number; broke?: boolean; recent?: Set<string>; fresh?: (t: string) => boolean } = {}): string {
   const pool = (NARR[id] ?? [])
     .map((l) => (typeof l === 'string' ? { t: l } : l))
-    .filter((l) => (!l.age || ((o.age ?? 0) >= l.age[0] && (o.age ?? 0) < l.age[1])) && (!l.from || (o.year ?? 9999) >= l.from) && (!l.to || (o.year ?? 0) <= l.to) && (!l.band || o.band));
-  const fresh = pool.filter((l) => !o.recent?.has(l.t));
+    .filter((l) => (!l.age || ((o.age ?? 0) >= l.age[0] && (o.age ?? 0) < l.age[1])) && (!l.from || (o.year ?? 9999) >= l.from) && (!l.to || (o.year ?? 0) <= l.to) && (!l.band || o.band) && (!l.fans || ((o.fans ?? 0) >= l.fans[0] && (o.fans ?? 0) < l.fans[1])) && (!l.broke || o.broke));
+  const fresh = pool.filter((l) => !o.recent?.has(l.t) && (!o.fresh || o.fresh(l.t)));
   return fresh.length ? rng.pick(fresh).t : '';
 }
 

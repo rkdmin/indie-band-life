@@ -11,9 +11,12 @@ import { GENRES } from './types';
 import { Rng, clamp, hashStr } from './rng';
 import { Ctx, book, type EventDef } from './ctx';
 import { incomeBar } from './data/reality';
+import { settleGoal } from './goals';
+import { tickRival } from './rival';
+import { applyMoneyOf } from './money';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
-import { actionSlots, age, ageInt, chron, livingCost, stepSize } from './state';
+import { actionSlots, age, ageInt, chron, isFresh, livingCost, remember, stepSize } from './state';
 import { REGIONS, annualDeathProb, minWage, priceIndex, SKILL_LABEL } from './data/world';
 import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
@@ -425,7 +428,9 @@ export function beginPeriod(prev: GameState): GameState {
     energyUsed += def.energy;
     const lines = [...c.lines.slice(before), ...s.lastResults.splice(sayBefore)];
     s.lastResults.push(...lines);
-    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), narrate(def.id, rng, { age: age(s), year: s.time, band: !!s.band, recent }) || undefined);
+    const said = narrate(def.id, rng, { age: age(s), year: s.time, band: !!s.band, fans: s.player.fans, broke: s.player.money < 0, recent, fresh: (t) => isFresh(s, t) });
+    if (said) remember(s, said);
+    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), said || undefined);
   });
   for (const cn of s.cine.slice(cineBefore)) cn.at = s.time + step * 0.4;
   s.player.stats.energy = clamp(s.player.stats.energy - energyUsed);
@@ -734,6 +739,7 @@ export function endPeriod(prev: GameState): GameState {
   const y0 = Math.floor(s.time);
   s.time = Math.round((s.time + step) * 10) / 10;
   s.turn++;
+  applyMoneyOf(s);
   const a = age(s);
   const yearsPassed = Math.floor(s.time) - y0;
   const t = s.time;
@@ -867,6 +873,14 @@ export function endPeriod(prev: GameState): GameState {
   if (money.length) pushFeed(s, { t, text: '', tone: 'neutral', deltas: money.join(' · '), kind: 'news' });
   for (const n of news.filter((x) => !x.delta)) pushFeed(s, { t, text: n.text, tone: n.tone ?? 'neutral', kind: 'news' });
 
+  // 라이벌 밴드도 저들의 속도로 산다
+  for (const line of tickRival(s, rng, step)) pushFeed(s, { t: t - step * 0.3, text: `🥊 ${line}`, tone: 'neutral', kind: 'news' });
+  // 시즌 목표: 이뤘거나 기한이 지났으면 정산한다
+  const goal = settleGoal(s);
+  if (goal) {
+    pushFeed(s, { t, text: goal.text, tone: goal.ok ? 'big' : 'bad', deltas: goal.lines.map((l) => l.text).join(' · ') || undefined, kind: 'life' });
+    if (goal.ok) chron(s, goal.text, 'life');
+  }
   s.history.push({ age: Math.floor(a), fans: p.fans, happiness: Math.round(p.stats.happiness), money: p.money });
   if (s.history.length > 200) s.history.shift();
   s.rng = rng.state;
@@ -981,6 +995,13 @@ export function canRenameBand(s: GameState): boolean {
 export function cleanBandName(raw: string): string {
   return raw.replace(/[〈〉<>\r\n\t]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
 }
+/** 셋리스트 짜기 화면에서 고른 곡 순서 — 다음 공연(gig_setlist)에 쓰인다 */
+export function setSetlist(prev: GameState, ids: string[]): GameState {
+  const s = clone(prev);
+  s.flags.setlist = ids.filter((id) => s.songs.some((x) => x.id === id)).join(',');
+  return s;
+}
+
 export function renameBand(prev: GameState, raw: string): GameState {
   const name = cleanBandName(raw);
   if (!name || !prev.band || !canRenameBand(prev) || name === prev.band.name) return prev;

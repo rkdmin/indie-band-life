@@ -388,6 +388,42 @@ export interface GameState {
   phase: Phase;
   ending: EndingResult | null;
   peakFans: number;
+  /** 이번 인생에서 쓴 작은 문장 → 쓴 해. 같은 줄은 12년 동안 다시 쓰지 않는다 (옛 저장엔 없다) */
+  said?: Record<string, number>;
+  /** 지금 걸어 둔 시즌 목표 (sim/goals.ts) */
+  goal?: Goal;
+  /** 인생 내내 따라오는 라이벌 밴드 (sim/rival.ts) */
+  rival?: Rival;
+}
+
+/** 라이벌 밴드 — 나와 상관없이 저들의 속도로 크고 해체한다 */
+export interface Rival {
+  name: string;
+  genre: Genre;
+  leaderId: string;
+  formed: number;
+  fans: number;
+  peak: number;
+  /** 결국 닿을 팬 규모 (터지면 커진다) */
+  potential: number;
+  status: 'active' | 'split';
+  splitYear?: number;
+  albums: number;
+  hits: number;
+  label: 'none' | 'indie' | 'major';
+  /** 처음 만났을 때 고른 태도 */
+  tone?: 'friend' | 'fire' | 'cool';
+}
+
+/** 시즌 목표 — 기한 안에 value 가 target 이상이면 이룬다 */
+export interface Goal {
+  id: string;
+  title: string;
+  target: number;
+  /** 시작할 때 값 — 진행 막대에 쓴다 */
+  base: number;
+  from: number;
+  until: number;
 }
 
 export interface ActionPick {

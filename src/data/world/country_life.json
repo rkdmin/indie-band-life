@@ -1,0 +1,191 @@
+{
+  "about": "나라별 생활 사건 — 그 나라의 실제 제도·문화를 바탕으로 했다 (실존 인물·밴드 없음). c=나라, age=[이상, 미만], from/to=연도, band/solo=밴드 유무, fans=[이상, 미만], job, sex. fx: happiness·stress·health(±), skill{기술: ±}, fans(±), money(2026년 한국 원 기준 — 그 해 물가·생활비 배율로 바뀐다), rep, theme, chron, flag, insp. roll: dc(난이도)·skill(stage|main|compose|charm)·why(근거) → win/lose. 근거: 일본 학교 문화제·라이브하우스 대반 · 미국 차고 밴드·대학 라디오·의료비 · 영국 펍 오픈 마이크·학생회 공연장·실업 수당(1980~90년대 밴드 다수가 수당으로 버텼다) · 서독 대체 복무(Zivildienst 1961~2011)·청소년 센터 · 브라질 카니발 블로코·교회 음악단·초인플레이션(1993년 연 2,477%, 1994년 헤알 플랜).",
+  "data": [
+    {
+      "id": "ct_jp_bunkasai", "c": "JP", "scene": "classroom", "title": "문화제 무대", "age": [14, 18.5], "chance": 0.5, "once": true,
+      "text": "가을 문화제. 체육관 무대에 밴드부 세 팀이 오른다. 반 친구들이 우리 순서를 기다린다.\n선생님은 볼륨을 줄이라고 했다.",
+      "choices": [
+        { "label": "볼륨을 끝까지 올린다", "roll": { "dc": 12, "skill": "stage", "why": "학교 축제 무대는 첫 관객이 가장 너그럽다", "win": { "fx": { "fans": 25, "happiness": 10, "skill": { "stage": 3 }, "chron": "문화제 무대 — 체육관이 들썩였다", "theme": "youth" }, "out": "앙코르 함성에 선생님도 결국 박수를 쳤다." }, "lose": { "fx": { "stress": 8, "skill": { "stage": 2 } }, "out": "하울링이 터졌다. 그래도 끝까지 쳤다." } } },
+        { "label": "어쿠스틱으로 바꿔 조용히 한다", "fx": { "fans": 10, "happiness": 5, "skill": { "vocal": 2 } }, "out": "체육관이 조용해지자 가사가 들렸다. 몇몇이 울었다." }
+      ]
+    },
+    {
+      "id": "ct_jp_taiban", "c": "JP", "scene": "club", "title": "대반", "age": [17, 45], "band": true, "chance": 0.3, "cooldown": 10, "from": 1980,
+      "text": "라이브하우스의 대반 — 네 밴드가 한 무대를 나눠 쓰는 밤. 우리 앞 순서 밴드의 관객이 객석을 꽉 채웠다.\n그 관객을 우리 편으로 만들 수 있을까.",
+      "choices": [
+        { "label": "첫 곡을 제일 센 곡으로", "roll": { "dc": 13, "skill": "main", "why": "대반에서는 앞 밴드 관객을 붙잡는 첫 곡이 전부다", "win": { "fx": { "fans": 80, "rep": 3 }, "out": "앞 밴드 팬들이 나가지 않았다. 물판에서 우리 CD를 집었다." }, "lose": { "fx": { "fans": 10, "stress": 6 }, "out": "앞 밴드가 끝나자 객석 절반이 빠져나갔다." } } },
+        { "label": "다른 밴드들과 뒤풀이에서 친해진다", "fx": { "rep": 4, "happiness": 4, "money": -30000 }, "out": "다음 달 그 밴드들의 기획 공연에 초대받았다." }
+      ]
+    },
+    {
+      "id": "ct_jp_hanami", "c": "JP", "scene": "street", "title": "벚꽃 아래", "age": [12, 80], "chance": 0.15, "cooldown": 12,
+      "text": "벚꽃이 한창인 공원. 돗자리마다 술잔과 도시락이 펼쳐져 있다.\n옆 돗자리 회사원들이 기타를 보더니 한 곡 해 달라고 한다.",
+      "choices": [
+        { "label": "다 아는 노래로 떼창을 이끈다", "fx": { "happiness": 8, "skill": { "stage": 2 }, "fans": 5 }, "out": "벚꽃잎이 기타 줄 위로 떨어졌다. 모르는 사람들과 한목소리로 불렀다." },
+        { "label": "내 곡을 들려준다", "fx": { "fans": 12, "skill": { "compose": 1 }, "theme": "friend" }, "out": "취한 아저씨가 제목을 세 번 물어보고 수첩에 적었다." }
+      ]
+    },
+    {
+      "id": "ct_jp_salaryman", "c": "JP", "scene": "office", "title": "회사원 밴드", "age": [28, 55], "job": "office", "chance": 0.25, "once": true,
+      "text": "회사 송년회에서 기타를 쳤더니 부장이 말했다. “나도 학생 땐 드럼 쳤지.”\n다음 주부터 퇴근 후 사내 밴드 연습이 잡혔다.",
+      "choices": [
+        { "label": "사내 밴드에 들어간다", "fx": { "happiness": 8, "stress": -6, "skill": { "stage": 2 }, "rep": 1, "chron": "회사 사람들과 밴드를 시작했다" }, "out": "토요일 아침 합주실. 넥타이를 푼 부장의 드럼은 생각보다 단단했다." },
+        { "label": "회사와 음악은 나눈다", "fx": { "stress": 2 }, "out": "정중히 거절했다. 내 음악은 내 시간에만." }
+      ]
+    },
+    {
+      "id": "ct_jp_obon", "c": "JP", "scene": "home", "title": "오봉 귀성", "age": [20, 60], "chance": 0.15, "cooldown": 10,
+      "text": "오봉 연휴, 꽉 막힌 신칸센을 타고 고향에 내려왔다. 마을 봉오도리 무대에서 북 칠 사람이 모자란다고 한다.",
+      "choices": [
+        { "label": "북채를 잡는다", "fx": { "skill": { "drums": 3 }, "happiness": 6, "theme": "family" }, "out": "마을 노인들이 박자에 맞춰 원을 그리며 돌았다. 할머니가 제일 앞에 있었다." },
+        { "label": "방에서 쉬며 곡을 쓴다", "fx": { "skill": { "compose": 2 }, "stress": -4 }, "out": "어린 시절 방 창밖으로 매미 소리가 들렸다." }
+      ]
+    },
+    {
+      "id": "ct_us_garage", "c": "US", "scene": "home", "title": "차고 밴드", "age": [13, 19], "chance": 0.45, "once": true,
+      "text": "친구네 차고. 아버지 차를 밖으로 빼면 드럼 세트와 앰프 두 대가 들어간다.\n문제는 옆집이다.",
+      "choices": [
+        { "label": "차고 문을 열고 크게 친다", "roll": { "dc": 11, "skill": "main", "why": "미국 교외의 차고는 수많은 첫 밴드의 합주실이었다", "win": { "fx": { "fans": 15, "skill": { "stage": 2 }, "happiness": 8, "chron": "차고 밴드 결성 — 동네 아이들이 구경 왔다", "theme": "band" }, "out": "동네 아이들이 자전거를 세우고 구경했다. 옆집 아저씨도 결국 고개를 까딱였다." }, "lose": { "fx": { "stress": 6 }, "out": "경찰이 왔다. 소음 신고. 다음 주부터 오후 6시까지만." } } },
+        { "label": "문을 닫고 담요를 붙인다", "fx": { "skill": { "guitar": 2, "drums": 2 } }, "out": "땀범벅이 된 차고 안에서 같은 곡을 스무 번 쳤다." }
+      ]
+    },
+    {
+      "id": "ct_us_college_radio", "c": "US", "scene": "studio", "title": "대학 라디오", "age": [18, 40], "band": true, "fans": [50, 5000], "chance": 0.3, "once": true, "from": 1975,
+      "text": "대학 라디오 방송국 DJ가 우리 데모를 틀어 줬다. 청취자 전화가 몇 통 왔다고 한다.\n다른 대학 방송국들에도 돌려 볼까?",
+      "choices": [
+        { "label": "전국 대학 방송국에 우편으로 돌린다", "fx": { "money": -150000 }, "roll": { "dc": 14, "skill": "compose", "why": "1980~90년대 미국 인디 밴드는 대학 라디오 차트로 이름을 알렸다", "win": { "fx": { "fans": 300, "rep": 5, "chron": "대학 라디오 차트에 이름이 올랐다" }, "out": "몇 주 뒤, 대학 라디오 차트 맨 아래에 우리 이름이 있었다." }, "lose": { "fx": { "fans": 30 }, "out": "답장은 두 곳에서만 왔다. 그래도 두 곳이다." } } },
+        { "label": "그 DJ와 친해진다", "fx": { "rep": 3, "fans": 40 }, "out": "새벽 방송에 라이브 세션으로 초대받았다." }
+      ]
+    },
+    {
+      "id": "ct_us_medical", "c": "US", "scene": "hospital", "title": "병원비 청구서", "age": [20, 64], "chance": 0.2, "cooldown": 12,
+      "when": "healthLow",
+      "text": "응급실에 다녀온 지 한 달, 청구서가 날아왔다. 보험이 없는 밴드 멤버에게는 큰돈이다.\n미국은 전 국민 건강보험이 없는 나라다.",
+      "choices": [
+        { "label": "분할 납부 신청서를 쓴다", "fx": { "money": -1500000, "stress": 10 }, "out": "매달 조금씩. 투어 수익의 한 줄이 병원 몫이 됐다." },
+        { "label": "자선 공연을 열어 모금한다", "fx": { "money": -500000, "rep": 3, "fans": 30, "happiness": 4 }, "out": "동료 밴드들이 무대에 올라 줬다. 이 동네 사람들은 이런 식으로 서로를 버텨 왔다." }
+      ]
+    },
+    {
+      "id": "ct_us_thanksgiving", "c": "US", "scene": "home", "title": "추수감사절 식탁", "age": [20, 55], "chance": 0.12, "cooldown": 10,
+      "text": "칠면조가 식탁에 오르자 삼촌이 물었다. “그래서, 음악으로 먹고는 사니?”\n사촌은 로스쿨에 붙었다고 했다.",
+      "choices": [
+        { "label": "기타를 꺼내 식탁에서 한 곡 한다", "roll": { "dc": 10, "skill": "stage", "why": "가족 앞 무대가 제일 어렵다", "win": { "fx": { "happiness": 8, "theme": "family" }, "out": "할머니가 손뼉을 쳤다. 삼촌은 더 묻지 않았다." }, "lose": { "fx": { "stress": 6 }, "out": "삼촌이 휴대폰을 봤다. 디저트가 빨리 나왔다." } } },
+        { "label": "웃으며 화제를 돌린다", "fx": { "stress": 3 }, "out": "파이를 두 조각 먹었다. 대답 대신." }
+      ]
+    },
+    {
+      "id": "ct_us_van_breakdown", "c": "US", "scene": "street", "title": "고속도로 위의 밴", "age": [19, 50], "band": true, "fans": [200, 100000000], "chance": 0.2, "cooldown": 12,
+      "text": "주 경계를 넘는 여덟 시간 운전. 사막 한가운데서 밴 엔진이 연기를 뿜었다.\n다음 공연까지 열 시간.",
+      "choices": [
+        { "label": "견인차를 부르고 수리한다", "fx": { "money": -900000, "stress": 6 }, "out": "정비소 아저씨가 공연 표를 사겠다고 했다. 수리비는 깎아 주지 않았다." },
+        { "label": "장비를 들고 히치하이크한다", "roll": { "dc": 13, "skill": "charm", "why": "길 위의 운은 사람에게서 온다", "win": { "fx": { "fans": 60, "happiness": 8, "chron": "밴이 퍼진 사막에서 트럭을 얻어 타고 공연장에 닿았다", "theme": "dream" }, "out": "트럭 기사가 공연장까지 태워 줬고, 맨 앞줄에서 공연을 봤다." }, "lose": { "fx": { "stress": 12, "fans": -20 }, "out": "공연은 취소됐다. 해가 지는 고속도로 갓길에서 다 같이 웃어 버렸다." } } }
+      ]
+    },
+    {
+      "id": "ct_uk_openmic", "c": "UK", "scene": "pub", "title": "펍 오픈 마이크", "age": [18, 70], "chance": 0.25, "cooldown": 8,
+      "text": "동네 펍 구석의 작은 무대. 화요일 밤 오픈 마이크, 이름을 적으면 세 곡.\n맥주잔 부딪치는 소리 사이로 노래가 들릴까.",
+      "choices": [
+        { "label": "이름을 적는다", "roll": { "dc": 11, "skill": "stage", "why": "영국 음악인 상당수가 펍 무대에서 시작했다", "win": { "fx": { "fans": 25, "skill": { "stage": 3 }, "happiness": 6 }, "out": "세 번째 곡에서 펍이 조용해졌다. 주인이 다음 달 정식 공연을 잡아 줬다." }, "lose": { "fx": { "skill": { "stage": 2 }, "stress": 4 }, "out": "다들 축구 중계를 봤다. 그래도 무대 위 감각은 남았다." } } },
+        { "label": "오늘은 듣기만 한다", "fx": { "skill": { "compose": 1 }, "rep": 1 }, "out": "다른 사람들 노래에서 훔칠 게 많았다." }
+      ]
+    },
+    {
+      "id": "ct_uk_weekly_review", "c": "UK", "scene": "studio", "title": "음악 주간지", "age": [18, 50], "band": true, "fans": [100, 20000], "chance": 0.25, "once": true, "to": 2018,
+      "text": "음악 주간지 기자가 공연을 보러 왔다. 다음 주 리뷰 한 칸이 우리 차지다.\n영국에서는 주간지 한 줄이 밴드를 띄우기도, 묻기도 했다.",
+      "choices": [
+        { "label": "인터뷰에서 도발적으로 말한다", "roll": { "dc": 13, "skill": "charm", "why": "주간지는 말 잘하는 밴드를 좋아했다", "win": { "fx": { "fans": 400, "rep": 6, "chron": "음악 주간지 ‘이번 주의 신인’" }, "out": "‘이번 주의 신인’. 가판대에서 그 페이지를 다섯 부 샀다." }, "lose": { "fx": { "fans": -50, "stress": 10 }, "out": "별 두 개. ‘말만 많은 밴드’라는 제목이 달렸다." } } },
+        { "label": "음악 얘기만 한다", "fx": { "fans": 120, "rep": 3 }, "out": "조용한 리뷰였지만, 끝 문장이 좋았다." }
+      ]
+    },
+    {
+      "id": "ct_uk_student_union", "c": "UK", "scene": "club", "title": "학생회 공연장 순회", "age": [18, 30], "band": true, "chance": 0.25, "once": true,
+      "text": "영국 대학마다 학생회가 운영하는 공연장이 있다. 열 개 도시 학생회 공연장을 도는 순회 공연 제안이 왔다.",
+      "choices": [
+        { "label": "기차표를 끊는다", "fx": { "money": -400000, "fans": 180, "skill": { "stage": 3 }, "stress": 6, "chron": "대학 학생회 공연장 열 곳을 돌았다" }, "out": "도시마다 바닥이 끈적했고, 도시마다 따라 부르는 얼굴이 늘었다." },
+        { "label": "가까운 세 곳만 간다", "fx": { "money": -120000, "fans": 60 }, "out": "짧았지만 알찼다." }
+      ]
+    },
+    {
+      "id": "ct_uk_dole", "c": "UK", "scene": "office", "title": "실업 수당", "age": [19, 35], "chance": 0.25, "once": true, "from": 1975, "to": 2012,
+      "when": "noJob",
+      "text": "고용 센터 창구. 실업 수당을 받으면 일주일 내내 합주할 수 있다.\n1980~90년대 영국에선 수당으로 버티며 곡을 쓴 밴드가 많았다.",
+      "choices": [
+        { "label": "수당을 받으며 음악에 몰두한다", "fx": { "money": 900000, "skill": { "compose": 3 }, "stress": 4, "chron": "실업 수당으로 버티며 곡을 썼다" }, "out": "매주 목요일 창구에 줄을 섰다. 나머지 엿새는 전부 음악이었다." },
+        { "label": "자존심 때문에 일을 구한다", "fx": { "money": 1500000, "stress": 6, "happiness": -2 }, "out": "창고 야간 근무. 형광등 아래서 가사를 외웠다." }
+      ]
+    },
+    {
+      "id": "ct_uk_mud", "c": "UK", "scene": "festival", "title": "진흙 페스티벌", "age": [16, 60], "chance": 0.15, "cooldown": 12, "from": 1970,
+      "text": "농장에서 열리는 여름 페스티벌. 사흘 내내 비가 왔다. 장화가 진흙에 빠져 안 나온다.",
+      "choices": [
+        { "label": "진흙 속에서 끝까지 즐긴다", "fx": { "happiness": 12, "health": -2, "theme": "sea" }, "out": "비 맞으며 헤드라이너 떼창. 평생 기억할 밤이었다." },
+        { "label": "작은 텐트 무대를 찾아다닌다", "fx": { "skill": { "compose": 2 }, "rep": 1 }, "out": "이름 모를 밴드의 텐트 무대에서 내 다음 곡의 힌트를 얻었다." }
+      ]
+    },
+    {
+      "id": "ct_de_zivi", "c": "DE", "scene": "military", "title": "병역이냐 대체 복무냐", "age": [18, 21], "sex": "m", "chance": 0.7, "once": true, "from": 1961, "to": 2011,
+      "text": "징집 통지서가 왔다. 서독에선 양심에 따라 병역 대신 대체 복무(병원·요양원 등)를 고를 수 있다.\n어느 쪽이든 1년 남짓 음악은 뒷전이다.",
+      "choices": [
+        { "label": "대체 복무 — 요양원에서 일한다", "fx": { "happiness": 4, "stress": 6, "skill": { "vocal": 1 }, "theme": "family", "chron": "대체 복무 — 요양원에서 1년을 보냈다", "flag": "zivi" }, "out": "할머니 할아버지들 앞에서 옛 노래를 불러 드렸다. 가장 까다로운 관객이자 가장 고마운 관객." },
+        { "label": "군에 간다", "fx": { "health": 3, "stress": 8, "skill": { "drums": 1 }, "chron": "병역을 마쳤다" }, "out": "행군 박자가 몸에 붙었다. 드럼 비트가 조금 단단해졌다." }
+      ]
+    },
+    {
+      "id": "ct_de_jugendzentrum", "c": "DE", "scene": "musicroom", "title": "청소년 센터 연습실", "age": [13, 22], "chance": 0.4, "once": true,
+      "text": "동네 청소년 센터 지하에 공짜 연습실이 있다. 시가 운영하는 곳이라 드럼 세트와 앰프도 있다.\n조건은 단 하나, 다른 밴드와 시간을 나눠 쓸 것.",
+      "choices": [
+        { "label": "매주 시간표에 이름을 올린다", "fx": { "skill": { "guitar": 2, "drums": 2, "bass": 2 }, "rep": 2, "happiness": 4 }, "out": "옆 시간대 펑크 밴드와 장비를 같이 쓰다 친구가 됐다." },
+        { "label": "집에서 혼자 연습한다", "fx": { "skill": { "compose": 2 } }, "out": "조용한 방에서 곡이 하나 나왔다." }
+      ]
+    },
+    {
+      "id": "ct_de_fund", "c": "DE", "scene": "office", "title": "음악 지원 공모", "age": [19, 55], "band": true, "chance": 0.25, "cooldown": 14, "from": 2008,
+      "text": "연방 음악 지원 프로그램 공고가 떴다. 녹음·투어 비용의 일부를 공적 자금으로 지원한다.\n신청서는 열두 쪽, 예산표까지 붙여야 한다.",
+      "choices": [
+        { "label": "밤새 신청서를 쓴다", "roll": { "dc": 14, "skill": "compose", "why": "독일은 대중음악에도 공적 지원이 있다 — 경쟁률은 높다", "win": { "fx": { "money": 6000000, "rep": 4, "chron": "음악 지원 공모 선정" }, "out": "선정 통지서. 녹음실 예약을 하루 만에 잡았다." }, "lose": { "fx": { "stress": 6 }, "out": "탈락. 심사평이 길고 친절해서 더 아팠다." } } },
+        { "label": "서류 대신 공연을 한다", "fx": { "fans": 40, "skill": { "stage": 1 } }, "out": "열두 쪽 대신 열두 곡." }
+      ]
+    },
+    {
+      "id": "ct_de_volksfest", "c": "DE", "scene": "festival", "title": "마을 축제 무대", "age": [16, 70], "chance": 0.15, "cooldown": 10,
+      "text": "여름 마을 축제. 맥주 천막 무대의 밴드가 펑크를 냈다. 주최 측이 오늘 밤 세 시간을 채워 달라고 한다.\n관객은 대부분 할아버지 할머니다.",
+      "choices": [
+        { "label": "옛 노래 메들리로 세 시간을 채운다", "fx": { "money": 400000, "skill": { "stage": 3 }, "happiness": 5 }, "out": "자정 무렵 모두가 의자 위에 올라가 있었다." },
+        { "label": "우리 곡으로 밀어붙인다", "roll": { "dc": 14, "skill": "stage", "why": "축제 관객은 아는 노래를 원한다", "win": { "fx": { "fans": 70, "rep": 2 }, "out": "처음엔 어리둥절하던 사람들이 마지막엔 따라 불렀다." }, "lose": { "fx": { "stress": 8 }, "out": "천막 절반이 맥주를 들고 나갔다." } } }
+      ]
+    },
+    {
+      "id": "ct_br_church", "c": "BR", "scene": "musicroom", "title": "교회 음악단", "age": [10, 25], "chance": 0.35, "once": true,
+      "text": "동네 교회 음악단에 사람이 모자란다. 매주 일요일, 악기와 앰프가 있고 가르쳐 줄 사람도 있다.\n브라질에서 많은 연주자가 교회 무대에서 처음 악기를 잡았다.",
+      "choices": [
+        { "label": "음악단에 들어간다", "fx": { "skill": { "keys": 2, "vocal": 2, "stage": 2 }, "happiness": 4, "chron": "교회 음악단에서 처음 무대에 섰다" }, "out": "매주 같은 사람들 앞. 무대 공포가 조금씩 사라졌다." },
+        { "label": "일요일엔 축구를 한다", "fx": { "health": 3, "happiness": 4 }, "out": "골을 넣고 세리머니로 기타 치는 흉내를 냈다." }
+      ]
+    },
+    {
+      "id": "ct_br_inflation", "c": "BR", "scene": "home", "title": "물가가 매일 오른다", "age": [14, 70], "chance": 0.6, "once": true, "from": 1986, "to": 1994,
+      "text": "슈퍼마켓 직원이 가격표를 하루에 두 번 바꾼다. 월급을 받으면 그날 바로 써야 한다.\n1993년 브라질의 물가는 1년에 2,477% 올랐다.",
+      "choices": [
+        { "label": "받자마자 중고 악기를 산다", "fx": { "money": -300000, "skill": { "guitar": 2 }, "happiness": 4 }, "out": "다음 주였으면 두 배였을 값. 악기는 값이 안 떨어진다." },
+        { "label": "달러로 바꿔 숨겨 둔다", "fx": { "stress": 6 }, "out": "매트리스 밑에 넣었다. 잠이 잘 안 왔다." }
+      ]
+    },
+    {
+      "id": "ct_br_tv", "c": "BR", "scene": "studio", "title": "지역 방송 출연", "age": [18, 50], "band": true, "fans": [300, 20000], "chance": 0.25, "once": true,
+      "text": "주 방송국의 일요일 오후 버라이어티 쇼에서 섭외가 왔다. 생방송, 립싱크 불가.\n브라질에선 TV 쇼 한 번이 전국 순회의 시작이 되기도 한다.",
+      "choices": [
+        { "label": "생방송에 나간다", "roll": { "dc": 13, "skill": "stage", "why": "생방송 무대는 실수를 숨길 데가 없다", "win": { "fx": { "fans": 500, "rep": 5, "chron": "일요일 버라이어티 쇼 생방송 출연" }, "out": "다음 날 시장에서 아주머니가 나를 알아봤다." }, "lose": { "fx": { "fans": 60, "stress": 10 }, "out": "모니터가 안 들려 한 박자 늦게 들어갔다. 그래도 방송은 방송이었다." } } },
+        { "label": "라디오 인터뷰만 한다", "fx": { "fans": 120, "rep": 2 }, "out": "진행자가 우리 곡을 두 번 틀어 줬다." }
+      ]
+    },
+    {
+      "id": "ct_br_bus", "c": "BR", "scene": "street", "title": "막차가 끊긴 밤", "age": [16, 45], "band": true, "chance": 0.15, "cooldown": 10,
+      "text": "공연이 끝나니 새벽 두 시. 집까지 가는 버스는 이미 끊겼다. 앰프는 무겁고, 길은 멀다.",
+      "choices": [
+        { "label": "다 같이 택시비를 모은다", "fx": { "money": -60000, "happiness": 2 }, "out": "택시 기사가 라디오 볼륨을 올렸다. 다 같이 따라 불렀다." },
+        { "label": "공연장 사장님 가게에서 새벽까지 버틴다", "fx": { "rep": 2, "stress": 3, "skill": { "compose": 1 } }, "out": "첫차를 기다리며 테이블 위에서 새 곡의 첫 줄을 썼다." }
+      ]
+    }
+  ]
+}

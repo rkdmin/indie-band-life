@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { decodeFate, fateName } from '../sim/fatecode';
 import type { Gender } from '../sim/types';
 import type { NewGameOptions } from '../sim/engine';
 import { birthsIn } from '../sim/data/world';
-import { COUNTRIES, COUNTRY_IDS, rollCountry, foreignName, countryBirthShare, type CountryId } from '../sim/data/countries';
-import { randomName } from '../sim/names';
+import { COUNTRIES, COUNTRY_IDS, rollCountry, countryBirthShare, type CountryId } from '../sim/data/countries';
 import { Rng } from '../sim/rng';
 import { PixelScene } from '../art/PixelScene';
 import { isMuted, playBgm, setMuted, sfx, stopBgm } from '../audio/player';
@@ -88,8 +88,23 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
     const birthYear = r.int(e.from, e.to);
     const g: Gender = gender === 'random' ? (r.chance(0.51) ? 'm' : 'f') : gender;
     const ct: CountryId = country === 'random' ? rollCountry(r) : country;
-    const nm = custom && name.trim().length >= 2 ? name.trim() : ct === 'KR' ? randomName(r, g, birthYear) : foreignName(r, COUNTRIES[ct], g, birthYear);
-    onBorn({ name: nm, gender: g, birthYear, country: ct }, pace);
+    // 시드를 먼저 정해 두면 출생증명서의 운명 코드로 친구도 같은 출생을 할 수 있다 (sim/fatecode.ts)
+    const seed = r.int(1, 0x7fffffff);
+    const nm = custom && name.trim().length >= 2 ? name.trim() : fateName({ country: ct, birthYear, gender: g, seed });
+    onBorn({ name: nm, gender: g, birthYear, country: ct, seed }, pace);
+  };
+  const [fateOpen, setFateOpen] = useState(false);
+  const [fateIn, setFateIn] = useState('');
+  const [fateErr, setFateErr] = useState(false);
+  const bornFrom = () => {
+    const f = decodeFate(fateIn);
+    if (!f) {
+      setFateErr(true);
+      sfx('bad');
+      return;
+    }
+    sfx('big');
+    onBorn({ name: fateName(f), gender: f.gender, birthYear: f.birthYear, country: f.country, seed: f.seed }, pace);
   };
 
   const people = [
@@ -181,6 +196,18 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
                 </div>
                 <div className="seg-help">남성은 병역 이벤트가 있습니다.</div>
               </div>
+            )}
+          </div>
+          <div className="opt-group">
+            <button className="linkbtn" onClick={() => setFateOpen(!fateOpen)}>{fateOpen ? '닫기' : '운명 코드로 태어나기 (친구와 같은 출생)'}</button>
+            {fateOpen && (
+              <form className="fate-form" onSubmit={(e) => { e.preventDefault(); bornFrom(); }}>
+                <div className="row">
+                  <input className="text-input" placeholder="예: BR-1967M-3KQ9Z1" maxLength={20} value={fateIn} autoComplete="off" autoCapitalize="characters" enterKeyHint="go" onChange={(e) => { setFateIn(e.target.value); setFateErr(false); }} />
+                  <button type="submit" className="btn" disabled={!fateIn.trim()}>태어나기</button>
+                </div>
+                {fateErr ? <div className="fate-err">코드를 읽을 수 없어요. 나라-연도성별-코드 모양인지 확인해 주세요.</div> : <div className="seg-help">같은 집·재능·외모로 태어나고, 그 뒤는 각자의 선택으로 갈라진다.</div>}
+              </form>
             )}
           </div>
           <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
