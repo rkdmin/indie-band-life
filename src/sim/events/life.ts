@@ -334,17 +334,24 @@ export const LIFE: EventDef[] = [
     ],
   },
   {
-    id: 'life_proposal', scene: 'rooftop', title: '같이 살자', chance: 0.2, once: true,
-    when: (c) => between(c, 25, 50) && hasPartner(c) && !c.flag('married') && free(c) && (c.s.npcs[c.p.partnerId!]?.affinity ?? 0) >= 45,
+    // 만나기 시작할 때 친밀도가 32~35 라 예전 기준(45)으로는 거의 아무도 결혼하지 못했다
+    // 이야기 사건(우선순위 100+)으로 — 일반 사건 수십 개와 한두 자리를 다투면 연인이 있어도 몇 년씩 안 나온다
+    // 반년마다 15%: 조건이 갖춰진 뒤 3년 안에 약 60%, 5년 안에 약 80% [가정]
+    // 한 번 미뤘다고 평생 결혼 못 하는 건 아니다 — 거절하면 몇 년 뒤 다시 (예전엔 once 라서 ‘조금만 더’가 곧 평생 미혼이었다)
+    id: 'life_proposal', scene: 'rooftop', title: '같이 살자', chance: 0.15, cooldown: 6, priority: 105,
+    when: (c) => between(c, 25, 50) && hasPartner(c) && !c.flag('married') && free(c) && (c.s.npcs[c.p.partnerId!]?.affinity ?? 0) >= 30,
     bind: bindPartner,
     text: (c) => `옥상 평상에 나란히 누워 별 없는 하늘을 본다.\n${c.nj('pt', '이/가')} 불쑥 말했다. “우리… 그냥 같이 살까?”\n주머니 속엔 아무것도 없다. 반지도, 계획도.`,
     choices: [
       { label: '“응.” 그리고 노래 한 곡', run: (c) => { c.set('married'); c.set('independent'); c.rel('pt', 15, '같이 살자고 한 밤'); c.stat('happiness', 15); c.money(-c.krw(8_000_000), '작은 결혼식'); c.theme('family'); c.chron(`${c.nj('pt', '과/와')} 결혼했다. 축가는 직접 불렀다`, 'big', 'pt'); return '하객 마흔 명의 작은 결혼식. 축가는 둘이 직접 불렀다.\n음이 조금 나갔고, 모두가 울었다.'; } },
+      // 결혼식 비용(800만원)이 통장에 없으면 위 선택지는 잠긴다 — 식 없이 함께 사는 길 (식은 ‘결혼 비용 계산서’에서 나중에)
+      { label: '“응.” 식은 나중에, 혼인신고부터', run: (c) => { c.set('married'); c.set('independent'); c.rel('pt', 12, '혼인신고 하던 날'); c.stat('happiness', 12); c.theme('family'); c.chron(`${c.nj('pt', '과/와')} 혼인신고만 하고 같이 살기 시작했다`, 'big', 'pt'); return '구청 민원실 번호표 47번. 서류 한 장에 도장 두 개.\n돌아오는 길에 떡볶이를 먹었다. 그게 우리 결혼식이었다.'; } },
       { label: '“조금만 더 자리 잡고.”', run: (c) => { c.rel('pt', -6); c.stat('stress', 4); return `“그 조금이 언제인데.” ${c.nj('pt', '은/는')} 웃었지만 눈은 웃지 않았다.`; } },
     ],
   },
   {
-    id: 'life_baby', scene: 'hospital', title: '작은 울음', chance: 0.2, once: true,
+    // 반년마다 12%: 결혼 뒤 4년 안에 약 60% [가정] — ‘같이 살자’를 고른 뒤에만 오므로 무자녀 부부도 남는다
+    id: 'life_baby', scene: 'hospital', title: '작은 울음', chance: 0.12, once: true, priority: 105,
     when: (c) => between(c, 27, 46) && !!c.flag('married') && !c.flag('child') && free(c),
     bind: bindPartner,
     text: () => `새벽 네 시의 분만실 복도.\n자판기 커피는 식은 지 오래다.\n문이 열리고, 작은 울음소리가 들렸다.`,

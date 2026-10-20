@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { GameState } from './sim/types';
 import { newGame, popCine, type NewGameOptions } from './sim/engine';
 import { loadGame, loadMeta, recordLife, saveGame, type Meta } from './ui/save';
-import { Title } from './ui/Title';
+import { Title, rollOptions, type BornSettings } from './ui/Title';
 import { BirthCert } from './ui/BirthCert';
 import { Life } from './ui/Life';
 import { Ending } from './ui/Ending';
@@ -17,7 +17,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('title');
   const [game, setGame] = useState<GameState | null>(() => loadGame());
   const [meta, setMeta] = useState<Meta>(() => loadMeta());
-  const [lastOpts, setLastOpts] = useState<{ o: NewGameOptions; pace: number } | null>(null);
+  const [lastOpts, setLastOpts] = useState<{ o: NewGameOptions; pace: number; set: BornSettings } | null>(null);
 
   // 화면이 바뀌면 맨 위에서 시작한다 — 아래쪽 버튼을 누르고 넘어가면 다음 화면이 중간부터 보이던 문제
   const ended = game?.phase === 'ending';
@@ -46,10 +46,10 @@ export function App() {
     if (s.phase === 'ending') setMeta((m) => recordLife(m, s));
   }, []);
 
-  const born = (o: NewGameOptions, pace: number) => {
+  const born = (o: NewGameOptions, pace: number, set: BornSettings) => {
     const s = newGame(o);
     s.flags.pace = pace;
-    setLastOpts({ o, pace });
+    setLastOpts({ o, pace, set });
     update(s);
     setScreen('cert');
   };
@@ -76,8 +76,8 @@ export function App() {
         onStart={() => setScreen('life')}
         onReroll={() => {
           if (!lastOpts) return setScreen('title');
-          // 같은 설정으로 다른 운명
-          born({ ...lastOpts.o, seed: undefined, name: lastOpts.o.name }, lastOpts.pace);
+          // 같은 설정으로 다른 운명 — 무작위로 둔 것(해·나라·성별·이름)도 다시 굴린다
+          born(rollOptions(lastOpts.set), lastOpts.pace, lastOpts.set);
         }}
       />
     );

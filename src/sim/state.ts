@@ -5,12 +5,24 @@ import { clamp } from './rng';
 export const age = (s: GameState) => s.time - s.player.birthYear;
 export const ageInt = (s: GameState) => Math.floor(age(s));
 export const year = (s: GameState) => Math.floor(s.time);
+/**
+ * 태어나는 순간의 나이. 나이는 ‘출생 연도 1월 = 0세’로 센다(해가 바뀌면 한 살) —
+ * 출생 월이 10월이면 0.75세 무렵에 태어나고, 그 전은 태교(뱃속) 시기다.
+ */
+export const bornAge = (s: GameState) => {
+  const m = ((s.player.birth?.month ?? 1) - 1) / 12;
+  // 예전 저장(1월에 태어나던 시절)을 이어 하면 ‘응애’가 이미 지났는데 뱃속으로 돌아가지 않게
+  return s.fired?.birth !== undefined && age(s) < m ? 0 : m;
+};
+export const isBorn = (s: GameState) => age(s) >= bornAge(s) - 1e-6;
+/** 태어나는 시각 (연도 + 월) */
+export const bornAt = (s: GameState) => s.player.birthYear + bornAge(s);
 export const half = (s: GameState) => (s.time - Math.floor(s.time) >= 0.5 ? '하반기' : '상반기');
 
 export type Stage = 'prenatal' | 'baby' | 'elem' | 'middle' | 'high' | 'twenties' | 'thirties' | 'middleage' | 'senior';
 
-export function stageOf(a: number): Stage {
-  if (a < 0) return 'prenatal';
+export function stageOf(a: number, born = 0): Stage {
+  if (a < born - 1e-6) return 'prenatal';
   if (a < 7) return 'baby';
   if (a < 13) return 'elem';
   if (a < 16) return 'middle';
@@ -34,9 +46,10 @@ export const STAGE_LABEL: Record<Stage, string> = {
 };
 
 /** 나이에 따라 시간 흐름이 다르다 (기획서 3장) */
-export function stepSize(a: number): number {
-  if (a < 0) return 0.5;
-  if (a < 3) return 3;
+export function stepSize(a: number, born = 0): number {
+  // 뱃속: 태어나는 순간까지 한 시기. 태어난 뒤 첫 시기는 세 살(출생 연도 + 3) 1월까지 — 그 뒤로는 해 단위로 맞춰진다
+  if (a < born - 1e-6) return born - a;
+  if (a < 3) return 3 - a;
   if (a < 7) return 2;
   if (a < 13) return 1;
   if (a < 40) return 0.5;

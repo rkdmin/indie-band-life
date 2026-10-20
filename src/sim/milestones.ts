@@ -18,12 +18,19 @@ export interface Milestone {
 
 const gigs = (s: GameState) => (s.flags.gigs as number) || 0;
 const released = (s: GameState) => s.songs.filter((x) => x.released).length;
+const instSkill = (s: GameState) => (s.player.mainInst ? s.player.skills[s.player.mainInst] : 0);
+const topGenre = (s: GameState) => Math.max(...Object.values(s.player.genre));
 
 export const MILESTONES: Milestone[] = [
   { id: 'inst', emoji: '🎸', label: '첫 악기', desc: '평생 함께할 악기를 정한다', from: 7, done: (s) => !!s.player.mainInst },
+  // 어린 시절 — 밴드까지 가는 길에 지금 할 수 있는 것 (생활 계획의 음악 학원·음악 듣기·친구랑 놀기로 채운다)
+  { id: 'stage1', emoji: '🎈', label: '첫 무대 경험', desc: '학예회·장기자랑에서 사람들 앞에 선다', from: 6, done: (s) => s.player.skills.stage >= 3, progress: (s) => [Math.floor(s.player.skills.stage), 3] },
+  { id: 'genre', emoji: '🎧', label: '좋아하는 장르', desc: '음악 듣기로 한 장르에 푹 빠진다', from: 8, done: (s) => topGenre(s) >= 30, progress: (s) => [Math.floor(topGenre(s)), 30] },
   { id: 'friend', emoji: '🤝', label: '음악 친구', desc: '친밀도 40 이상인 친구를 만든다', from: 9, done: (s) => Object.values(s.npcs).some((n) => n.role !== 'parent' && n.affinity >= 40) },
+  { id: 'skill20', emoji: '🎶', label: '손에 익은 악기', desc: '음악 학원·연습으로 주 악기 실력 20', from: 9, done: (s) => instSkill(s) >= 20, progress: (s) => [Math.floor(instSkill(s)), 20] },
+  { id: 'band', emoji: '🔥', label: '첫 밴드', desc: '중학교 밴드부에 들어가거나, 친구들과 밴드를 만든다', from: 13, done: (s) => !!s.band || s.pastBands.length > 0 },
+  { id: 'skill40', emoji: '🎸', label: '합주가 되는 실력', desc: '주 악기 실력 40 — 밴드에서 내 파트를 해낸다', from: 13, done: (s) => instSkill(s) >= 40, progress: (s) => [Math.floor(instSkill(s)), 40] },
   { id: 'song', emoji: '✍️', label: '첫 자작곡', desc: '처음으로 곡을 쓴다', from: 14, done: (s) => s.songs.length > 0, progress: (s) => [s.songs.length, 1] },
-  { id: 'band', emoji: '🔥', label: '첫 밴드', desc: '밴드를 결성한다', from: 15, done: (s) => !!s.band || s.pastBands.length > 0 },
   { id: 'gig', emoji: '🎤', label: '첫 무대', desc: '관객 앞에서 공연한다', from: 16, done: (s) => gigs(s) > 0 },
   { id: 'release', emoji: '💿', label: '첫 발매', desc: '곡을 세상에 내놓는다', from: 16, done: (s) => s.albums.length > 0 },
   { id: 'fans100', emoji: '👥', label: '팬 100명', desc: '이름을 기억해 주는 사람들', from: 16, done: (s) => s.peakFans >= 100 || s.player.fans >= 100, progress: (s) => [Math.max(s.player.fans, s.peakFans), 100] },

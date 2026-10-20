@@ -40,8 +40,28 @@ interface Props {
   canContinue: boolean;
   continueLabel: string;
   onContinue: () => void;
-  onBorn: (o: NewGameOptions, pace: number) => void;
+  onBorn: (o: NewGameOptions, pace: number, set: BornSettings) => void;
   onCollection: () => void;
+}
+
+/** 타이틀에서 고른 설정 — ‘운명에 맡김’·‘아무 때나’·성별 무작위는 굴릴 때마다 새로 정해진다 */
+export interface BornSettings {
+  era: (typeof ERAS)[number]['id'];
+  country: CountryId | 'random';
+  gender: Gender | 'random';
+  /** 직접 정한 이름 (없으면 그 시대·나라의 흔한 이름에서 뽑는다) */
+  name: string | null;
+}
+
+/** 설정대로 한 번 굴린다. ‘다시 태어나기’도 이걸 다시 부른다 (첫 결과를 그대로 쓰면 해·나라·이름이 고정된다) */
+export function rollOptions(set: BornSettings): NewGameOptions {
+  const r = new Rng((Date.now() ^ (Math.random() * 1e9)) >>> 0);
+  const e = ERAS.find((x) => x.id === set.era)!;
+  const birthYear = r.int(e.from, e.to);
+  const g: Gender = set.gender === 'random' ? (r.chance(0.51) ? 'm' : 'f') : set.gender;
+  const ct: CountryId = set.country === 'random' ? rollCountry(r) : set.country;
+  const nm = set.name ?? (ct === 'KR' ? randomName(r, g, birthYear) : foreignName(r, COUNTRIES[ct], g, birthYear));
+  return { name: nm, gender: g, birthYear, country: ct };
 }
 
 export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, onCollection }: Props) {
@@ -72,13 +92,8 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
 
   const born = () => {
     sfx('big');
-    const r = new Rng((Date.now() ^ (Math.random() * 1e9)) >>> 0);
-    const e = ERAS.find((x) => x.id === era)!;
-    const birthYear = r.int(e.from, e.to);
-    const g: Gender = gender === 'random' ? (r.chance(0.51) ? 'm' : 'f') : gender;
-    const ct: CountryId = country === 'random' ? rollCountry(r) : country;
-    const nm = custom && name.trim().length >= 2 ? name.trim() : ct === 'KR' ? randomName(r, g, birthYear) : foreignName(r, COUNTRIES[ct], g, birthYear);
-    onBorn({ name: nm, gender: g, birthYear, country: ct }, pace);
+    const set: BornSettings = { era, country, gender, name: custom && name.trim().length >= 2 ? name.trim() : null };
+    onBorn(rollOptions(set), pace, set);
   };
 
   const people = [
@@ -203,7 +218,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
       </div>
       <p className="dim" style={{ marginTop: 30 }}>
         출생아 수·기대수명·최저임금·지역 인구 분포는 통계청 자료를 반올림해 썼고, 그 밖의 확률은 게임용 가정입니다. 현실의 통계가 한 사람의 미래를 결정하지 않습니다.
-        모든 곡은 플레이 중 즉석에서 작곡되며, 실존 인물·밴드와 무관합니다.
+        주인공과 주변 인물, 모든 곡은 가상입니다(곡은 플레이 중 즉석에서 작곡). 그 시대 음악사를 보여 주려고 실존 밴드의 이름·활동 기간·스타일이 나오지만, 그 밴드들과는 아무 관계가 없고 그들의 곡을 재생하지 않습니다.
       </p>
     </div>
   );

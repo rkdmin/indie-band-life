@@ -14,6 +14,24 @@ import { josa, won, count, given } from '../korean';
 import { clamp } from '../rng';
 import { careerLabel } from '../npc';
 import { effectsOf } from '../birth';
+import { Rng } from '../rng';
+import schoolBandJson from '../../data/fate/school_band.json';
+
+// 중학교 밴드부 — 학교에 밴드 동아리가 있을 확률 (data/fate/school_band.json, 나라별 근거와 [통계]/[근사]/[가정])
+type SchoolBand = { club: string; rate: number | Record<string, number>; kind: string; src: string };
+const SB = schoolBandJson.data as unknown as { countries: Record<string, SchoolBand>; eraMul: number[][] };
+export function middleClubOf(c: Ctx): (SchoolBand & { p: number }) | null {
+  const sb = SB.countries[c.p.country ?? 'KR'] ?? SB.countries.KR;
+  const base = typeof sb.rate === 'number' ? sb.rate : sb.rate[c.p.region] ?? 0.25;
+  const y = c.p.birthYear + 13;
+  const t = SB.eraMul;
+  let mul = t[t.length - 1][1];
+  for (let i = 1; i < t.length; i++) if (y <= t[i][0]) { mul = t[i - 1][1] + ((y - t[i - 1][0]) / (t[i][0] - t[i - 1][0])) * (t[i][1] - t[i - 1][1]); break; }
+  if (y <= t[0][0]) mul = t[0][1];
+  const p = base * mul;
+  // 인생마다 한 번만 정해진다 (시기마다 다시 굴리면 확률이 부풀려진다)
+  return new Rng((c.s.seed ^ 0x5c40b) >>> 0).next() < p ? { ...sb, p } : null;
+}
 
 const between = (c: Ctx, a: number, b: number) => c.age >= a && c.age < b;
 const mom = (c: Ctx) => c.s.npcs[c.s.flags.mom as string];
@@ -34,7 +52,7 @@ export const STORY: EventDef[] = [
   // ───────── 태교 ─────────
   {
     id: 'taegyo', scene: 'nursery', title: '태교', priority: 200, once: true, chance: 1,
-    when: (c) => c.age < 0,
+    when: (c) => !c.born,
     text: (c) =>
       `${c.year}년. 아직 세상에 나오기 전.\n${TASTE_TEXT[c.p.parentTaste] ?? ''}이다.\n부모님은 뱃속의 나에게 어떤 음악을 들려줬을까?`,
     choices: [
@@ -46,7 +64,7 @@ export const STORY: EventDef[] = [
   },
   {
     id: 'birth', scene: 'nursery', title: '응애', priority: 200, once: true, chance: 1,
-    when: (c) => c.age >= 0 && c.age < 1,
+    when: (c) => c.born && c.age < 1,
     text: (c) => {
       const r = REGIONS.find((x) => x.id === c.p.region)!;
       const inc = { low: '넉넉하진 않지만 웃음은 많은', mid: '평범하고 바쁜', high: '여유 있는' }[c.p.income];
@@ -160,6 +178,59 @@ export const STORY: EventDef[] = [
     ],
   },
   {
+    id: 'club_middle', scene: 'musicroom', title: '중학교 밴드부', priority: 175, once: true, chance: 1,
+    when: (c) => between(c, 13.3, 15.5) && !c.band && !!middleClubOf(c),
+    bind: (c) => {
+      const id = c.flag('musicFriend') as string;
+      if (id && c.s.npcs[id]?.alive) c.bind.mf = id;
+      else c.meet('mf', { metAt: '중학교 같은 반', birthYear: c.p.birthYear, inst: 'drums', skill: 25, affinity: 25 });
+      return true;
+    },
+    text: (c) => {
+      const club = middleClubOf(c)!;
+      return `${c.ageInt}살, 중학교 ${Math.min(3, Math.max(1, c.ageInt - 12))}학년. 게시판에 ${club.club} 신입 모집 공고가 붙었다.\n${c.nj('mf', '이/가')} 공고를 손가락으로 두드렸다. “같이 보자.”\n${c.p.mainInst ? '' : '아직 제대로 치는 악기는 없다. 그래도 베이스는 늘 모자란다고 했다.'}`;
+    },
+    choices: [
+      {
+        label: (c) => (c.p.mainInst ? `${INST_LABEL[c.p.mainInst]}로 오디션 보기` : '베이스부터 배워서 들어가기'),
+        odds: (c) => {
+          const club = middleClubOf(c)!;
+          return c.dc(
+            c.p.mainInst ? 10 : 12,
+            '입부 판정',
+            [['주 악기 실력', c.m(c.mainSkill)], [`${c.nj('mf', '과/와')} 같이 지원`, c.npc('mf').affinity >= 30 ? 1 : 0]],
+            '가정',
+            `${club.club}가 있는 중학교에 다닐 확률 약 ${Math.round(club.p * 100)}% — ${club.src}`,
+          );
+        },
+        run: (c) => {
+          const club = middleClubOf(c)!;
+          if (!c.p.mainInst) { c.setInst('bass'); c.skill('bass', 6); }
+          if (c.check(c.choicesOdds!, '입부 판정')) {
+            const band = formBand(c, `${c.pick(['한빛', '새솔', '푸른', '동명', '세화', '서림'])}중 ${club.club}`, undefined, false);
+            if (!band.memberIds.includes(c.bind.mf)) {
+              band.memberIds.push(c.bind.mf);
+              const m = c.npc('mf');
+              m.inBand = true;
+              m.role = 'member';
+            }
+            c.set('teenBand');
+            c.set('middleBand');
+            c.rel('mf', 10, '같이 밴드부 들어간 날');
+            c.skill('stage', 2);
+            c.theme('youth');
+            c.chron(`중학교 ${club.club}에 들어갔다 — 첫 밴드`, 'band', 'mf');
+            return '동아리실 앰프는 낡았고 드럼 심벌엔 금이 가 있었다. 그래도 첫 합주 소리가 나자 다들 웃음이 터졌다.';
+          }
+          c.stat('happiness', -4);
+          c.skill(c.p.mainInst ?? 'bass', 3);
+          return `떨어졌다. 선배가 “내년에 또 와” 하고 어깨를 두드렸다. ${c.nj('mf', '은/는')} 붙었다.`;
+        },
+      },
+      { label: '구경만 하고 집에 간다', run: (c) => { c.genre(c.npc('mf').genre, 4); c.rel('mf', -2); return '창문 너머로 들리던 합주 소리가 며칠 동안 귀에 남았다.'; } },
+    ],
+  },
+  {
     id: 'first_live', scene: 'club', title: '인생을 바꾼 무대', priority: 160, once: true, chance: 0.8,
     when: (c) => between(c, 14, 16),
     text: (c) => {
@@ -222,6 +293,32 @@ export const STORY: EventDef[] = [
       },
       { label: '시험이 끝난 뒤 지원하기', run: (c) => { c.study(8); c.set('lateApply'); c.rel('mf', -4); return '시험은 잘 봤다. 하지만 밴드부 자리는 이미 찼다. 다음 기회를 노리자.'; } },
       { label: '혼자 음악을 만들어 보기', run: (c) => { c.skill('compose', 8); c.set('soloPath'); c.theme('night'); return '방문을 닫고 녹음 앱을 켰다. 첫 데모는 형편없었지만, 전부 내 것이었다.'; } },
+    ],
+  },
+  {
+    // 중학교 밴드부는 학교에 남는다 — 고등학교에 올라가면 갈림길
+    id: 'middle_band_grad', scene: 'rooftop', title: '중학교 졸업, 밴드부와 작별', priority: 176, once: true, chance: 1,
+    when: (c) => between(c, 16, 16.8) && !!c.flag('middleBand') && !!c.band && c.band.name.includes('중 '),
+    text: (c) => `중학교 졸업식. 동아리실 열쇠를 후배에게 넘겼다.\n${c.band!.name} 멤버들은 서로 다른 고등학교로 간다.\n“우리… 학교 밖에서 계속할래?”`,
+    choices: [
+      {
+        label: '학교 밖에서 그대로 계속한다',
+        run: (c) => {
+          c.band!.name = `${c.pick(['새벽', '보라', '여름', '네온', '옥상', '골목'])} ${c.pick(['고양이', '라디오', '소년단', '자전거', '우체국'])}`;
+          c.stat('happiness', 4);
+          c.chron(`중학교 밴드부 멤버들과 ‘${c.band!.name}’로 이름을 바꿔 계속했다`, 'band');
+          return '구민회관 합주실을 한 시간에 몇천 원씩 나눠 내기로 했다. 처음 내 보는 ‘합주실 비용’이었다.';
+        },
+      },
+      {
+        label: '고등학교 밴드부에 새로 지원한다',
+        run: (c) => {
+          disband(c, '중학교 졸업');
+          c.set('teenBand', false);
+          c.chron('중학교 밴드부를 졸업했다', 'band');
+          return '“고등학교 가서도 꼭 하자.” 마지막 합주가 끝나고 다들 한참을 앉아 있었다.';
+        },
+      },
     ],
   },
   {

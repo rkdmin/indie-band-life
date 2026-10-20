@@ -32,7 +32,12 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
   const momApp = mom ? npcAppearance(mom, p.country) : null;
   const dadApp = dad ? npcAppearance(dad, p.country) : null;
   const inherited = `${momApp && dadApp ? `아빠 ${dadApp.height}cm · 엄마 ${momApp.height}cm → ` : ''}다 크면 약 ${app.height}cm · ${describe(app, 30, p.gender).split(' · ').slice(1).join(' · ')}`;
-  const month = 1 + (s.seed % 12);
+  const month = s.player.birth?.month ?? 1 + (s.seed % 12);
+  // 태어나는 순간에 이미 정해진 것만 — 동생·부모님 이혼·가세 같은 미래는 살면서 드러난다
+  const shown = p.fate.draws.filter((d) => !d.future);
+  const birthRarity = p.rarityLog - p.fate.draws.filter((d) => d.future).reduce((a, d) => a - Math.log10(Math.max(1e-9, d.p)), 0);
+  const older = p.fate.older ?? 0;
+  const sibFuture = p.fate.draws.some((d) => d.id === 'siblings' && d.future);
   return (
     <div className="cert-wrap">
       <div className="cert" role="document">
@@ -97,12 +102,13 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div><span className="label">기대수명</span><div className="v">{lifeExpAt(ct, y)}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
             <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
+            {sibFuture && <div><span className="label">형제</span><div className="v">{older ? `손위 형제 ${older}명` : '첫아이'}</div></div>}
             {p.birth && <div><span className="label">엄마 나이</span><div className="v">{p.birth.motherAge}세</div></div>}
           </div>
           <div className="fate-box">
             <div className="fate-rarity">
               <span className="label">이렇게 태어날 확률</span>
-              <b>약 {rarityText(p.rarityLog)}</b>
+              <b>약 {rarityText(birthRarity)}</b>
             </div>
             <div className="fate-cols">
               <div>
@@ -123,7 +129,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
               <div>
                 <span className="label">이 인생의 변수</span>
                 <ul className="fate-list">
-                  {p.fate.draws.map((d) => (
+                  {shown.map((d) => (
                     <li key={d.id}>
                       <b>{d.label}</b>
                       <span className="fate-p">

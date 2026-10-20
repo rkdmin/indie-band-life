@@ -3,13 +3,39 @@
 
 import type { GameState } from './types';
 import type { Rng } from './rng';
-import { age } from './state';
+import { age, bornAge } from './state';
 import { given, josa } from './korean';
 import { textMinYear } from './data/anachronism';
 import { eraLines } from './data/era/life';
 import type { CountryId } from './data/countries';
 
 type Flavor = { when: (s: GameState, a: number) => boolean; lines: string[] };
+/** 아기 때 순간은 ‘태어난 지 몇 년’에 묶는다 — 뒤집기가 두 살에 나오지 않게 (첫 시기가 세 살까지 한 번에 흐른다) */
+type BabyFlavor = { from: number; to: number; lines: string[] };
+
+/** 뱃속 (태교 시기) */
+const PRENATAL = [
+  '엄마 배 속에서 음악 소리가 나면 발로 콩콩 찼다.',
+  '초음파 사진 속 손 모양을 보고 아빠가 기타 잡는 손이라고 우겼다.',
+  '태명을 두고 엄마 아빠가 한참 옥신각신했다.',
+  '엄마는 입덧이 심해 한동안 라디오만 켜 두고 누워 있었다.',
+  '아빠가 배에 대고 서툰 노래를 불러 줬다.',
+];
+
+const BABY: BabyFlavor[] = [
+  { from: 0, to: 0.5, lines: ['밤마다 우는 통에 온 가족이 잠을 설쳤다.', '엄마의 콧노래를 들으면 울음을 그쳤다.'] },
+  { from: 0.1, to: 0.6, lines: ['모빌을 한참 바라보며 옹알이를 했다.'] },
+  { from: 0.3, to: 0.6, lines: ['처음으로 뒤집기에 성공했다.'] },
+  { from: 0.9, to: 1.6, lines: ['첫걸음마를 뗐다. 세 걸음 만에 주저앉았다.', '“엄마”보다 “빠빠”를 먼저 말했다.'] },
+  { from: 1, to: 3, lines: ['냄비 뚜껑을 두드리며 깔깔 웃었다.', '텔레비전에서 노래가 나오면 엉덩이를 흔들었다.'] },
+];
+
+export interface FlavorLine {
+  text: string;
+  /** 이 줄이 놓일 나이 구간 (출생 연도 1월 = 0) */
+  lo: number;
+  hi: number;
+}
 
 const friendName = (s: GameState, rng: Rng) => {
   const f = Object.values(s.npcs).filter((n) => n.alive && n.role !== 'parent' && n.affinity > 20);
@@ -17,8 +43,6 @@ const friendName = (s: GameState, rng: Rng) => {
 };
 
 const FLAVORS: Flavor[] = [
-  { when: (_, a) => a < 1, lines: ['처음으로 뒤집기에 성공했다.', '밤마다 우는 통에 온 가족이 잠을 설쳤다.', '모빌을 한참 바라보며 옹알이를 했다.', '엄마의 콧노래를 들으면 울음을 그쳤다.'] },
-  { when: (_, a) => a >= 1 && a < 3, lines: ['첫걸음마를 뗐다. 세 걸음 만에 주저앉았다.', '“엄마”보다 “빠빠”를 먼저 말했다.', '냄비 뚜껑을 두드리며 깔깔 웃었다.', '텔레비전에서 노래가 나오면 엉덩이를 흔들었다.'] },
   { when: (_, a) => a >= 3 && a < 7, lines: ['어린이집 소풍에서 장기자랑 노래를 불렀다.', '동요를 개사해서 부르는 버릇이 생겼다.', '할머니 댁 마당에서 하루 종일 뛰어놀았다.', '피아노 학원 간판 앞에서 한참 서 있었다.', '세발자전거를 처음 탔다.'] },
   { when: (_, a) => a >= 7 && a < 13, lines: ['받아쓰기 100점을 받았다.', '방학 숙제를 개학 전날 몰아서 했다.', '학교 앞 문방구에서 뽑기를 했다. 꽝이었다.', '리코더 시험에서 삑사리를 냈다.', '운동회 계주에서 바통을 놓쳤다.', '음악 시간에 처음으로 선생님께 칭찬받았다.', '라디오에서 나온 노래 제목을 몰라 하루 종일 흥얼거렸다.'] },
   { when: (_, a) => a >= 13 && a < 19, lines: ['야자 시간에 이어폰을 몰래 꽂았다.', '시험이 끝난 날, 노래방에서 목이 쉬었다.', '체육복을 안 가져와서 혼났다.', '새벽 두 시까지 기타 영상을 돌려 봤다.', '첫 용돈으로 산 이어폰 한쪽이 고장 났다.', '수학여행 버스에서 다 같이 떼창을 했다.', '교복 소매 끝이 기타 줄 때문에 해졌다.', '좋아하는 밴드의 라이브 영상을 백 번째 다시 봤다.'] },
@@ -38,9 +62,22 @@ const FRIEND_LINES: ((f: string) => string)[] = [
   (f) => `길에서 ${josa(f, '을/를')} 닮은 사람을 봤다.`,
 ];
 
-export function flavorLines(s: GameState, rng: Rng): string[] {
+/** 이번 시기 [지금, end) 의 작은 순간들. 각 줄이 놓일 나이 구간과 함께 */
+export function flavorLines(s: GameState, rng: Rng, end: number): FlavorLine[] {
   const a = age(s);
+  const born = bornAge(s);
   const recentAll = new Set(s.feed.slice(-300).map((e) => e.text));
+  // 뱃속
+  if (a < born - 1e-6) {
+    const pool = PRENATAL.filter((l) => !recentAll.has(l));
+    return rng.shuffle(pool).slice(0, 2).map((text) => ({ text, lo: a, hi: born }));
+  }
+  // 세 살까지 — 태어난 지 몇 년인지에 맞춰 놓는다
+  if (a < 3) {
+    const slots = BABY.map((b) => ({ ...b, lo: Math.max(a, born + b.from), hi: Math.min(end, born + b.to) })).filter((b) => b.hi - b.lo > 0.02);
+    const cand = slots.flatMap((b) => b.lines.filter((l) => !recentAll.has(l)).map((text) => ({ text, lo: b.lo, hi: b.hi })));
+    return rng.shuffle(cand).slice(0, 3).sort((x, y) => x.lo - y.lo);
+  }
   const pool = FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines).filter((l) => textMinYear(l, s.player.country) <= s.time && !recentAll.has(l));
   const out: string[] = [];
   const n = a < 7 ? 2 : rng.chance(0.6) ? 2 : 1;
@@ -55,5 +92,5 @@ export function flavorLines(s: GameState, rng: Rng): string[] {
     const f = friendName(s, rng);
     if (f) out.push(rng.pick(FRIEND_LINES)(f));
   }
-  return out;
+  return out.map((text) => ({ text, lo: a, hi: end }));
 }

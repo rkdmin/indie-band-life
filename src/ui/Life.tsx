@@ -5,7 +5,7 @@ import { genreLabel } from '../sim/data/era/genres';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedEntry, GameState, SceneId } from '../sim/types';
 import { autoChoose, beginPeriod, canRetire, choose, renameBand, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
-import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
+import { STAGE_LABEL, actionSlots, age, bornAge, bornAt, favoriteGenre, stageOf } from '../sim/state';
 import { INST_LABEL, minWage } from '../sim/data/world';
 import { ARTIST_SURVEY, facts } from '../sim/data/reality';
 import { countryOf, hasMinWage } from '../sim/data/countries';
@@ -164,7 +164,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
       if (st.phase === 'plan') {
         st = beginPeriod(st);
         const step = st.periodEnd - st.time;
-        nextEvRef.current = st.queue.length ? st.time + Math.min(step * (0.3 + Math.random() * 0.25), 0.15 + Math.random() * 0.25) : Infinity;
+        // 탄생은 시기 시작과 함께 (태어나는 그 달) — 몇 달 뒤에 ‘응애’가 오지 않게
+        nextEvRef.current = !st.queue.length ? Infinity : st.queue[0].id === 'birth' ? st.time + 0.002 : st.time + Math.min(step * (0.3 + Math.random() * 0.25), 0.15 + Math.random() * 0.25);
         clockRef.current = st.time;
         commit(st);
         return;
@@ -215,7 +216,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
 
   // 시기별 배경음 (연출 중에는 연출이 음악을 맡는다)
   const a = Math.max(-0.5, clock - s.player.birthYear);
-  const stage = stageOf(a);
+  const born = bornAge(s);
+  const stage = stageOf(a, born);
   useEffect(() => {
     const g = s.band?.genre ?? favoriteGenre(s);
     const mood = stage === 'baby' || stage === 'prenatal' ? 'calm' : stage === 'senior' ? 'wistful' : stage === 'elem' ? 'bright' : 'dreamy';
@@ -262,8 +264,8 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           <div>
             <div className="brand">인디밴드 <em>키우기</em></div>
             <div className="agebig">
-              {a < 0 ? '태아' : <TapeCounter value={a} />}
-              {a >= 0 && <small>세</small>}
+              {a < born ? '태아' : <TapeCounter value={a} />}
+              {a >= born && <small>세</small>}
             </div>
           </div>
           <TapeReels s={s} clock={clock} playing={!paused && s.phase === 'running'} />
@@ -337,7 +339,7 @@ export function Life({ state: s, onChange, onQuit, onNewLife }: Props) {
           </div>
           <div className="pops-anchor"><StatPops pops={pops} /></div>
           <Console s={s} />
-          <Feed entries={visible} birthYear={s.player.birthYear} paused={paused} />
+          <Feed entries={visible} birthYear={s.player.birthYear} bornT={bornAt(s)} paused={paused} />
         </div>
       </div>
 
@@ -438,7 +440,7 @@ function IdCard({ s, clock }: { s: GameState; clock: number }) {
           <div className="idname">{p.name}</div>
           <dl className="idfields">
             <dt>출생</dt><dd>{p.birthYear} · <Flag c={countryOf(p.country).id} size={11} /> {periodText(countryOf(p.country).regions[p.region], p.birthYear, p.country)}</dd>
-            <dt>외모</dt><dd>{heightAt(playerAppearance({ ...p, country: p.country }), a, p.gender)}cm · {charmWord(playerAppearance({ ...p, country: p.country }).charm)}</dd>
+            <dt>외모</dt><dd>{heightAt(playerAppearance({ ...p, country: p.country }), a - bornAge(s), p.gender)}cm · {charmWord(playerAppearance({ ...p, country: p.country }).charm)}</dd>
             {a >= 18 && <><dt>직업</dt><dd>{String(s.flags.jobTitle ?? JOB_LABEL[p.job] ?? '—')}</dd></>}
             <dt>악기</dt><dd>{p.mainInst ? `${INST_LABEL[p.mainInst]} ${Math.round(p.skills[p.mainInst])}` : '아직 없음'}</dd>
             <dt>작곡</dt><dd>{Math.round(p.skills.compose)}</dd>
@@ -481,7 +483,7 @@ function PlanCard({ s, onEdit }: { s: GameState; onEdit: () => void; onChange: (
         {slots > 0 && <button className="linkbtn" onClick={onEdit}>바꾸기</button>}
       </div>
       {slots === 0 ? (
-        <div className="focus-note" style={{ marginTop: 6 }}>{a < 0 ? '아직 세상에 나오기 전.' : '아직은 어려서, 부모님 품에서 자라는 중.'}</div>
+        <div className="focus-note" style={{ marginTop: 6 }}>{a < bornAge(s) ? '아직 세상에 나오기 전.' : '아직은 어려서, 부모님 품에서 자라는 중.'}</div>
       ) : (
         <>
           <div className="plan-chips">
@@ -555,17 +557,18 @@ function PaceSetting({ s, onChange }: { s: GameState; onChange: (s: GameState) =
 }
 
 // ───────────────────────── 인생 기록 ─────────────────────────
-function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear: number; paused: boolean }) {
+function Feed({ entries, birthYear, bornT, paused }: { entries: FeedEntry[]; birthYear: number; bornT: number; paused: boolean }) {
   const rows = useMemo(() => {
     const list = entries.slice(-160).reverse();
     const out: ({ head: string } | (FeedEntry & { key: string }))[] = [];
     const seen = new Map<string, number>();
-    let lastAge = Infinity;
+    let lastHead = '';
     for (const e of list) {
-      const ag = Math.max(0, Math.floor(e.t - birthYear));
-      if (ag !== lastAge) {
-        out.push({ head: `${ag}세 · ${Math.floor(e.t)}` });
-        lastAge = ag;
+      // 태어나기 전 기록은 ‘태교’ 아래에 (0세로 묶으면 뱃속 일이 아기 일처럼 읽힌다)
+      const head = e.t < bornT - 1e-6 ? `태교 · ${Math.floor(e.t)}` : `${Math.max(0, Math.floor(e.t - birthYear))}세 · ${Math.floor(e.t)}`;
+      if (head !== lastHead) {
+        out.push({ head });
+        lastHead = head;
       }
       // 같은 시각·같은 문장이 두 번 나올 수 있다 — 순번을 붙여 키를 고정한다
       const base = `${e.t}-${e.kind ?? ''}-${e.text}-${e.deltas ?? ''}`;
@@ -574,7 +577,7 @@ function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear:
       out.push({ ...e, key: n ? `${base}#${n}` : base });
     }
     return out;
-  }, [entries, birthYear]);
+  }, [entries, birthYear, bornT]);
   return (
     <div className="card feed">
       <div className="feed-head">
@@ -584,7 +587,7 @@ function Feed({ entries, birthYear, paused }: { entries: FeedEntry[]; birthYear:
       <div className="feed-list">
         {rows.map((r, i) =>
           'head' in r ? (
-            <div key={`h${r.head}`} className="entry yearhead"><span data-side={parseInt(r.head, 10) < 40 ? 'A' : 'B'}>{r.head}</span></div>
+            <div key={`h${r.head}`} className="entry yearhead"><span data-side={(parseInt(r.head, 10) || 0) < 40 ? 'A' : 'B'}>{r.head}</span></div>
           ) : (
             <div key={r.key} className={`entry ${r.tone} ${r.kind ?? ''}`}>
               <span className="when">{Math.min(12, Math.floor((r.t - Math.floor(r.t)) * 12) + 1)}월</span>

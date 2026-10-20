@@ -85,12 +85,25 @@ export const TEX_LABEL = A.hairTexture.labels as Record<HairTex, string>;
 const BUILD_LABEL = { slim: '마른 체형', avg: '보통 체형', broad: '다부진 체형' };
 const FACE_LABEL = { round: '동그란 얼굴', oval: '갸름한 얼굴', long: '긴 얼굴', square: '각진 얼굴' };
 
-/** 그 나이의 키 — 어릴 땐 자라는 중 */
+/**
+ * 나이별 키 중앙값 (0~18세, cm) — 2017 소아청소년 성장도표(질병관리청) 50백분위수를 반올림 [근사].
+ * 성인 키에 대한 비율로만 쓴다 — 다 크면 172cm 인 아이는 아홉 살에 약 132cm.
+ * (예전 식은 직선에 가까워 아홉 살이 120cm 대로 작게 나왔다)
+ */
+const GROWTH: Record<Gender, number[]> = {
+  m: [50, 76, 87, 96, 103, 110, 116, 122, 128, 133, 139, 145, 151, 158, 165, 169, 171, 172.5, 173],
+  f: [49, 74.5, 86, 95, 102, 109, 115, 121, 127, 132, 138, 145, 151, 155, 158, 159, 160, 160.5, 161],
+};
+
+/** 그 나이(태어난 뒤 햇수)의 키 — 어릴 땐 자라는 중 */
 export function heightAt(app: Appearance, age: number, gender: Gender): number {
-  if (age >= 19) return app.height;
-  const birth = 50;
-  const k = Math.min(1, Math.max(0, age) / (gender === 'm' ? 18 : 16));
-  return Math.round(birth + (app.height - birth) * Math.pow(k, 0.8));
+  if (age >= 18) return app.height;
+  const g = GROWTH[gender] ?? GROWTH.m;
+  const a = Math.max(0, age);
+  const i = Math.floor(a);
+  const v = g[i] + (g[i + 1] - g[i]) * (a - i);
+  if (a < 1) return Math.round(v); // 갓난아기는 부모 키와 상관없이 비슷하다
+  return Math.round(Math.min(app.height, (v / g[18]) * app.height));
 }
 
 export function describe(app: Appearance, age: number, gender: Gender): string {

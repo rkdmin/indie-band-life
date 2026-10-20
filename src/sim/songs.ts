@@ -176,7 +176,7 @@ export function release(s: GameState, rng: Rng, songIds: string[], title: string
   }
   // 바이럴은 앨범당 한 번, 가장 좋은 곡만 노린다: 품질·장르 도달력·숏폼 시대
   // 취미 음악인의 곡이 터질 일은 훨씬 드물다 (홍보·유통이 없다)
-  const viralP = (sigmoid((best.quality - 80) / 6 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 2.6)) * (s.flags.hobby ? 0.3 : 1);
+  const viralP = (sigmoid((best.quality - 80) / 8 + Math.log(gi.reach) + (era.from >= 2022 ? 0.3 : 0) + promo * 0.1 + (p.rep > 50 ? 0.3 : 0) - 2.6)) * (s.flags.hobby ? 0.3 : 1);
   const viral = rng.chance(viralP);
   s.lastResults.push({ text: `🎲 ${viralWhere(s)} 입소문 ${Math.max(1, Math.round(viralP * 100))}% → ${viral ? '터졌다' : '불발'}`, tone: viral ? 'big' : 'neutral', delta: true });
   let hitGlobal = 0;

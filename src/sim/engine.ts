@@ -13,7 +13,7 @@ import { Ctx, book, type EventDef } from './ctx';
 import { ARTIST_SURVEY } from './data/reality';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
-import { actionSlots, age, ageInt, chron, livingCost, stepSize } from './state';
+import { actionSlots, age, ageInt, bornAge, bornAt, chron, isBorn, livingCost, stepSize } from './state';
 import { REGIONS, annualDeathProb, minWage, priceIndex, SKILL_LABEL } from './data/world';
 import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
@@ -36,9 +36,12 @@ import { effectsOf, rollBirth } from './birth';
 
 export const SAVE_VERSION = 5;
 
+/** 사건 덱에서 빼지 않는 인생의 줄기 */
+const LIFE_SPINE = new Set(['life_dating', 'life_proposal', 'life_baby']);
+
 /** 전체 화면 연출로 보여 줄 큰 사건 */
 export const CINEMATIC = new Set([
-  'birth', 'first_inst', 'first_live', 'club_audition', 'school_festival', 'suneung', 'teen_band_end',
+  'birth', 'first_inst', 'first_live', 'club_middle', 'club_audition', 'school_festival', 'suneung', 'teen_band_end',
   'draft', 'discharge', 'old_friend_call', 'crossroads30', 'label_indie', 'label_major', 'fest_local', 'fest_big',
   'pandemic', 'band_boom', 'debt_crisis', 'reunion', 'producer_friend', 'parent_farewell', 'retire_ask', 'revival',
   'move_out', 'life_proposal', 'life_baby', 'life_friend_funeral', 'life_last_call', 'life_grandchild',
@@ -66,7 +69,7 @@ export function newGame(o: NewGameOptions): GameState {
   const rng = new Rng(seed);
   const region = o.region ?? rng.weighted(REGIONS, (r) => r.weight)!.id;
   const income: Income = rng.weighted(['low', 'mid', 'high'] as Income[], (i) => ({ low: 0.3, mid: 0.5, high: 0.2 })[i])!;
-  const taste: ParentTaste = rng.weighted(['indierock', 'folk', 'classical', 'trot', 'ballad', 'none', 'metal', 'indiepop'] as ParentTaste[], (t) => ({ classical: 2, ballad: 3, trot: 2, none: 2, folk: 1.5, indierock: 1.2, metal: 0.4, indiepop: 1 } as Record<string, number>)[t])!;
+  const taste: ParentTaste = rng.weighted(['indierock', 'folk', 'classical', 'trot', 'ballad', 'none', 'metal', 'indiepop'] as ParentTaste[], (t) => ({ classical: 2, ballad: 3, trot: (o.country ?? 'KR') === 'KR' ? 2 : 0, none: 2, folk: 1.5, indierock: 1.2, metal: 0.4, indiepop: 1 } as Record<string, number>)[t])!; // 트로트는 한국 집에서만
   const genre = Object.fromEntries(GENRES.map((g) => [g, 5])) as Record<Genre, number>;
   const s: GameState = {
     version: SAVE_VERSION,
@@ -153,7 +156,8 @@ export function newGame(o: NewGameOptions): GameState {
   s.player.app = inheritAppearance(s.player.look, o.gender, o.birthYear, o.country, npcAppearance(mom, o.country), npcAppearance(dad, o.country));
 
   // ── 사건 덱: 일반 사건의 약 45%를 이번 인생에서 뺀다 → 인생마다 겪는 일이 달라진다 ──
-  s.deckOut = EVENTS.filter((e) => !e.queued && (e.priority ?? 0) < 100 && /^(life_|car_)/.test(e.id) && rng.chance(0.45)).map((e) => e.id);
+  // 연애→결혼→아이로 이어지는 줄기는 빼지 않는다 — 하나라도 빠지면 가족 사건(fm_*) 전체가 그 인생에서 사라진다
+  s.deckOut = EVENTS.filter((e) => !e.queued && (e.priority ?? 0) < 100 && /^(life_|car_)/.test(e.id) && !LIFE_SPINE.has(e.id) && rng.chance(0.45)).map((e) => e.id);
 
   // ── 인생 변수 · 재능 · 성격 ──
   const fate = rollFate(rng, o.birthYear, o.gender, countryOf(o.country));
@@ -205,6 +209,8 @@ export function newGame(o: NewGameOptions): GameState {
   {
     const b = rollBirth(seed, s);
     s.player.birth = b.info;
+    // 태교는 태어나기 아홉 달 전부터 — 출생 월에 맞춰 시작 시각을 정한다 (출생증명서의 월과 인생 기록의 월이 같게)
+    s.time = Math.round((bornAt(s) - 0.75) * 1000 + 1) / 1000; // +0.001: 달 경계의 부동소수 오차로 한 달 앞 달이 찍히지 않게
     fate.draws.push(...b.draws);
     s.player.rarityLog += b.draws.reduce((a, d) => a - Math.log10(Math.max(1e-9, d.p)), 0);
     // 재능은 태어날 때 바로 반영한다 (기술·상태는 첫 사건에서 기록과 함께)
@@ -244,7 +250,7 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       const raw = typeof ch.label === 'function' ? ch.label(c) : ch.label;
       const label = periodText(raw, at, s.player.country);
       // 선택지 자체가 그 시대에 없던 일이면(예: 1980년의 ‘숏폼에 올린다’) 숨긴다
-      const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > age(s));
+      const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > Math.max(0, age(s)));
       const card = ch.card?.(c);
       const lock = why || short || undefined;
       const odds = ok && !hidden && !lock ? ch.odds?.(c) : undefined;
@@ -322,7 +328,9 @@ function eligible(s: GameState, rng: Rng, def: EventDef): boolean {
   if ((s.player.country ?? 'KR') !== 'KR' && isKoreaOnly(def.id)) return false;
   if ((s.player.country ?? 'KR') === 'KR' && def.id.startsWith('ct_')) return false;
   if (s.deckOut?.includes(def.id)) return false;
-  if (age(s) < eventMinAge(def, s.player.country)) return false;
+  // 글에서 읽은 최소 나이 — 0 이면 제한 없음 (뱃속은 나이가 음수라 0 과 견주면 태교 사건이 막힌다)
+  const minAge = eventMinAge(def, s.player.country);
+  if (minAge > 0 && age(s) < minAge) return false;
   if (s.time < eventMinYear(def, s.player.country) || (def.maxYear !== undefined && s.time > def.maxYear)) return false;
   if (def.once && s.fired[def.id] !== undefined) return false;
   // 같은 사건이 이번 인생에 여러 번 왔으면 다음까지 더 오래 기다린다
@@ -399,7 +407,7 @@ export function beginPeriod(prev: GameState): GameState {
   const s = clone(prev);
   if (s.phase !== 'plan') return s;
   const rng = new Rng(s.rng);
-  const step = stepSize(age(s));
+  const step = stepSize(age(s), bornAge(s));
   s.periodEnd = Math.round((s.time + step) * 1000) / 1000;
   s.lastResults = [];
   const picks: ActionPick[] = resolvePlan(s, rng);
@@ -435,7 +443,7 @@ export function beginPeriod(prev: GameState): GameState {
     if (at - s.player.birthYear < (h.kind === 'world' ? 6 : 10)) continue;
     pushFeed(s, { t: at, text: h.text, tone: h.kind === 'world' ? 'world' : 'history', deltas: `${h.y}${h.m ? `.${String(h.m).padStart(2, '0')}` : ''} · ${h.c === 'GLOBAL' ? '세계' : COUNTRIES[h.c].name} · ${h.src}`, kind: 'news' });
   }
-  for (const line of flavorLines(s, rng)) pushFeed(s, { t: s.time + step * rng.range(0.05, 0.95), text: line, tone: 'flavor', kind: 'flavor' });
+  for (const f of flavorLines(s, rng, s.periodEnd - s.player.birthYear)) pushFeed(s, { t: s.player.birthYear + f.lo + (f.hi - f.lo) * rng.range(0.05, 0.95), text: f.text, tone: 'flavor', kind: 'flavor' });
   s.feed.sort((a, b) => a.t - b.t);
   scheduleEvents(s, rng);
   s.rng = rng.state;
@@ -450,7 +458,8 @@ export function openEvent(prev: GameState, at: number): GameState {
   const rng = new Rng(s.rng);
   while (s.queue.length) {
     const pe = s.queue.shift()!;
-    const ev = materialize(s, rng, pe.id, pe.bind, at, pe.vars);
+    // 탄생은 태어나는 그 달에 연다
+    const ev = materialize(s, rng, pe.id, pe.bind, pe.id === 'birth' ? Math.max(s.time, bornAt(s)) + 0.001 : at, pe.vars);
     if (ev) {
       s.active = ev;
       s.fired[pe.id] = s.turn;
@@ -724,9 +733,10 @@ export function endPeriod(prev: GameState): GameState {
   const rng = new Rng(s.rng);
   const p = s.player;
   const a0 = age(s);
-  const step = stepSize(a0);
+  const step = stepSize(a0, bornAge(s));
   const y0 = Math.floor(s.time);
-  s.time = Math.round((s.time + step) * 10) / 10;
+  // 뱃속 시기는 정확히 태어나는 달에 끝난다 (0.1년 반올림을 하면 12월생이 11월에 태어난다)
+  s.time = isBorn(s) ? Math.round((s.time + step) * 10) / 10 : Math.round((bornAt(s) + 0.001) * 1000) / 1000;
   s.turn++;
   const a = age(s);
   const yearsPassed = Math.floor(s.time) - y0;

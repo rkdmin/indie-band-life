@@ -411,7 +411,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: 'form_band', label: '밴드 결성', emoji: '🔥', scene: 'studio', energy: 15,
     desc: () => '친한 사람들을 모아 밴드를 만든다. 이름도 정한다.',
-    when: (c) => c.age >= 16 && !c.band && free(c),
+    // 중2부터 친구들과 밴드를 만들 수 있다 (학교 밴드부는 사건 ‘중학교 밴드부’로)
+    when: (c) => c.age >= 14 && !c.band && free(c),
     locked: (c) => (c.p.mainInst ? null : '주 악기가 있어야 한다'),
     run: (c) => {
       formBand(c);

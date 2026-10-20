@@ -7,6 +7,7 @@ import { Rng } from '../src/sim/rng';
 import { availableActions, venuesFor } from '../src/sim/actions';
 import { actionSlots } from '../src/sim/state';
 import { availableThemes, unreleased } from '../src/sim/songs';
+import { recommendedPlan } from '../src/sim/plan';
 
 export type Policy = 'random' | 'musician' | 'safe' | 'auto';
 
@@ -22,8 +23,10 @@ function pickParam(s: GameState, id: string, kind: string | undefined, rng: Rng)
       return `${t.key}:${rng.pick(t.moods)}`;
     }
     case 'venue': {
+      // 감당 가능한 가장 큰 무대, 가끔은 한 단계 아래 (게임의 ‘알아서’와 같은 규칙)
       const vs = venuesFor(c).filter((v) => !v.locked);
-      return vs[vs.length - 1]?.id ?? 'openmic';
+      const i = vs.length - 1 - (vs.length > 1 && rng.chance(0.3) ? 1 : 0);
+      return vs[Math.max(0, i)]?.id ?? 'openmic';
     }
     case 'release': {
       const songs = [...unreleased(s)].sort((a, b) => b.quality - a.quality).slice(0, 7);
@@ -37,8 +40,6 @@ function pickParam(s: GameState, id: string, kind: string | undefined, rng: Rng)
   void id;
   return undefined;
 }
-
-const MUSIC_PRIORITY = ['release', 'gig', 'compose', 'rehearse', 'form_band', 'recruit', 'practice', 'lesson', 'busking', 'cover', 'parttime', 'rest'];
 
 export function decide(s: GameState, policy: Policy, rng: Rng): ActionPick[] {
   const c = new Ctx(s, new Rng(1));
@@ -57,8 +58,12 @@ export function decide(s: GameState, policy: Policy, rng: Rng): ActionPick[] {
   if (policy === 'random') {
     for (const a of rng.shuffle(list)) add(a.def.id);
   } else if (policy === 'musician') {
-    for (const id of MUSIC_PRIORITY) if (rng.chance(0.75)) add(id);
-    for (const a of list) add(a.def.id);
+    // 음악에 열심인 사람 = 게임의 ‘알아서’ 계획에서 음악이 아닌 일(공부·놀기·그냥 듣기)을 연습·작곡으로 바꾼 사람.
+    // 지칠 땐 쉬고 빈털터리면 알바하는 건 같다(위). 발매는 곡이 쌓이면 게임이 갈림길로 묻는다 (직접 발매 행동은 녹음비로 빚이 쌓였다).
+    // (예전 정책은 매번 가장 큰 공연장 공연만 잡고 연습을 거의 안 해서 실력·곡 완성도가 ‘알아서’보다 낮았다 — ‘열심히’가 아니라 ‘무리’였다)
+    const swap: Record<string, string[]> = { study: ['practice', 'compose'], hangout: ['practice', 'compose'], play: ['lesson', 'listen'], listen: ['practice', 'compose', 'lesson', 'listen'], sports: ['practice'] };
+    for (const r of recommendedPlan(s)) for (const id of swap[r.id] ?? [r.id]) if (picks.length < slots && !picks.some((x) => x.id === id) && list.some((x) => x.def.id === id)) { add(id); break; }
+    for (const id of ['practice', 'compose', 'rehearse', 'lesson', 'listen']) add(id);
   } else {
     for (const id of ['study', 'parttime', 'sports', 'hangout', 'practice', 'rest']) add(id);
   }

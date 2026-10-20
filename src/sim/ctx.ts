@@ -2,7 +2,7 @@
 
 import type { ChronicleEntry, GameState, Genre, Inst, Npc, Odds, PendingRoll, ResultLine, Roll, SceneId, Skill, Stats, CardInfo, Risk } from './types';
 import { Rng, clamp, prob } from './rng';
-import { addGenre, addSkill, addStat, age, ageInt, chron, flag, mainSkill, setFlag, stageOf, year } from './state';
+import { addGenre, addSkill, addStat, age, ageInt, bornAge, isBorn, chron, flag, mainSkill, setFlag, stageOf, year } from './state';
 import { createNpc, relDelta, remember, type NpcSpec } from './npc';
 import { GENRE_INFO, INST_LABEL, SKILL_LABEL, priceIndex } from './data/world';
 import { countryOf } from './data/countries';
@@ -36,7 +36,11 @@ export class Ctx {
     return year(this.s);
   }
   get stage() {
-    return stageOf(age(this.s));
+    return stageOf(age(this.s), bornAge(this.s));
+  }
+  /** 세상에 나왔나 (태교 시기가 끝났나) */
+  get born() {
+    return isBorn(this.s);
   }
   get price() {
     return priceIndex(this.s.time) * countryOf(this.p.country).costMul;

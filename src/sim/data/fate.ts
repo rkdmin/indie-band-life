@@ -15,6 +15,8 @@ export interface FateDraw {
   kind: '통계' | '근사' | '가정';
   /** 나중에 사건으로 이어지는 시점(나이) */
   at?: number;
+  /** 태어나는 순간엔 아직 정해지지 않은 미래 (출생증명서에 보이지 않는다 — 살면서 드러난다) */
+  future?: boolean;
   extra?: string;
 }
 
@@ -104,6 +106,8 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
     p: pSib,
     src: country && country.id !== 'KR' ? `${country.name} 합계출산율 ${tfr.toFixed(2)}명으로 근사` : `${birthYear}년 합계출산율 ${tfr.toFixed(2)}명으로 형제 수 분포를 근사`,
     kind: '근사',
+    // 동생은 아직 태어나지 않았다
+    future: younger > 0,
   });
 
   // 부모님 직업 (집안의 주 수입원)
@@ -128,11 +132,11 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
 
   // 부모님 이혼 (18세 전) — [근사] 연간 이혼 9만여 건 규모로 근사
   const divorceAge = rng.chance(0.1) ? rng.int(4, 17) : null;
-  if (divorceAge !== null) add({ id: 'divorce', label: `${divorceAge}살 무렵 부모님이 갈라선다`, p: 0.1 / 14, src: '연간 이혼 약 9.2만 건 (2023 혼인·이혼 통계) 규모로 근사', kind: '근사', at: divorceAge });
+  if (divorceAge !== null) add({ id: 'divorce', label: `${divorceAge}살 무렵 부모님이 갈라선다`, p: 0.1 / 14, src: '연간 이혼 약 9.2만 건 (2023 혼인·이혼 통계) 규모로 근사', kind: '근사', at: divorceAge, future: true });
 
   // 부모님 실직·폐업 — [가정]
   const jobLossAge = rng.chance(0.15) ? rng.int(6, 18) : null;
-  if (jobLossAge !== null) add({ id: 'jobloss', label: `${jobLossAge}살 무렵 집안 가세가 기운다`, p: 0.15 / 13, src: '게임 가정', kind: '가정', at: jobLossAge });
+  if (jobLossAge !== null) add({ id: 'jobloss', label: `${jobLossAge}살 무렵 집안 가세가 기운다`, p: 0.15 / 13, src: '게임 가정', kind: '가정', at: jobLossAge, future: true });
 
   // 조부모와 함께 사는 3대 가구 — [근사]
   // 3세대 가구는 1960~70년대엔 흔했고 점점 줄었다 [근사]
