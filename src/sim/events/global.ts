@@ -78,6 +78,8 @@ export const GLOBAL: EventDef[] = [
     choices: [
       {
         label: `공공 해외 페스티벌 참가지원을 신청한다`,
+        // 한국 공공기관의 지원 사업 — 다른 나라 인생엔 없다
+        if: (c: Ctx) => (c.p.country ?? 'KR') === 'KR',
         hint: () => `요건: ${OVERSEAS_SUPPORT.requirement}`,
         odds: (c) =>
           c.dc(15, '서류 심사', [

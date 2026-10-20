@@ -84,7 +84,7 @@ export function BandSheet({ s, onRename }: { s: GameState; onRename?: (name: str
           <div className="dim">{genreLabel(b.genre, s.time, s.player.country)} · {b.formedYear}년 결성 · {b.label === 'none' ? '무소속' : b.label === 'indie' ? '인디 레이블' : '대형 기획사'}</div>
           <h2>{b.name}</h2>
           {onRename && canRenameBand(s) && !naming && <button className="linkbtn" style={{ color: '#fff' }} onClick={() => setNaming(true)}>✎ 이름 바꾸기 (첫 발매 전까지)</button>}
-          {onRename && naming && <div className="namer-box"><BandNamer current={b.name} seed={s.seed + s.turn} confirmLabel="이 이름으로 바꾸기" onConfirm={(n) => { onRename(n); setNaming(false); }} /></div>}
+          {onRename && naming && <div className="namer-box"><BandNamer current={b.name} country={s.player.country} seed={s.seed + s.turn} confirmLabel="이 이름으로 바꾸기" onConfirm={(n) => { onRename(n); setNaming(false); }} /></div>}
           <div className="row" style={{ marginTop: 8 }}>
             <span className="chip big">팀워크 {Math.round(b.chemistry)}</span>
             <span className="chip">공연 {b.gigs}회</span>

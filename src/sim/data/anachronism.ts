@@ -6,6 +6,8 @@
 import type { CountryId } from './countries';
 import { TERMS, applies, termYear, type Term } from './era/terms';
 import ageJson from '../../data/era/age_rules.json';
+import { localize, replaceWithJosa } from './localize';
+import { josa } from '../korean';
 
 export { TERMS };
 
@@ -66,7 +68,21 @@ export function tieNumbers(text: string): string {
 }
 
 export function periodText(text: string, year: number, country?: string): string {
-  return tieNumbers(periodTextRaw(text, year, country));
+  return fixQuotedJosa(tieNumbers(periodTextRaw(localize(text, country), year, country)));
+}
+
+const QJ = /〈([^〈〉]+)〉(으로|로|이|가|을|를|은|는|과|와)(?![가-힣])/g;
+const QPAIR: Record<string, Parameters<typeof josa>[1]> = { 으로: '으로/로', 로: '으로/로', 이: '이/가', 가: '이/가', 을: '을/를', 를: '을/를', 은: '은/는', 는: '은/는', 과: '과/와', 와: '과/와' };
+/**
+ * 〈곡·밴드 이름〉 바로 뒤 조사를 이름의 받침에 맞춘다 — 이름이 그때그때 만들어지니 문장에 ‘을’로 박아 두면
+ * 〈자전거〉을 같은 글이 나온다. 이름이 한글로 끝나지 않으면(영어·숫자) 그대로 둔다.
+ */
+export function fixQuotedJosa(text: string): string {
+  if (!text.includes('〉')) return text;
+  return text.replace(QJ, (m, name: string, p: string) => {
+    if (!/[가-힣]$/.test(name)) return m;
+    return `〈${name}〉${josa(name, QPAIR[p]).slice(name.length)}`;
+  });
 }
 
 function periodTextRaw(text: string, year: number, country?: string): string {
@@ -83,7 +99,8 @@ function periodTextRaw(text: string, year: number, country?: string): string {
       continue;
     }
     t.re.lastIndex = 0;
-    out = out.replace(t.re, rep);
+    // 조사도 바뀐 말에 맞춘다 (카세트테이프를 → 카세트를)
+    out = replaceWithJosa(out, t.re, rep);
   }
   if (!drops.length) return out;
   const bad = (s: string) => drops.some((re) => ((re.lastIndex = 0), re.test(s)));

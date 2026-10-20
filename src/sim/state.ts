@@ -137,3 +137,19 @@ export function growthMul(s: GameState, k: Skill): number {
   if (s.flags.perfectPitch && (k === 'vocal' || k === 'compose' || k === 'keys')) m *= 1.15;
   return m;
 }
+
+// ── 같은 인생에서 같은 문장이 되풀이되지 않게 ──
+/** 문장 → 짧은 열쇠 (저장 크기를 줄인다) */
+export function lineKey(t: string): string {
+  let h = 5381;
+  for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+/** 이 인생에서 아직 안 썼거나, 쓴 지 gap 년이 지난 문장인가 */
+export function isFresh(s: GameState, t: string, gap = 12): boolean {
+  const y = s.said?.[lineKey(t)];
+  return y === undefined || s.time - y >= gap;
+}
+export function remember(s: GameState, t: string) {
+  (s.said ??= {})[lineKey(t)] = Math.floor(s.time);
+}

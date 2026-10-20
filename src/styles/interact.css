@@ -109,3 +109,47 @@ h1, h2, h3, h4, .btn, .choice, .chip, .label, .gcard-title, .mcard-name, .rung-t
 /* 분할 단추: 글자는 한 줄로, 좁으면 글자를 조금 줄인다 */
 .seg button { white-space: nowrap; }
 @media (max-width: 380px) { .seg button { font-size: 12.5px; padding-left: 4px; padding-right: 4px; } }
+
+/* 셋리스트 짜기 */
+.setb { display: grid; gap: 10px; margin-top: 12px; }
+.setb-crowd { display: grid; gap: 2px; padding: 8px 10px; border-left: 3px solid var(--red); background: var(--card); border-radius: 0 6px 6px 0; }
+.setb-crowd b { font-family: var(--pixel); font-size: 12px; }
+.setb-crowd span { font-size: 13px; color: var(--sub); }
+.setb-new { font-family: var(--pixel); font-size: 10px; color: var(--red-ink); }
+.setb-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.setb-slot { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 6px 10px; border: 1.5px dashed var(--line); border-radius: 6px; background: transparent; text-align: left; font: inherit; color: inherit; }
+.setb-slot.on { border-style: solid; border-color: var(--ink); background: var(--card); cursor: pointer; }
+@media (hover: hover) { .setb-slot.on:hover { border-color: var(--red); } }
+.setb-n { flex: none; width: 1.4em; font-family: var(--pixel); font-size: 12px; color: var(--sub); }
+.setb-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.setb-m { flex: none; font-family: var(--pixel); font-size: 10px; padding: 1px 6px; border-radius: 3px; background: #0000000d; }
+.setb-m.m-angry, .setb-m.m-epic { background: #d8401c22; color: var(--red-ink); }
+.setb-m.m-bright { background: #c99a2e26; }
+.setb-m.m-calm, .setb-m.m-wistful, .setb-m.m-dreamy { background: #2a4fc91a; color: var(--blue); }
+.setb-curve { display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; gap: 6px; height: 44px; padding: 0 4px; border-bottom: 1.5px solid var(--line); }
+.setb-curve i { display: block; background: var(--line); border-radius: 3px 3px 0 0; transition: height 0.3s ease; }
+.setb-curve i.on { background: var(--red); }
+.setb-pool { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px; }
+.setb-song { display: grid; gap: 2px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 6px; background: var(--card); text-align: left; font: inherit; color: inherit; cursor: pointer; min-width: 0; }
+.setb-song:disabled { cursor: default; opacity: 0.4; }
+.setb-song.used { opacity: 0.3; }
+@media (hover: hover) { .setb-song:not(:disabled):hover { border-color: var(--red); transform: translateY(-1px); } }
+.setb-song:not(:disabled):active { transform: translateY(1px); }
+.setb-sub { font-size: 11px; color: var(--sub); display: flex; gap: 6px; align-items: center; }
+.setb-score b { font-family: var(--serif); font-weight: 400; font-size: 18px; }
+.setb-score ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 13px; display: grid; gap: 2px; }
+.setb-score li.ok { color: var(--green); }
+.setb-score li.no { color: var(--sub); }
+
+/* 운명 코드 */
+.fate-code { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 10px; border: 1.5px dashed var(--line); border-radius: 6px; }
+.fc-k { font-family: var(--pixel); font-size: 10px; letter-spacing: 0.08em; color: var(--sub); }
+.fc-v { font-family: var(--pixel); font-size: 15px; letter-spacing: 0.06em; padding: 2px 8px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; }
+@media (hover: hover) { .fc-v:hover { border-color: var(--red); color: var(--red-ink); } }
+.fc-v:active { transform: translateY(1px); }
+.fc-d { flex-basis: 100%; font-size: 12px; color: var(--sub); }
+.fate-code.compact .fc-d { display: none; }
+.fate-form { display: grid; gap: 8px; margin-top: 8px; }
+.fate-form .row { display: flex; gap: 8px; }
+.fate-form .text-input { flex: 1; min-width: 0; font-family: var(--pixel); letter-spacing: 0.06em; text-transform: uppercase; }
+.fate-err { font-size: 12px; color: var(--bad); }

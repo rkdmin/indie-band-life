@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FeedEntry, GameState } from '../sim/types';
 import { MILESTONES, achieved, nextGoals } from '../sim/milestones';
 import { sfx } from '../audio/player';
-import { count } from '../sim/korean';
+import { count, won } from '../sim/korean';
 
 // ───────── 떠오르는 수치 변화 ─────────
 interface Pop {
@@ -37,7 +37,7 @@ export function useStatPops(s: GameState): Pop[] {
       if (k === '팬' && Math.abs(d) < Math.max(5, p[k] * 0.02)) continue;
       if (k === '돈' && Math.abs(d) < 100_000) continue;
       const good = k === '스트레스' ? d < 0 : d > 0;
-      const v = k === '돈' ? `${d > 0 ? '+' : '−'}${count(Math.round(Math.abs(d) / 10000))}만원` : `${k} ${d > 0 ? '+' : '−'}${count(Math.abs(d))}`;
+      const v = k === '돈' ? `${d > 0 ? '+' : '−'}${won(Math.abs(d))}` : `${k} ${d > 0 ? '+' : '−'}${count(Math.abs(d))}`;
       add.push({ id: ++popSeq, text: v, good });
     }
     if (add.length) {
@@ -143,7 +143,7 @@ export function GoalsCard({ s }: { s: GameState }) {
 
 // ───────── 기록 아이콘 ─────────
 const ICONS: [RegExp, string][] = [
-  [/결산|생활비|월급|알바|정산|원 벌|만원/, '💰'],
+  [/결산|생활비|월급|알바|정산|원 벌|만원|달러|엔 |파운드|유로|헤알/, '💰'],
   [/발매|앨범|EP|싱글|녹음/, '💿'],
   [/바이럴|차트|숏폼/, '📈'],
   [/무대 판정|공연|무대|떼창|관객|페스티벌/, '🎤'],

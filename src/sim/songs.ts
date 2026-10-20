@@ -6,7 +6,7 @@ import { ageInt, chron, favoriteGenre, say, year } from './state';
 import { GENRE_INFO, eraOf } from './data/world';
 import { countryOf } from './data/countries';
 import { bandMembers } from './npc';
-import { count, josa } from './korean';
+import { count, josa, won } from './korean';
 import hitsJson from '../data/fate/hits.json';
 
 // 인생 사건이 곡의 주제가 된다. flags 에 theme:<key> 가 쌓이면 작곡 때 추천된다.
@@ -63,15 +63,20 @@ const LYRIC_LINES: Record<Mood, string[]> = {
   epic: ['{w:을/를} 향해 날아올라', '우리는 끝나지 않아', '모두 함께 노래해', '{w} 끝에서 다시 시작해', '마지막 불이 꺼져도'],
 };
 
-export function makeTitle(rng: Rng, theme: Theme): string {
-  const w = rng.pick(theme.words);
+/** 한국 밖이면 한국에만 있는 말(반지하·옥탑)은 그 나라에 있을 말로 */
+const wordsFor = (theme: Theme, country?: string) =>
+  (country ?? 'KR') === 'KR' ? theme.words : theme.words.map((w) => ({ 반지하: '다락방', 옥탑: '지붕 위' })[w] ?? w);
+export const themeLabel = (theme: Theme, country?: string) => ((country ?? 'KR') !== 'KR' && theme.key === 'city' ? '도시살이' : theme.label);
+
+export function makeTitle(rng: Rng, theme: Theme, country?: string): string {
+  const w = rng.pick(wordsFor(theme, country));
   return rng.pick(TITLE_PATTERNS)(w);
 }
 
-export function makeLyric(rng: Rng, theme: Theme, mood: Mood): string[] {
+export function makeLyric(rng: Rng, theme: Theme, mood: Mood, country?: string): string[] {
   const lines = rng.shuffle(LYRIC_LINES[mood]).slice(0, 3);
   return lines.map((l) => {
-    const w = rng.pick(theme.words);
+    const w = rng.pick(wordsFor(theme, country));
     return l.replace('{w:을/를}', josa(w, '을/를')).replace('{w}', w);
   });
 }
@@ -94,11 +99,11 @@ export function writeSong(s: GameState, rng: Rng, themeKey: string, mood: Mood):
   const genre = s.band?.genre ?? favoriteGenre(s);
   const song: Song = {
     id: `s${s.songs.length + 1}_${rng.int(1000, 9999)}`,
-    title: makeTitle(rng, theme),
+    title: makeTitle(rng, theme, s.player.country),
     genre,
     mood,
-    theme: theme.label,
-    lyric: makeLyric(rng, theme, mood),
+    theme: themeLabel(theme, s.player.country),
+    lyric: makeLyric(rng, theme, mood, s.player.country),
     quality: songQuality(s, rng, genre, themeKey),
     seed: rng.int(1, 2 ** 30),
     writtenYear: year(s),
@@ -277,6 +282,6 @@ export function yearlyStreams(s: GameState, rng: Rng) {
   const money = Math.round(newStreams * 3 * share);
   if (money > 0) {
     s.player.money += money;
-    if (money > 100_000) say(s, `음원 정산금이 들어왔다 (+${count(Math.round(money / 10000))}만원)`, 'good');
+    if (money > 100_000) say(s, `음원 정산금이 들어왔다 (+${won(money)})`, 'good');
   }
 }

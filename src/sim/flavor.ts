@@ -8,6 +8,31 @@ import { given, josa } from './korean';
 import { textMinYear } from './data/anachronism';
 import { eraLines } from './data/era/life';
 import type { CountryId } from './data/countries';
+import { isFresh, livingCost, remember } from './state';
+import { priceIndex } from './data/world';
+import moreJson from '../data/text/flavor_more.json';
+
+type More = { t: string; age?: [number, number]; band?: boolean; solo?: boolean; fans?: [number, number]; broke?: boolean; rich?: boolean; job?: string; from?: number; to?: number; c?: string[] };
+const MORE = moreJson.data as More[];
+/** 지금 처지(돈·팬·직업·밴드·나라)에 맞는 줄 */
+function situational(s: GameState, a: number): string[] {
+  const p = s.player;
+  const rich = p.money > livingCost(s, priceIndex(s.time)) * 4;
+  const ct = p.country ?? 'KR';
+  return MORE.filter(
+    (l) =>
+      (!l.age || (a >= l.age[0] && a < l.age[1])) &&
+      (!l.band || !!s.band) &&
+      (!l.solo || !s.band) &&
+      (!l.fans || (p.fans >= l.fans[0] && p.fans < l.fans[1])) &&
+      (!l.broke || p.money < 0) &&
+      (!l.rich || rich) &&
+      (!l.job || p.job === l.job) &&
+      (!l.from || s.time >= l.from) &&
+      (!l.to || s.time <= l.to) &&
+      (!l.c || l.c.includes(ct)),
+  ).map((l) => l.t);
+}
 
 type Flavor = { when: (s: GameState, a: number) => boolean; lines: string[] };
 /** 아기 때 순간은 ‘태어난 지 몇 년’에 묶는다 — 뒤집기가 두 살에 나오지 않게 (첫 시기가 세 살까지 한 번에 흐른다) */
@@ -78,15 +103,18 @@ export function flavorLines(s: GameState, rng: Rng, end: number): FlavorLine[] {
     const cand = slots.flatMap((b) => b.lines.filter((l) => !recentAll.has(l)).map((text) => ({ text, lo: b.lo, hi: b.hi })));
     return rng.shuffle(cand).slice(0, 3).sort((x, y) => x.lo - y.lo);
   }
-  const pool = FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines).filter((l) => textMinYear(l, s.player.country) <= s.time && !recentAll.has(l));
+  const pool = [...FLAVORS.filter((f) => f.when(s, a)).flatMap((f) => f.lines), ...(a >= 13 ? situational(s, a) : [])].filter((l) => textMinYear(l, s.player.country) <= s.time && !recentAll.has(l) && isFresh(s, l));
   const out: string[] = [];
   const n = a < 7 ? 2 : rng.chance(0.6) ? 2 : 1;
   // 그 시대·그 나라에서만 자연스러운 순간 (data/era/life.ts) 이 있으면 자주 섞는다
   const recent = new Set(s.feed.slice(-300).map((e) => e.text));
-  const era = eraLines(s.time, a, (s.player.country ?? 'KR') as CountryId, !!s.band).filter((l) => !recent.has(l));
+  const era = eraLines(s.time, a, (s.player.country ?? 'KR') as CountryId, !!s.band).filter((l) => !recent.has(l) && isFresh(s, l));
   for (let i = 0; i < n && (pool.length || era.length); i++) {
     const line = era.length && (rng.chance(0.4) || !pool.length) ? rng.pick(era) : rng.pick(pool);
-    if (!out.includes(line)) out.push(line);
+    if (!out.includes(line)) {
+      out.push(line);
+      remember(s, line);
+    }
   }
   if (a >= 13 && rng.chance(0.25)) {
     const f = friendName(s, rng);

@@ -6,6 +6,7 @@ import { leaveBand, playGig, addWalkIn } from '../actions';
 import { josa, won } from '../korean';
 import { clamp } from '../rng';
 import { npcAge } from '../npc';
+import { draftFor, monthsWord } from '../data/localize';
 
 // 밴드·음악 산업·건강 랜덤 사건
 // 실존 인물·밴드·곡·방송·페스티벌·공연장·레이블·브랜드 이름은 쓰지 않는다. 전부 가상의 이름이다.
@@ -24,8 +25,9 @@ const gigs = (c: Ctx) => (c.flag('gigs') as number) || 0;
 const bumpNpc = (n: Npc, d: number) => {
   n.skill = clamp(n.skill + d, 0, 98);
 };
+// 징병은 나라·시대마다 다르다 (data/world/localize.json draft) — 한국은 늘, 미국은 1973년까지, 영국은 1960년까지, 서독은 2011년까지
 const isDrafteeOf = (c: Ctx) => (n: Npc) =>
-  n.inBand && n.gender === 'm' && npcAge(c.s, n) >= 20 && npcAge(c.s, n) <= 28 && !c.s.flags[`npcMil:${n.id}`];
+  !!draftFor(c.p.country, c.year) && n.inBand && n.gender === 'm' && npcAge(c.s, n) >= 20 && npcAge(c.s, n) <= 28 && !c.s.flags[`npcMil:${n.id}`];
 
 const SETTLE_REASONS: [string, string][] = [
   ['회사 붙었어. 정규직. 엄마가 울더라.', '취업'],
@@ -95,11 +97,11 @@ export const CAREER: EventDef[] = [
     ],
   },
   {
-    id: 'car_member_draft', scene: 'military', title: '멤버의 입영 통지서', cooldown: 4, chance: 0.22,
+    id: 'car_member_draft', scene: 'military', title: '멤버의 입영 통지서', cooldown: 4, chance: (c) => 0.22 * (draftFor(c.p.country, c.year)?.rate ?? 0),
     when: (c) => inBand(c) && c.members.some(isDrafteeOf(c)),
     bind: (c) => c.bindFrom('m', isDrafteeOf(c)),
     text: (c) =>
-      `${c.nj('m', '이/가')} 합주실 소파에 흰 봉투를 내려놓았다.\n“나 다음 달에 간다.”\n${INST_LABEL[c.npc('m').inst]} 자리가 1년 반 동안 빈다.`,
+      `${c.nj('m', '이/가')} 합주실 소파에 흰 봉투를 내려놓았다.\n“나 다음 달에 간다.”\n${INST_LABEL[c.npc('m').inst]} 자리가 ${monthsWord(draftFor(c.p.country, c.year)?.months ?? 18)} 동안 빈다.`,
     choices: [
       {
         label: '기다린다 — 그 자리는 비워 둔다',

@@ -1,5 +1,7 @@
 // 매 시기 플레이어가 고르는 행동. 비용(컨디션·돈)과 결과는 여기서만 계산한다.
 
+import { chosenSetlist, repertoire, scoreSetlist, setFanMul, setMod as setModOf, type Crowd } from './setlist';
+import { createRival } from './rival';
 import type { Genre, Inst, Mood, SceneId } from './types';
 import { GENRES, INSTRUMENTS } from './types';
 import { Ctx } from './ctx';
@@ -61,7 +63,15 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   const DC: Record<string, number> = { openmic: 8, club_group: 11, club_solo: 13, hall: 15, local_fest: 14, big_fest: 17, arena: 18 };
   const dc = DC[v.id] ?? 12;
   const chem = c.band?.chemistry ?? 50;
-  const mod = c.m(bandSkill(c)) + Math.floor(c.m(c.p.skills.stage) / 2) + (chem >= 70 ? 2 : chem < 40 ? -2 : 0) + (c.p.stats.energy < 30 ? -2 : 0);
+  // 이번 공연을 위해 짠 셋리스트가 있으면 흐름이 판정과 관객 반응에 붙는다 (sim/setlist.ts)
+  const set = chosenSetlist(c.s);
+  // 오늘 관객에게 맞는 ‘정답’에 가까울수록 조금 유리하다 (판정 −1 ~ +2, 새 팬 ×0.92 ~ 1.08)
+  const sc = set ? scoreSetlist(set, repertoire(c.s), (c.s.flags.setCrowd as Crowd) || 'seated', c.year) : null;
+  delete c.s.flags.setlist;
+  delete c.s.flags.setCrowd;
+  const setMod = sc ? setModOf(sc.score) : 0;
+  if (sc) c.lines.push({ text: `셋리스트 ${sc.score}점 → 판정 ${setMod >= 0 ? '+' : ''}${setMod}`, tone: setMod >= 0 ? 'good' : 'bad', delta: true });
+  const mod = c.m(bandSkill(c)) + Math.floor(c.m(c.p.skills.stage) / 2) + (chem >= 70 ? 2 : chem < 40 ? -2 : 0) + (c.p.stats.energy < 30 ? -2 : 0) + setMod;
   const nat = c.rng.int(1, 20);
   const total = nat + mod;
   const grade = nat === 20 || total >= dc + 5 ? 'great' : nat !== 1 && total >= dc ? 'good' : 'bad';
@@ -78,7 +88,7 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
 
   // 관객 대부분은 이미 팬이다. 새 팬은 데려온 친구들과 페스티벌의 처음 보는 관객에게서 [가정]
   const conv = fest ? (grade === 'great' ? 0.08 : grade === 'good' ? 0.03 : 0.004) : grade === 'great' ? 0.22 : grade === 'good' ? 0.09 : 0.01;
-  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul);
+  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul * (sc ? setFanMul(sc.score) : 1));
   if (grade === 'great') {
     c.line(`${v.label} — 관객 ${draw.toLocaleString()}명이 떼창했다!`, 'big');
     if (fest || v.capacity >= 700 || !c.flag('firstGreatGig')) {
@@ -140,7 +150,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'lesson', label: '음악 학원', emoji: '🎹', scene: 'musicroom', energy: 15, param: 'inst',
-    desc: (c) => `악기 하나를 정해 배운다. 학원비 월 ${Math.round(c.krw(180000) / 10000)}만원 정도.`,
+    desc: (c) => `악기 하나를 정해 배운다. 학원비 월 ${won(c.krw(180000))} 정도.`,
     when: (c) => c.age >= 7 && c.age < 13,
     locked: (c) => (c.p.income === 'low' && c.p.money < c.krw(500000) && !c.flag('scholarship') ? '형편상 학원은 어렵다' : null),
     run: (c, inst) => {
@@ -216,7 +226,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'rehearse', label: '밴드 합주', emoji: '🥁', scene: 'studio', energy: 18,
-    desc: (c) => `합주실 2시간 ${Math.round(c.krw(20000) * 2 / 10000)}만원. 실력과 팀워크가 함께 오른다.`,
+    desc: (c) => `합주실 2시간 ${won(c.krw(20000) * 2)}. 실력과 팀워크가 함께 오른다.`,
     when: (c) => c.age >= 13 && free(c),
     price: (c) => (c.band ? c.krw(40000) / (c.members.length + 1) : 0),
     run: (c) => {
@@ -315,7 +325,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'promo', label: 'SNS 홍보', emoji: '📣', scene: 'home', energy: 8,
-    desc: (c) => `광고비 ${Math.round(c.krw(300000) / 10000)}만원. 다음 발매의 초반 화력을 키운다.`,
+    desc: (c) => `광고비 ${won(c.krw(300000))}. 다음 발매의 초반 화력을 키운다.`,
     when: (c) => c.age >= 17 && free(c) && c.s.time >= 2010,
     price: (c) => c.krw(300000),
     run: (c) => {
@@ -328,7 +338,7 @@ export const ACTIONS: ActionDef[] = [
   {
     // SNS 이전 시대의 홍보: 전봇대·클럽 게시판·레코드 가게 유리문
     id: 'flyer', label: '포스터 붙이기', emoji: '🧷', scene: 'street', energy: 10,
-    desc: (c) => `인쇄비 ${Math.round(c.krw(60000) / 10000) || 1}만원. 전봇대와 레코드 가게 유리문에 공연 포스터를.`,
+    desc: (c) => `인쇄비 ${won(c.krw(60000))}. 전봇대와 레코드 가게 유리문에 공연 포스터를.`,
     when: (c) => c.age >= 16 && free(c) && c.s.time < 2010 && !!c.band,
     price: (c) => c.krw(60000),
     run: (c) => {
@@ -375,7 +385,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'parttime', label: '아르바이트', emoji: '🧋', scene: 'street', energy: 20,
-    desc: (c) => `최저시급 약 ${Math.round(minWage(c.s.time) * c.country.wageMul).toLocaleString()}원${c.country.id !== 'KR' ? '(원화 환산)' : ''} · ${Math.floor(c.s.time)}년. 반년 동안 주 20시간.`,
+    desc: (c) => `최저시급 약 ${won(Math.round(minWage(c.s.time) * c.country.wageMul))} · ${Math.floor(c.s.time)}년. 반년 동안 주 20시간.`,
     when: (c) => c.age >= 16 && free(c) && c.age < 70,
     locked: (c) => (c.p.job === 'office' ? '회사에 다니는 중이라 알바할 시간이 없다' : null),
     run: (c) => {
@@ -387,7 +397,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'teach', label: '레슨하기', emoji: '🧑‍🏫', scene: 'musicroom', energy: 15,
-    desc: (c) => `실력 60 이상. 시간당 ${Math.round(c.krw(50000) / 10000)}만원.`,
+    desc: (c) => `실력 60 이상. 시간당 ${won(c.krw(50000))}.`,
     when: (c) => c.age >= 20 && free(c),
     locked: (c) => (c.mainSkill < 60 ? '주 악기 실력 60 이상 필요' : null),
     run: (c) => {
@@ -491,7 +501,7 @@ export function formBand(c: Ctx, name?: string, genre?: Genre, ask = !name) {
   const inst = c.p.mainInst ?? 'guitar';
   const band = {
     id: `b${c.s.pastBands.length + 1}`,
-    name: name ?? randomBandName(c.rng),
+    name: name ?? randomBandName(c.rng, c.p.country),
     genre: g,
     formedYear: c.year,
     endedYear: null,
@@ -503,6 +513,8 @@ export function formBand(c: Ctx, name?: string, genre?: Genre, ask = !name) {
     bestGig: null,
   };
   c.s.band = band;
+  // 처음 밴드를 만들 때, 비슷한 때 시작한 라이벌 밴드도 하나 생긴다 (sim/rival.ts)
+  if (!c.s.rival) c.s.rival = createRival(c.s, c.rng) ?? undefined;
   // 멤버는 카드로 직접 고른다 (events/draft.ts) — 결성 직후 첫 카드를 띄운다
   c.queue('pick_member', {}, { src: 'form', round: 1 });
   band.chemistry = clamp(40 + c.members.reduce((a, m) => a + m.affinity, 0) / Math.max(1, c.members.length) / 3);

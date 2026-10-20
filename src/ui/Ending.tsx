@@ -19,15 +19,19 @@ import { shareFile } from '../platform';
 import { FanGraph } from './FanGraph';
 import type { Meta } from './save';
 import { kinLabel } from '../sim/npc';
+import { rivalVerdict } from '../sim/rival';
+import { FateCode, fateOf } from './FateCode';
 
 interface Props {
   state: GameState;
   meta: Meta;
   onNewLife: () => void;
   onQuit: () => void;
+  /** 같은 운명 코드로 다시 태어나기 */
+  onSameFate?: () => void;
 }
 
-export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
+export function Ending({ state: s, meta, onNewLife, onQuit, onSameFate }: Props) {
   const e = s.ending!;
   const best = s.songs.find((x) => x.id === e.bestSongId) ?? null;
   const [toast, setToast] = useState<string | null>(null);
@@ -59,6 +63,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
   // 사다리 단계와 특이사항 — 예전 저장(단계 정보 없음)은 지금 기준으로 다시 계산한다
   const tierDef = ENDINGS.find((x) => x.id === e.id) ?? endingOf(s);
   const fameN = e.fame ?? fameOf(s);
+  const rival = rivalVerdict(s);
   const badgeIds = e.badges ?? badgesOf(s).map((b) => b.id);
   const badgeLines = useMemo(() => Object.fromEntries(BADGES.filter((b) => badgeIds.includes(b.id)).map((b) => [b.id, b.line(s)])), [s]); // eslint-disable-line react-hooks/exhaustive-deps
   const highlights = useMemo(() => s.chronicle.filter((c) => c.kind === 'big' || c.kind === 'band').slice(-8), [s.chronicle]);
@@ -78,7 +83,7 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
     sfx('tap');
     try {
       const blob = await renderShareCard(s, bio, bandName);
-      const text = `${s.player.name}(${s.player.birthYear}–${s.player.birthYear + deathAge})의 인생: ${ENDINGS.length}단계 중 ${tierDef.tier}단계 ${e.title.replace(/^\S+ /, '')} · ${e.rank}랭크${badgeIds.length ? ` · 특이사항 ${BADGES.filter((b) => badgeIds.includes(b.id)).map((b) => b.emoji).join('')}` : ''}${best ? `\n대표곡 〈${best.title}〉` : ''}\n#인디밴드키우기`;
+      const text = `${s.player.name}(${s.player.birthYear}–${s.player.birthYear + deathAge})의 인생: ${ENDINGS.length}단계 중 ${tierDef.tier}단계 ${e.title.replace(/^\S+ /, '')} · ${e.rank}랭크${badgeIds.length ? ` · 특이사항 ${BADGES.filter((b) => badgeIds.includes(b.id)).map((b) => b.emoji).join('')}` : ''}${best ? `\n대표곡 〈${best.title}〉` : ''}\n운명 코드 ${fateOf(s)}\n#인디밴드키우기`;
       const how = await shareFile(blob, `인디밴드키우기_${s.player.name}.png`, text, '인디밴드 키우기');
       if (how === 'downloaded') {
         try {
@@ -128,6 +133,12 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
           <h4>FAME — {ENDINGS.length}단계 중 {tierDef.tier}단계까지 닿았다</h4>
           <FameLadder tier={tierDef.tier} fame={fameN} />
         </section>
+        {rival && (
+          <section className="liner-sec">
+            <h4>RIVAL — 〈{s.rival!.name}〉</h4>
+            <p className="liner-notes" style={{ marginTop: 4 }}>{rival.win ? '🥊 ' : '🥈 '}{rival.line}</p>
+          </section>
+        )}
         <section className="liner-sec">
           <h4>특이사항 — 이 인생에만 있던 일 {badgeIds.length ? `${badgeIds.length}개` : ''}</h4>
           <BadgeStamps ids={badgeIds} lines={badgeLines} seen={meta.badges ?? {}} />
@@ -217,6 +228,8 @@ export function Ending({ state: s, meta, onNewLife, onQuit }: Props) {
       )}
 
       <button className="btn primary block" onClick={share}>라이너 노트 카드 공유하기</button>
+      <FateCode s={s} />
+      {onSameFate && <button className="btn block" onClick={() => { sfx('tap'); onSameFate(); }}>같은 운명으로 다시 태어나기</button>}
       <button className="btn block" onClick={() => { sfx('tap'); onNewLife(); }}>다음 인생으로 태어나기</button>
       <button className="btn ghost block" onClick={onQuit}>처음 화면으로</button>
       <div className="dim" style={{ textAlign: 'center' }}>엔딩 도감 {ENDINGS.filter((x) => meta.endings[x.id]).length}/{ENDINGS.length}단계 · 특이사항 {Object.keys(meta.badges ?? {}).filter((k) => BADGES.some((b) => b.id === k)).length}/{BADGES.length}개</div>
@@ -298,24 +311,73 @@ async function renderShareCard(s: GameState, bio: string, bandName: string | nul
   g.fillText(e.subtitle, 80, 585);
 
   g.fillStyle = '#3d3a33';
-  g.font = `400 31px ${serif}`;
-  wrap(g, bio, 80, 660, W - 160, 50, 8);
+  g.font = `400 30px ${serif}`;
+  wrap(g, bio, 80, 650, W - 160, 46, 4);
+
+  // 팬 사다리 — 14단계 중 어디까지 닿았나
+  const tier = ENDINGS.find((x) => x.id === e.id)?.tier ?? ENDINGS.length;
+  const steps = ENDINGS.length;
+  g.fillStyle = '#6f685b';
+  g.font = `400 24px ${mono}`;
+  g.fillText(`FAME · ${steps}단계 중 ${tier}단계`, 80, 862);
+  const cw = (W - 160 - (steps - 1) * 6) / steps;
+  for (let i = 0; i < steps; i++) {
+    // 1단계가 가장 높다 — 왼쪽이 바닥(14), 오른쪽이 꼭대기(1)
+    const t = steps - i;
+    g.fillStyle = t === tier ? '#f0378f' : t > tier ? '#1c1a16' : '#ddd5c4';
+    g.fillRect(80 + i * (cw + 6), 880 + (t === tier ? -8 : 0), cw, 36 + (t === tier ? 8 : 0));
+  }
+
+  // 특이사항 배지
+  const bs = BADGES.filter((b) => (e.badges ?? []).includes(b.id)).slice(0, 4);
+  if (bs.length) {
+    g.fillStyle = '#1c1a16';
+    g.font = `700 28px ${sans}`;
+    clip(g, bs.map((b) => `${b.emoji} ${b.title}`).join('   '), 80, 975, W - 160);
+  }
+  // 라이벌
+  const rv = rivalVerdict(s);
+  if (rv) {
+    g.fillStyle = '#3d3a33';
+    g.font = `400 26px ${sans}`;
+    clip(g, `${rv.win ? '🥊' : '🥈'} ${rv.line}`, 80, 1020, W - 160);
+  }
 
   const best = s.songs.find((x) => x.id === e.bestSongId);
   if (best) {
-    const cover = await svgToImage(renderToStaticMarkup(<Cover seed={best.coverSeed} genre={best.genre} title={best.title} artist={best.bandName ?? s.player.name} size={200} />));
-    g.drawImage(cover, 80, 1060, 200, 200);
+    const cover = await svgToImage(renderToStaticMarkup(<Cover seed={best.coverSeed} genre={best.genre} title={best.title} artist={best.bandName ?? s.player.name} size={170} />));
+    g.drawImage(cover, 80, 1060, 170, 170);
     g.fillStyle = '#6f685b';
-    g.font = `400 26px ${mono}`;
-    g.fillText('대표곡', 310, 1100);
+    g.font = `400 24px ${mono}`;
+    g.fillText('대표곡', 280, 1095);
     g.fillStyle = '#1c1a16';
-    g.font = `800 54px ${serif}`;
-    g.fillText(`〈${best.title}〉`, 300, 1170);
+    g.font = `800 50px ${serif}`;
+    clip(g, `〈${best.title}〉`, 272, 1160, W - 352);
     g.fillStyle = '#3d3a33';
-    g.font = `italic 400 28px ${serif}`;
-    g.fillText(`“${best.lyric[0]}”`, 310, 1225);
+    g.font = `italic 400 26px ${serif}`;
+    clip(g, `“${best.lyric[0]}”`, 280, 1210, W - 360);
   }
+  // 운명 코드 — 이 카드를 본 사람도 같은 출생으로 살아 볼 수 있게
+  g.fillStyle = '#1c1a16';
+  g.fillRect(80, 1248, W - 160, 2);
+  g.font = `400 24px ${mono}`;
+  g.fillStyle = '#6f685b';
+  g.fillText('운명 코드', 80, 1288);
+  g.fillStyle = '#1c1a16';
+  g.font = `400 30px ${mono}`;
+  g.fillText(fateOf(s), 210, 1290);
+  g.fillStyle = '#6f685b';
+  g.font = `400 22px ${mono}`;
+  g.fillText('같은 운명으로 태어나 보세요', W - 400, 1288);
   return new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error('toBlob'))), 'image/png'));
+}
+
+/** 한 줄에 안 들어가면 말줄임 */
+function clip(g: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number) {
+  if (g.measureText(text).width <= maxW) return g.fillText(text, x, y);
+  let t = text;
+  while (t.length > 1 && g.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  g.fillText(t + '…', x, y);
 }
 
 function wrap(g: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lh: number, maxLines: number) {

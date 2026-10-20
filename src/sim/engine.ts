@@ -10,10 +10,14 @@ import type { ActionPick, ActiveEvent, FeedEntry, Jackpot, Odds, PendingRoll, Ga
 import { GENRES } from './types';
 import { Rng, clamp, hashStr } from './rng';
 import { Ctx, book, type EventDef } from './ctx';
-import { ARTIST_SURVEY } from './data/reality';
+import { incomeBar } from './data/reality';
+import { goalDef, settleGoal } from './goals';
+import { countActs, fansDownWhy, markYear, yearReview } from './why';
+import { tickRival } from './rival';
+import { applyMoneyOf } from './money';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
-import { actionSlots, age, ageInt, bornAge, bornAt, chron, isBorn, livingCost, stepSize } from './state';
+import { actionSlots, age, ageInt, bornAge, bornAt, chron, isBorn, isFresh, livingCost, remember, stepSize } from './state';
 import { REGIONS, annualDeathProb, minWage, priceIndex, SKILL_LABEL } from './data/world';
 import { ageNpcs, createNpc } from './npc';
 import { yearlyStreams } from './songs';
@@ -252,7 +256,7 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
       // 선택지 자체가 그 시대에 없던 일이면(예: 1980년의 ‘숏폼에 올린다’) 숨긴다
       const hidden = !!raw && (!label || (textMinYear(raw, s.player.country) > at + 0.5 && !label.trim()) || textMinAge(raw, s.player.country) > Math.max(0, age(s)));
       const card = ch.card?.(c);
-      const lock = why || short || undefined;
+      const lock = (why && periodText(why, at, s.player.country)) || short || undefined;
       const odds = ok && !hidden && !lock ? ch.odds?.(c) : undefined;
       const soft = ok && !hidden && !lock ? softWhy(ch, c, odds, price) : [];
       return {
@@ -267,7 +271,13 @@ function materialize(s: GameState, rng: Rng, id: string, bind: Record<string, st
         odds,
         risk: ch.risk,
         range: ch.range?.(c),
-        card: card && { ...card, title: periodText(card.title, at, s.player.country), sub: card.sub && periodText(card.sub, at, s.player.country) },
+        card: card && {
+          ...card,
+          title: periodText(card.title, at, s.player.country),
+          sub: card.sub && periodText(card.sub, at, s.player.country),
+          data: card.data && periodText(card.data, at, s.player.country),
+          stats: card.stats?.map(([k, v]) => [periodText(k, at, s.player.country), periodText(String(v), at, s.player.country)] as [string, string]),
+        },
       };
     });
     // 이유는 선택지끼리 겹치지 않게 나눠 준다
@@ -412,6 +422,13 @@ export function beginPeriod(prev: GameState): GameState {
   s.lastResults = [];
   const picks: ActionPick[] = resolvePlan(s, rng);
   s.lastActions = picks;
+  countActs(s, picks.map((x) => x.id));
+  // 시즌 목표: 이번 시기 계획이 목표를 따랐나 (놓쳤을 때 이유로 보여 준다)
+  if (s.goal) {
+    const gd = goalDef(s.goal.id);
+    s.goal.periods = (s.goal.periods ?? 0) + 1;
+    if (gd && picks.some((x) => gd.plan.includes(x.id))) s.goal.hits = (s.goal.hits ?? 0) + 1;
+  }
   const c = new Ctx(s, rng);
   let energyUsed = 0;
   const cineBefore = s.cine.length;
@@ -427,7 +444,9 @@ export function beginPeriod(prev: GameState): GameState {
     energyUsed += def.energy;
     const lines = [...c.lines.slice(before), ...s.lastResults.splice(sayBefore)];
     s.lastResults.push(...lines);
-    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), narrate(def.id, rng, { age: age(s), year: s.time, band: !!s.band, recent }) || undefined);
+    const said = narrate(def.id, rng, { age: age(s), year: s.time, band: !!s.band, fans: s.player.fans, broke: s.player.money < 0, recent, fresh: (t) => isFresh(s, t) });
+    if (said) remember(s, said);
+    linesToFeed(s, lines, s.time + step * (0.08 + i * 0.3 + rng.next() * 0.1), said || undefined);
   });
   for (const cn of s.cine.slice(cineBefore)) cn.at = s.time + step * 0.4;
   s.player.stats.energy = clamp(s.player.stats.energy - energyUsed);
@@ -738,6 +757,7 @@ export function endPeriod(prev: GameState): GameState {
   // 뱃속 시기는 정확히 태어나는 달에 끝난다 (0.1년 반올림을 하면 12월생이 11월에 태어난다)
   s.time = isBorn(s) ? Math.round((s.time + step) * 10) / 10 : Math.round((bornAt(s) + 0.001) * 1000) / 1000;
   s.turn++;
+  applyMoneyOf(s);
   const a = age(s);
   const yearsPassed = Math.floor(s.time) - y0;
   const t = s.time;
@@ -812,8 +832,9 @@ export function endPeriod(prev: GameState): GameState {
   // 팬은 활동이 없으면 빠르게, 있어도 조금씩 떠난다 — 큰 변화는 기록에 남긴다
   const fansStart = (s.flags.fansAtPeriodStart as number) ?? fansBefore;
   const fd = p.fans - fansStart;
-  if (fansStart >= 50 && Math.abs(fd) >= Math.max(20, fansStart * 0.08)) {
-    const why = fd > 0 ? (p.fans > s.peakFans * 0.98 ? '최고 기록 경신' : '새로 생긴 팬들') : s.flags.hiatus ? '활동 중단' : fansStart > 1000 ? '새 노래가 없으면 잊힌다' : '관심이 식었다';
+  // 해가 바뀌는 시기엔 ‘한 해 돌아보기’가 같은 내용을 더 자세히 말한다 — 겹치지 않게 반년짜리만
+  if (yearsPassed === 0 && fansStart >= 50 && Math.abs(fd) >= Math.max(20, fansStart * 0.08)) {
+    const why = fd > 0 ? (p.fans > s.peakFans * 0.98 ? '최고 기록 경신' : '새로 생긴 팬들') : fansDownWhy(s, fansStart);
     pushFeed(s, { t: s.time, text: `팬 ${fd > 0 ? '+' : ''}${fd.toLocaleString()}명 — ${why}`, tone: fd > 0 ? 'good' : 'bad', kind: 'news' });
   }
   s.flags.fansAtPeriodStart = p.fans;
@@ -834,6 +855,12 @@ export function endPeriod(prev: GameState): GameState {
     if (p.money > m0) book(s, p.money - m0, '음원 정산');
     news.push(...s.lastResults.splice(before));
     closeLedger(s, Math.floor(s.time) - (yearsPassed - 1 - i) - 1, Math.floor(ya) - 1, t);
+    // 한 해 돌아보기 — 팬이 왜 늘고 줄었는지, 줄었으면 다음 한 수 (sim/why.ts)
+    if (i === yearsPassed - 1) {
+      const rv = yearReview(s, Math.floor(s.time) - 1, Math.floor(ya) - 1);
+      if (rv) pushFeed(s, { t: t + 0.002, ...rv });
+      s.yearMark = markYear(s);
+    }
     // 용돈: 일을 하기 전까지 가정 형편·나이·그 해 물가에 맞춰 [근사·가정]
     {
       const A = ALLOWANCE.data;
@@ -871,6 +898,14 @@ export function endPeriod(prev: GameState): GameState {
   if (money.length) pushFeed(s, { t, text: '', tone: 'neutral', deltas: money.join(' · '), kind: 'news' });
   for (const n of news.filter((x) => !x.delta)) pushFeed(s, { t, text: n.text, tone: n.tone ?? 'neutral', kind: 'news' });
 
+  // 라이벌 밴드도 저들의 속도로 산다
+  for (const line of tickRival(s, rng, step)) pushFeed(s, { t: t - step * 0.3, text: `🥊 ${line}`, tone: 'neutral', kind: 'news' });
+  // 시즌 목표: 이뤘거나 기한이 지났으면 정산한다
+  const goal = settleGoal(s, step);
+  if (goal) {
+    pushFeed(s, { t, text: goal.text, tone: goal.ok ? 'big' : 'bad', deltas: goal.lines.map((l) => l.text).join(' · ') || undefined, kind: 'life' });
+    if (goal.ok) chron(s, goal.text, 'life');
+  }
   s.history.push({ age: Math.floor(a), fans: p.fans, happiness: Math.round(p.stats.happiness), money: p.money });
   if (s.history.length > 200) s.history.shift();
   s.rng = rng.state;
@@ -949,17 +984,18 @@ function closeLedger(s: GameState, yr: number, ag: number, t: number) {
     s.ledgers.push({ year: yr, age: ag, ...L });
     if (s.ledgers.length > 120) s.ledgers.shift();
     const net = L.music - L.cost;
-    const avg = ARTIST_SURVEY.avgArtIncomeMusic;
+    const bar = incomeBar(s.player.country, yr);
+    const avg = bar.value;
     const tone: FeedEntry['tone'] = net >= avg ? 'good' : 'neutral';
     pushFeed(s, {
       t,
       text: `${yr}년 결산 — 음악으로 ${won(L.music)} 벌고 ${won(L.cost)} 썼다.${L.other ? ` 다른 일로 ${won(L.other)}.` : ''}`,
       tone,
-      deltas: `음악인 평균 예술활동 수입 ${won(avg)} · 2024 예술인 실태조사`,
+      deltas: `${bar.label} ${won(avg)}${bar.kind === '통계' ? ' · 2024 예술인 실태조사' : ''}`,
       kind: 'news',
     });
     // ‘먹고산다’의 기준: 최저임금으로 1년 일한 만큼(주 40시간, 209시간×12개월)의 80% [가정]
-    const livingBar = minWage(yr) * 209 * 12 * 0.8;
+    const livingBar = minWage(yr) * countryOf(s.player.country).wageMul * 209 * 12 * 0.8;
     if (!s.flags.livingByMusic && ag >= 19 && net >= livingBar) {
       s.flags.livingByMusic = yr;
       chron(s, '처음으로 음악으로 번 돈만으로 한 해를 살았다', 'big');
@@ -984,6 +1020,13 @@ export function canRenameBand(s: GameState): boolean {
 export function cleanBandName(raw: string): string {
   return raw.replace(/[〈〉<>\r\n\t]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
 }
+/** 셋리스트 짜기 화면에서 고른 곡 순서 — 다음 공연(gig_setlist)에 쓰인다 */
+export function setSetlist(prev: GameState, ids: string[]): GameState {
+  const s = clone(prev);
+  s.flags.setlist = ids.filter((id) => s.songs.some((x) => x.id === id)).join(',');
+  return s;
+}
+
 export function renameBand(prev: GameState, raw: string): GameState {
   const name = cleanBandName(raw);
   if (!name || !prev.band || !canRenameBand(prev) || name === prev.band.name) return prev;

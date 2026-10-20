@@ -6,6 +6,7 @@ import type { Rng } from '../rng';
 import tables from '../../data/fate/tables.json';
 import originsJson from '../../data/fate/origins.json';
 import parentJobsJson from '../../data/fate/parent_jobs.json';
+import { tfrAt } from './countries';
 
 export interface FateDraw {
   id: string;
@@ -92,7 +93,7 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
   const add = (d: FateDraw) => draws.push(d);
 
   // 형제 — 합계출산율로 형제 수 분포를 근사 (자녀 수 = 1 + 포아송)
-  const tfr = country && country.id !== 'KR' ? country.tfr : lerpTable(TFR, birthYear);
+  const tfr = country && country.id !== 'KR' ? tfrAt(country, birthYear) : lerpTable(TFR, birthYear);
   const lambda = Math.max(0.15, tfr * 1.2 - 0.6);
   // 출산율이 높던 시절엔 대여섯 남매도 흔했다 — 형제 수 상한을 시대에 맞춘다
   const cap = tfr >= 3 ? 6 : tfr >= 2 ? 4 : 3;
@@ -104,7 +105,7 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
     id: 'siblings',
     label: sib === 0 ? '외동' : [older ? `손위 형제 ${older}명` : '', younger ? `동생 ${younger}명` : ''].filter(Boolean).join(' · '),
     p: pSib,
-    src: country && country.id !== 'KR' ? `${country.name} 합계출산율 ${tfr.toFixed(2)}명으로 근사` : `${birthYear}년 합계출산율 ${tfr.toFixed(2)}명으로 형제 수 분포를 근사`,
+    src: country && country.id !== 'KR' ? `${birthYear}년 ${country.name} 합계출산율 ${tfr.toFixed(2)}명으로 형제 수 분포를 근사` : `${birthYear}년 합계출산율 ${tfr.toFixed(2)}명으로 형제 수 분포를 근사`,
     kind: '근사',
     // 동생은 아직 태어나지 않았다
     future: younger > 0,
@@ -112,12 +113,12 @@ export function rollFate(rng: Rng, birthYear: number, gender: 'm' | 'f', country
 
   // 부모님 직업 (집안의 주 수입원)
   const job = rng.weighted(parentJobsFor(birthYear), (x) => x[1])!;
-  add({ id: 'parentjob', label: `부모님: ${job[2]}`, p: job[1], src: `${birthYear}년 무렵 산업별 취업자 비중 (통계청 경제활동인구조사 추세)을 여섯 묶음으로 근사`, kind: '근사' });
+  add({ id: 'parentjob', label: `부모님: ${job[2]}`, p: job[1], src: country && country.id !== 'KR' ? `${birthYear}년 무렵 산업별 취업자 비중 — 한국 추세를 빌려 여섯 묶음으로 근사 (그 나라 자료는 아직 넣지 못했다)` : `${birthYear}년 무렵 산업별 취업자 비중 (통계청 경제활동인구조사 추세)을 여섯 묶음으로 근사`, kind: '근사' });
 
   // 쌍둥이
   const twinRate = country && country.id !== 'KR' ? country.twinRate : lerpTable(TWIN, birthYear);
   const twin = rng.chance(twinRate);
-  if (twin) add({ id: 'twin', label: '쌍둥이로 태어남', p: twinRate, src: '다태아 출생 비중 (2023년 5.5%, 통계청 출생통계)', kind: birthYear >= 2023 ? '통계' : '근사' });
+  if (twin) add({ id: 'twin', label: '쌍둥이로 태어남', p: twinRate, src: country && country.id !== 'KR' ? `${country.name} 다태아 출생 비중 ${(twinRate * 100).toFixed(1)}% [근사]` : '다태아 출생 비중 (2023년 5.5%, 통계청 출생통계)', kind: birthYear >= 2023 && !(country && country.id !== 'KR') ? '통계' : '근사' });
 
   // 다문화 가정
   const multiRate = country && country.id !== 'KR' ? country.immigrantRate : lerpTable(MULTI, birthYear);

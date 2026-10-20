@@ -1,6 +1,7 @@
 // 로컬 저장. 사파리 사생활 보호 모드 등에서 localStorage 가 막혀도 게임은 돌아가야 한다.
 
-import type { GameState } from '../sim/types';
+import type { GameState, LegacyLife } from '../sim/types';
+import { legacyOf } from '../sim/legacy';
 import { SAVE_VERSION } from '../sim/engine';
 
 const SAVE_KEY = 'ibl.save.v1';
@@ -17,6 +18,8 @@ export interface PastLife {
   bestSong: string | null;
   fans: number;
   at: number;
+  /** 다음 인생에 넘어가는 것 (라디오·선배 밴드·라이벌) — 이 기능 전에 끝난 인생엔 없다 */
+  legacy?: LegacyLife | null;
 }
 
 export interface Meta {
@@ -80,6 +83,7 @@ export function recordLife(meta: Meta, s: GameState): Meta {
     bestSong: best?.title ?? null,
     fans: s.peakFans,
     at: Date.now(),
+    legacy: legacyOf(s),
   };
   const next: Meta = {
     ...meta,

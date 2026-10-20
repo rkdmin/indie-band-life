@@ -1,15 +1,16 @@
 // 데이터로 본 내 인생 — 게임이 쓰는 실제 통계·근사 데이터를, 내가 산 시간 위에 겹쳐 보여 준다.
 // 모든 숫자는 src/data/*.json 에서 온다. 그래프 위에 손을 올리면 그 해의 값이 보인다.
 
+import { moneyAt } from '../sim/money';
 import { useMemo, useState } from 'react';
 import type { GameState } from '../sim/types';
 import { GENRES } from '../sim/types';
-import { birthsIn, minWage, priceIndex } from '../sim/data/world';
+import { birthsIn, minWage } from '../sim/data/world';
 import { countryOf, hasMinWage, lifeExpAt, type CountryId } from '../sim/data/countries';
 import { MEDIA } from '../sim/data/era/media';
 import { GENRE_ERAS, genreNamedIn } from '../sim/data/era/genres';
 import { bandsAt, styleOf } from '../sim/data/era/bands';
-import { ARTIST_SURVEY } from '../sim/data/reality';
+import { incomeBar } from '../sim/data/reality';
 import { won } from '../sim/korean';
 import { meanHeight, playerAppearance } from '../sim/appearance';
 
@@ -165,7 +166,8 @@ export function DataSheet({ s }: { s: GameState }) {
     return [...seen.entries()].slice(0, 14);
   }, [born, ct]);
   const ledgers = s.ledgers.slice(-12);
-  const maxMoney = Math.max(1, ...ledgers.map((l) => Math.max(l.music - l.cost, ARTIST_SURVEY.avgArtIncomeMusic * priceIndex(l.year))));
+  const bar0 = incomeBar(s.player.country, s.time);
+  const maxMoney = Math.max(1, ...ledgers.map((l) => Math.max(l.music - l.cost, incomeBar(s.player.country, l.year).value)));
 
   return (
     <div className="datasheet">
@@ -202,7 +204,7 @@ export function DataSheet({ s }: { s: GameState }) {
 
       <LineChart
         title={hasMinWage(c, born + 16) ? '최저시급의 흐름' : '시급의 흐름'}
-        sub={`열여섯 살 ${born + 16}년의 시급 약 ${Math.round(minWage(born + 16) * c.wageMul).toLocaleString()}원${hasMinWage(c, born + 16) ? '' : ' (최저임금제 이전 추정)'}`}
+        sub={`열여섯 살 ${born + 16}년의 시급 약 ${moneyAt(minWage(born + 16) * c.wageMul, born + 16, c.id)}${hasMinWage(c, born + 16) ? '' : ' (최저임금제 이전 추정)'}`}
         points={wage}
         fmt={(v) => (v >= 10000 ? `${(v / 10000).toFixed(1)}만` : `${Math.round(v).toLocaleString()}`)}
         marks={[{ x: born + 16, label: '16세' }]}
@@ -227,16 +229,16 @@ export function DataSheet({ s }: { s: GameState }) {
 
       <figure className="dchart">
         <figcaption>
-          <b>음악으로 번 돈 vs 음악인 평균</b>
-          <span>해마다 음악 순수입(수입−지출)과 「예술인 실태조사」 음악인 평균 예술활동 수입(그 해 물가 환산)</span>
+          <b>음악으로 번 돈 vs {bar0.short}</b>
+          <span>해마다 음악 순수입(수입−지출)과 {bar0.label}{bar0.kind === '통계' ? '(「예술인 실태조사」, 그 해 물가 환산)' : '(그 해 기준)'}</span>
         </figcaption>
         {ledgers.length ? (
           <div className="ds-bars">
             {ledgers.map((l) => {
               const mine = l.music - l.cost;
-              const avg = ARTIST_SURVEY.avgArtIncomeMusic * priceIndex(l.year);
+              const avg = incomeBar(s.player.country, l.year).value;
               return (
-                <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${won(mine)} · 평균 ${won(avg)}`}>
+                <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${moneyAt(mine, l.year, s.player.country)} · 평균 ${moneyAt(avg, l.year, s.player.country)}`}>
                   <span className="b me" style={{ height: `${(Math.max(0, mine) / maxMoney) * 100}%` }} />
                   <span className="b avg" style={{ height: `${(avg / maxMoney) * 100}%` }} />
                   <em>{String(l.year).slice(2)}</em>
@@ -249,9 +251,9 @@ export function DataSheet({ s }: { s: GameState }) {
         )}
         <div className="ds-legend">
           <span><i className="me" /> 나의 음악 순수입</span>
-          <span><i className="avg" /> 음악인 평균 {won(ARTIST_SURVEY.avgArtIncomeMusic)} (2023)</span>
+          <span><i className="avg" /> {bar0.short} {won(bar0.value)}</span>
         </div>
-        <div className="dc-src">📊 {ARTIST_SURVEY.src}</div>
+        <div className="dc-src">📊 {bar0.src}</div>
       </figure>
 
       <div className="ds-tile">

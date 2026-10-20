@@ -5,7 +5,7 @@ import { INST_LABEL } from './data/world';
 import { countryOf } from './data/countries';
 import { genreLabel } from './data/era/genres';
 import { periodText } from './data/anachronism';
-import { given, josa } from './korean';
+import { given, josa, won } from './korean';
 
 const INCOME = { low: '넉넉하지 않은', mid: '평범한', high: '여유 있는' };
 /** 조사만 떼어 낸다: pj('블루스', '은/는') → '는' */
@@ -49,7 +49,7 @@ export function biography(s: GameState): string {
     .sort((a, b) => b.affinity - a.affinity)[0];
   if (close && close.affinity >= 40) parts.push(`가장 가까웠던 사람은 ${close.metAge}살 때 만난 ${josa(close.name, '이/')}${josa(close.name, '이/').length > close.name.length ? '었' : '였'}습니다.`);
   if (s.flags.careerEnd !== undefined) parts.push(`${s.flags.careerEnd}세에 음악 인생의 막을 내리고, 그 뒤로는 조용히 살았습니다.`);
-  if (s.player.debt > 0) parts.push(`갚지 못한 빚 ${Math.round(s.player.debt / 10000).toLocaleString()}만원이 남았습니다.`);
+  if (s.player.debt > 0) parts.push(`갚지 못한 빚 ${won(s.player.debt)}${josa(won(s.player.debt), '이/가').slice(won(s.player.debt).length)} 남았습니다.`);
   parts.push(`${p.deathAge ?? Math.floor(s.time - p.birthYear)}세에 세상을 떠났습니다.`);
   return parts.join(' ');
 }

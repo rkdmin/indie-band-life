@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { CountryId } from './sim/data/countries';
+import { applyMoneyOf } from './sim/money';
+import { setMoneyDisplay } from './sim/korean';
 import type { GameState } from './sim/types';
 import { newGame, popCine, type NewGameOptions } from './sim/engine';
+import { pickLegacy } from './sim/legacy';
 import { loadGame, loadMeta, recordLife, saveGame, type Meta } from './ui/save';
 import { Title, rollOptions, type BornSettings } from './ui/Title';
 import { BirthCert } from './ui/BirthCert';
@@ -17,6 +21,9 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('title');
   const [game, setGame] = useState<GameState | null>(() => loadGame());
   const [meta, setMeta] = useState<Meta>(() => loadMeta());
+  // 돈 표시는 지금 보고 있는 인생의 나라 돈으로 (한국은 원화) — 그리기 전에 맞춘다
+  if (game) applyMoneyOf(game);
+  else setMoneyDisplay(null);
   const [lastOpts, setLastOpts] = useState<{ o: NewGameOptions; pace: number; set: BornSettings } | null>(null);
 
   // 화면이 바뀌면 맨 위에서 시작한다 — 아래쪽 버튼을 누르고 넘어가면 다음 화면이 중간부터 보이던 문제
@@ -49,6 +56,8 @@ export function App() {
   const born = (o: NewGameOptions, pace: number, set: BornSettings) => {
     const s = newGame(o);
     s.flags.pace = pace;
+    // 지난 인생들이 이번 인생에 끼어든다 (라디오·선배 밴드·라이벌 — sim/legacy.ts). 출생은 바꾸지 않는다
+    s.legacy = pickLegacy(meta.lives.map((l) => l.legacy));
     setLastOpts({ o, pace, set });
     update(s);
     setScreen('cert');
@@ -98,7 +107,7 @@ export function App() {
             onDone={() => update(popCine(game))}
           />
         );
-      return <Ending state={game} meta={meta} onNewLife={newLife} onQuit={quit} />;
+      return <Ending state={game} meta={meta} onNewLife={newLife} onQuit={quit} onSameFate={() => born({ name: game.player.name, gender: game.player.gender, birthYear: game.player.birthYear, country: game.player.country as NewGameOptions['country'], seed: game.seed }, Number(game.flags.pace) || 1, { era: 'any', country: (game.player.country ?? 'KR') as CountryId, gender: game.player.gender, name: null, birthYear: game.player.birthYear })} />;
     }
     return <Life state={game} onChange={update} meta={meta} onQuit={quit} onNewLife={newLife} />;
   }

@@ -1,9 +1,11 @@
 import type { GameState } from '../sim/types';
+import { FateCode } from './FateCode';
+import { moneyAt } from '../sim/money';
 import { REGIONS, birthsIn, eraOf, minWage } from '../sim/data/world';
 import { Portrait } from '../art/Portrait';
 import { given, josa } from '../sim/korean';
 import { periodText } from '../sim/data/anachronism';
-import { countryOf, hasMinWage, lifeExpAt, successStars } from '../sim/data/countries';
+import { birthsAt, countryOf, hasMinWage, lifeExpAt, successStars } from '../sim/data/countries';
 import { TALENTS, TALENT_LABEL, rarityText, stars } from '../sim/data/fate';
 import { TRAIT_LABEL } from '../sim/npc';
 import { sfx } from '../audio/player';
@@ -80,7 +82,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
               <div className="country-stats">
                 <span>음악 시장 세계 <b>{ct.marketRank}위</b>{y < 2000 ? ' (2024)' : ''}</span>
                 <span>기대수명 <b>{lifeExpAt(ct, y)}세</b></span>
-                <span>{hasMinWage(ct, y + 16) ? '최저시급' : '시급(추정)'} 약 <b>{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</b></span>
+                <span>{hasMinWage(ct, y + 16) ? '최저시급' : '시급(추정)'} 약 <b>{moneyAt(minWage(y + 16) * ct.wageMul, y + 16, ct.id)}</b></span>
                 <span>생활비 <b>×{ct.costMul}</b></span>
               </div>
               <div className="country-stars">
@@ -101,7 +103,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div className="wide"><span className="label">물려받은 외모</span><div className="v">{inherited}</div></div>
             <div><span className="label">기대수명</span><div className="v">{lifeExpAt(ct, y)}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
-            <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{Math.round(minWage(y + 16) * ct.wageMul).toLocaleString()}원</div></div>
+            <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{moneyAt(minWage(y + 16) * ct.wageMul, y + 16, ct.id)}</div></div>
             {sibFuture && <div><span className="label">형제</span><div className="v">{older ? `손위 형제 ${older}명` : '첫아이'}</div></div>}
             {p.birth && <div><span className="label">엄마 나이</span><div className="v">{p.birth.motherAge}세</div></div>}
           </div>
@@ -144,11 +146,12 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             </div>
           </div>
           <div className="cert-note">
-            {ct.id === 'KR' ? <>{y}년 대한민국에서 태어난 아기는 약 {Math.floor(births / 10000)}만 {Math.round((births % 10000) / 1000) ? `${Math.round((births % 10000) / 1000)}천` : ''}명. 그중 한 명입니다.</> : <>올해 {ct.name}에서 태어나는 아기는 약 {Math.round(ct.births / 10000).toLocaleString()}만 명. 그중 한 명입니다.</>}
+            {ct.id === 'KR' ? <>{y}년 대한민국에서 태어난 아기는 약 {Math.floor(births / 10000)}만 {Math.round((births % 10000) / 1000) ? `${Math.round((births % 10000) / 1000)}천` : ''}명. 그중 한 명입니다.</> : <>{y}년 {ct.name}에서 태어난 아기는 약 {Math.round(birthsAt(ct, y) / 10000).toLocaleString()}만 명. 그중 한 명입니다.</>}
             <br />
             스무 살이 되는 {y + 20}년 무렵은 ‘{era20.name}’ — {era20.desc}.
           </div>
         </div>
+        <FateCode s={s} />
         <div className="cert-foot">
           <button className="btn ghost" onClick={() => { sfx('tap'); onReroll(); }}>다시 태어나기</button>
           <button className="btn primary" onClick={() => { sfx('good'); onStart(); }}>삶을 시작하기 →</button>

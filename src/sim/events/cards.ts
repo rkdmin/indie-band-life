@@ -2,6 +2,7 @@
 // 카드마다 위험도(안정·모험·도박)와 최선·최악 범위가 보인다. 숫자는 data/fate/money.json·jobs.json 의 실제 통계·근사에서 온다.
 //  · 생계 직업 카드 · 돈 굴리기(예금·주식·코인·동업) · 공연 기회 · 레이블 제안 비교 · 타이틀곡 고르기 · 협찬 제안 · 장비 사기
 
+import { countryOf, hasMinWage } from '../data/countries';
 import type { EventDef, Ctx } from '../ctx';
 import type { CardInfo, Job, Song } from '../types';
 import { release, unreleased } from '../songs';
@@ -122,7 +123,7 @@ export const CARD_EVENTS: EventDef[] = [
             ['음악에 남는 여력', MUSIC[j.music]],
           ],
           sub: j.note,
-          data: `최저시급 ${minWage(c.year).toLocaleString()}원 × ${j.pay}배 기준 [근사]`,
+          data: `${hasMinWage(countryOf(c.p.country), c.year) ? '최저시급' : '시급(추정)'} ${won(minWage(c.year) * countryOf(c.p.country).wageMul)} × ${j.pay}배 기준 [근사]`,
         };
       },
       run: (c: Ctx) => {
@@ -287,7 +288,7 @@ export const CARD_EVENTS: EventDef[] = [
         risk: 'gamble',
         range: (c) => `계약금 0 · 수익 100% · 실패하면 −${won(c.krw(8_000_000))}`,
         odds: (c) => c.dc(14, '자립 판정', [['팬 규모', c.p.fans >= 8000 ? 3 : c.p.fans >= 3000 ? 1 : 0], ['작곡', Math.floor(c.m(c.p.skills.compose) / 2)], ['밴드 합', (c.band?.chemistry ?? 50) >= 65 ? 2 : 0]], '가정', '유통·홍보·정산을 전부 직접 한다'),
-        card: (c) => ({ title: '자체 레이블', icon: '🏴', tag: '도박', stats: [['계약금', '0원'], ['수익 배분', '밴드 100%'], ['초기 비용', won(c.krw(8_000_000))], ['발매 도달', '성공하면 ×1.8']] }),
+        card: (c) => ({ title: '자체 레이블', icon: '🏴', tag: '도박', stats: [['계약금', '없음'], ['수익 배분', '밴드 100%'], ['초기 비용', won(c.krw(8_000_000))], ['발매 도달', '성공하면 ×1.8']] }),
         run: (c) => {
           c.money(-c.krw(8_000_000) / (c.members.length + 1), '레이블 차리기');
           if (c.check(c.choicesOdds!)) {
@@ -422,8 +423,8 @@ export const CARD_EVENTS: EventDef[] = [
         label: '멤버 악기와 바꿔 쳐 본다',
         risk: 'safe',
         if: (c) => !!c.band && c.members.length > 0,
-        range: () => '돈 0원 · 다른 악기 감각 +1',
-        card: () => ({ title: '악기 바꿔 치기', icon: '🔄', tag: '안정', stats: [['가격', '0원'], ['감각', '+1']] }),
+        range: () => '돈 안 듦 · 다른 악기 감각 +1',
+        card: () => ({ title: '악기 바꿔 치기', icon: '🔄', tag: '안정', stats: [['가격', '무료'], ['감각', '+1']] }),
         run: (c) => { c.skill('compose', 2); c.skill(c.p.mainInst!, 1); return '남의 악기로 치니 내 버릇이 보였다. 그리고 다른 사람 파트를 이해하게 됐다.'; },
       },
     ],
