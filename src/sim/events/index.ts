@@ -24,7 +24,8 @@ import { COUNTRY_LIFE_EVENTS } from './country_life';
 import { RIVAL_EVENTS } from './rival';
 import { SETLIST_EVENTS } from './setlist';
 
-export const EVENTS: EventDef[] = [...STORY, ...LIFE, ...CAREER, ...GLOBAL, ...FATE, ...REGION_GENRE, ...PERSON, ...DRAFT, ...BAND_CRISIS, ...CAREER_END, ...FAMILY_MONEY, ...COUNTRY_EVENTS, ...HISTORY_EVENTS, ...ACT_EVENTS, ...ERA_EVENTS, ...CARD_EVENTS, ...BREAKOUT_EVENTS, ...WANT_EVENTS, ...NAMING_EVENTS, ...SURGERY_EVENTS, ...GOAL_EVENTS, ...COUNTRY_LIFE_EVENTS, ...RIVAL_EVENTS, ...SETLIST_EVENTS];
+import { LEGACY_EVENTS } from './legacy';
+export const EVENTS: EventDef[] = [...STORY, ...LIFE, ...CAREER, ...GLOBAL, ...FATE, ...REGION_GENRE, ...PERSON, ...DRAFT, ...BAND_CRISIS, ...CAREER_END, ...FAMILY_MONEY, ...COUNTRY_EVENTS, ...HISTORY_EVENTS, ...ACT_EVENTS, ...ERA_EVENTS, ...CARD_EVENTS, ...BREAKOUT_EVENTS, ...WANT_EVENTS, ...NAMING_EVENTS, ...SURGERY_EVENTS, ...GOAL_EVENTS, ...COUNTRY_LIFE_EVENTS, ...RIVAL_EVENTS, ...SETLIST_EVENTS, ...LEGACY_EVENTS];
 
 const byId = new Map(EVENTS.map((e) => [e.id, e]));
 export const eventById = (id: string) => byId.get(id);

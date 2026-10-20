@@ -5,6 +5,7 @@ import type { GameState, Goal, ResultLine } from './types';
 import { age, livingCost } from './state';
 import { priceIndex } from './data/world';
 import { countryOf } from './data/countries';
+import { goalMissWhy } from './why';
 import { unreleased } from './songs';
 
 export type { Goal };
@@ -201,7 +202,7 @@ export function settleGoal(s: GameState, step = 0.5): { done: boolean; ok: boole
     s.flags.goalsMissed = Number(s.flags.goalsMissed ?? 0) + 1;
     s.flags.goalEnd = s.time;
     s.player.stats.stress = Math.min(100, s.player.stats.stress + 5);
-    return { done: true, ok: false, text: `시즌 목표를 놓쳤다 — ${g.title}. 다음엔 다르게 해 보자.`, lines: [r('스트레스 +5', 'bad')] };
+    return { done: true, ok: false, text: `시즌 목표를 놓쳤다 — ${g.title}. ${goalMissWhy(g.base, def.value(s), g.target, g.hits ?? 0, g.periods ?? 0)}`, lines: [r('스트레스 +5', 'bad')] };
   }
   return null;
 }

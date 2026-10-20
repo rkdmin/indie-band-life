@@ -112,6 +112,10 @@ h1, h2, h3, h4, .btn, .choice, .chip, .label, .gcard-title, .mcard-name, .rung-t
 
 /* 셋리스트 짜기 */
 .setb { display: grid; gap: 10px; margin-top: 12px; }
+.setb-crowd { display: grid; gap: 2px; padding: 8px 10px; border-left: 3px solid var(--red); background: var(--card); border-radius: 0 6px 6px 0; }
+.setb-crowd b { font-family: var(--pixel); font-size: 12px; }
+.setb-crowd span { font-size: 13px; color: var(--sub); }
+.setb-new { font-family: var(--pixel); font-size: 10px; color: var(--red-ink); }
 .setb-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .setb-slot { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 6px 10px; border: 1.5px dashed var(--line); border-radius: 6px; background: transparent; text-align: left; font: inherit; color: inherit; }
 .setb-slot.on { border-style: solid; border-color: var(--ink); background: var(--card); cursor: pointer; }

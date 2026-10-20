@@ -1,6 +1,6 @@
 // 매 시기 플레이어가 고르는 행동. 비용(컨디션·돈)과 결과는 여기서만 계산한다.
 
-import { chosenSetlist, repertoire, scoreSetlist } from './setlist';
+import { chosenSetlist, repertoire, scoreSetlist, setFanMul, setMod as setModOf, type Crowd } from './setlist';
 import { createRival } from './rival';
 import type { Genre, Inst, Mood, SceneId } from './types';
 import { GENRES, INSTRUMENTS } from './types';
@@ -65,9 +65,11 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
   const chem = c.band?.chemistry ?? 50;
   // 이번 공연을 위해 짠 셋리스트가 있으면 흐름이 판정과 관객 반응에 붙는다 (sim/setlist.ts)
   const set = chosenSetlist(c.s);
-  const sc = set ? scoreSetlist(set, repertoire(c.s)) : null;
+  // 오늘 관객에게 맞는 ‘정답’에 가까울수록 조금 유리하다 (판정 −1 ~ +2, 새 팬 ×0.92 ~ 1.08)
+  const sc = set ? scoreSetlist(set, repertoire(c.s), (c.s.flags.setCrowd as Crowd) || 'seated', c.year) : null;
   delete c.s.flags.setlist;
-  const setMod = sc ? Math.max(-3, Math.min(4, Math.round((sc.score - 50) / 12))) : 0;
+  delete c.s.flags.setCrowd;
+  const setMod = sc ? setModOf(sc.score) : 0;
   if (sc) c.lines.push({ text: `셋리스트 ${sc.score}점 → 판정 ${setMod >= 0 ? '+' : ''}${setMod}`, tone: setMod >= 0 ? 'good' : 'bad', delta: true });
   const mod = c.m(bandSkill(c)) + Math.floor(c.m(c.p.skills.stage) / 2) + (chem >= 70 ? 2 : chem < 40 ? -2 : 0) + (c.p.stats.energy < 30 ? -2 : 0) + setMod;
   const nat = c.rng.int(1, 20);
@@ -86,7 +88,7 @@ export function playGig(c: Ctx, v: Venue, fest = false) {
 
   // 관객 대부분은 이미 팬이다. 새 팬은 데려온 친구들과 페스티벌의 처음 보는 관객에게서 [가정]
   const conv = fest ? (grade === 'great' ? 0.08 : grade === 'good' ? 0.03 : 0.004) : grade === 'great' ? 0.22 : grade === 'good' ? 0.09 : 0.01;
-  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul * (sc ? 0.7 + sc.score / 100 * 0.6 : 1));
+  const fanGain = Math.round(draw * conv * gi.loyalty * c.country.marketMul * (sc ? setFanMul(sc.score) : 1));
   if (grade === 'great') {
     c.line(`${v.label} — 관객 ${draw.toLocaleString()}명이 떼창했다!`, 'big');
     if (fest || v.capacity >= 700 || !c.flag('firstGreatGig')) {

@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import type { GameState, Mood } from '../sim/types';
-import { ENERGY, SET_SIZE, repertoire, scoreSetlist } from '../sim/setlist';
+import { CROWD, ENERGY, SET_SIZE, repertoire, scoreSetlist, type Crowd } from '../sim/setlist';
 import { sfx } from '../audio/player';
 
 const MOOD_LABEL: Record<Mood, string> = { angry: '분노', epic: '웅장', bright: '밝음', dreamy: '몽환', wistful: '그리움', calm: '잔잔' };
@@ -12,19 +12,23 @@ export function SetlistBuilder({ s, onConfirm, onHabit }: { s: GameState; onConf
   const songs = useMemo(() => repertoire(s), [s]);
   const [ids, setIds] = useState<string[]>([]);
   const set = ids.map((id) => songs.find((x) => x.id === id)!).filter(Boolean);
-  const sc = scoreSetlist(set, songs);
+  // 오늘의 관객 (사건을 열 때 정해진다) — 관객마다 정답 순서가 다르다
+  const crowd = ((s.active?.vars?.crowd as Crowd) || 'seated');
+  const sc = scoreSetlist(set, songs, crowd, Math.floor(s.time));
   const full = set.length >= SET_SIZE;
+  // 빠르게 연달아 눌러도 빠지지 않게 — 이전 상태에서 이어 붙인다
   const add = (id: string) => {
     if (ids.includes(id) || full) return;
-    setIds([...ids, id]);
+    setIds((prev) => (prev.includes(id) || prev.length >= SET_SIZE ? prev : [...prev, id]));
     sfx('tap');
   };
   const remove = (i: number) => {
-    setIds(ids.filter((_, j) => j !== i));
+    setIds((prev) => prev.filter((_, j) => j !== i));
     sfx('tap');
   };
   return (
     <div className="setb">
+      <div className="setb-crowd"><b>오늘 관객 · {CROWD[crowd].label}</b><span>{CROWD[crowd].hint}</span></div>
       <ol className="setb-slots" aria-label="셋리스트">
         {Array.from({ length: SET_SIZE }, (_, i) => {
           const x = set[i];
@@ -54,7 +58,7 @@ export function SetlistBuilder({ s, onConfirm, onHabit }: { s: GameState; onConf
           return (
             <button key={x.id} type="button" role="listitem" className={`setb-song ${used ? 'used' : ''}`} disabled={used || full} onClick={() => add(x.id)}>
               <span className="setb-t">〈{x.title}〉{x.hit ? ' ★' : ''}</span>
-              <span className="setb-sub"><span className={`setb-m m-${x.mood}`}>{MOOD_LABEL[x.mood]}</span> 완성도 {x.quality}</span>
+              <span className="setb-sub"><span className={`setb-m m-${x.mood}`}>{MOOD_LABEL[x.mood]}</span> 완성도 {x.quality}{x.writtenYear >= Math.floor(s.time) - 2 && <span className="setb-new">신곡</span>}</span>
             </button>
           );
         })}

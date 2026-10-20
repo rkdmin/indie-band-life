@@ -5,6 +5,7 @@ import { applyMoneyOf } from './sim/money';
 import { setMoneyDisplay } from './sim/korean';
 import type { GameState } from './sim/types';
 import { newGame, popCine, type NewGameOptions } from './sim/engine';
+import { pickLegacy } from './sim/legacy';
 import { loadGame, loadMeta, recordLife, saveGame, type Meta } from './ui/save';
 import { Title } from './ui/Title';
 import { BirthCert } from './ui/BirthCert';
@@ -56,6 +57,8 @@ export function App() {
   const born = (o: NewGameOptions, pace: number) => {
     const s = newGame(o);
     s.flags.pace = pace;
+    // 지난 인생들이 이번 인생에 끼어든다 (라디오·선배 밴드·라이벌 — sim/legacy.ts). 출생은 바꾸지 않는다
+    s.legacy = pickLegacy(meta.lives.map((l) => l.legacy));
     setLastOpts({ o, pace });
     update(s);
     setScreen('cert');

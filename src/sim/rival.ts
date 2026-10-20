@@ -9,6 +9,7 @@ import { randomBandName } from './names';
 import { createNpc } from './npc';
 import { countryOf } from './data/countries';
 import { count, josa } from './korean';
+import { childRival } from './legacy';
 
 /** 〈이름〉 뒤 조사를 이름에 맞춘다 */
 export const rivalJ = (name: string, pair: Parameters<typeof josa>[1]) => `〈${name}〉${josa(name, pair).slice(name.length)}`;
@@ -19,14 +20,17 @@ export function createRival(s: GameState, rng: Rng): Rival | null {
   let name = randomBandName(rng, s.player.country);
   for (let i = 0; i < 8 && name === s.band.name; i++) name = randomBandName(rng, s.player.country);
   const genre: Genre = rng.chance(0.6) ? s.band.genre : rng.pick(GENRES.filter((g) => g !== s.band!.genre));
+  // 지난 인생의 아이가 나와 비슷한 나이·같은 나라라면, 그 아이가 라이벌 밴드의 리더다 (sim/legacy.ts)
+  const kid = childRival(s);
   const leader = createNpc(s, rng, {
-    metAt: `라이벌 밴드 〈${name}〉의 리더`,
+    metAt: kid ? `라이벌 밴드 〈${name}〉의 리더 — 지난 인생 ${kid.name}의 아이` : `라이벌 밴드 〈${name}〉의 리더`,
     role: 'rival',
     affinity: 0,
     genre,
-    birthYear: s.player.birthYear + rng.int(-3, 3),
+    birthYear: kid ? kid.childBorn! : s.player.birthYear + rng.int(-3, 3),
     skill: rng.int(45, 75),
   });
+  if (kid) leader.name = kid.childName!;
   // 잠재력: 대부분은 작게, 가끔은 크게 — 나라 시장 크기에 맞춘다 [가정]
   const potential = Math.round(Math.min(3_000_000, Math.exp(rng.normal(Math.log(1200), 1.5)) * countryOf(s.player.country).marketMul));
   return {
@@ -41,7 +45,15 @@ export function createRival(s: GameState, rng: Rng): Rival | null {
     albums: 0,
     hits: 0,
     label: 'none',
+    legacyOf: kid?.name,
   };
+}
+
+/** 내 행동이 라이벌의 기세를 민다 (+면 저들이 더 빨리 큰다) */
+export function pushRival(s: GameState, d: number) {
+  const r = s.rival;
+  if (!r) return;
+  r.momentum = Math.max(-0.6, Math.min(0.6, (r.momentum ?? 0) + d));
 }
 
 /** 한 시기가 지날 때 라이벌도 산다 — 인생 기록에 남길 소식을 돌려준다 */
@@ -55,9 +67,14 @@ export function tickRival(s: GameState, rng: Rng, years: number): string[] {
   const ageOfBand = s.time - r.formed;
   if (r.status === 'active') {
     // 결성 후 10년 남짓까지는 잠재력 쪽으로 자라고, 그 뒤로는 조금씩 식는다
-    const grow = ageOfBand < 12 ? 0.22 : -0.06;
+    // 기세(내가 민 만큼)가 성장 속도를 바꾼다: 기세 +0.5 면 50% 빨리, −0.5 면 절반으로
+    const mo = r.momentum ?? 0;
+    const grow = ageOfBand < 12 ? 0.22 * (1 + mo) : -0.06 * (1 - mo);
     const noise = rng.normal(0, 0.12);
     r.fans = Math.max(0, Math.round(r.fans + ((grow > 0 ? (r.potential - r.fans) * grow : r.fans * grow) + r.fans * noise) * years));
+    // 친구 밴드는 서로의 팬이 조금씩 오간다 (같이 기획 공연·서로 소개)
+    if (r.tone === 'friend' && s.band) r.fans += Math.round(s.player.fans * 0.01 * years);
+    r.momentum = Math.round(mo * Math.pow(0.8, years) * 1000) / 1000;
     if (r.hits < 3 && rng.chance(0.03 * years)) {
       r.hits++;
       r.potential = Math.round(r.potential * 3.5);

@@ -392,11 +392,32 @@ export interface GameState {
   said?: Record<string, number>;
   /** 지금 걸어 둔 시즌 목표 (sim/goals.ts) */
   goal?: Goal;
+  /** 연초에 찍어 둔 값 — 한 해 돌아보기(sim/why.ts)에 쓴다 */
+  yearMark?: import('./why').YearMark;
   /** 인생 내내 따라오는 라이벌 밴드 (sim/rival.ts) */
   rival?: Rival;
+  /** 지난 인생들 — 이번 인생의 라디오·선배 밴드·라이벌로 다시 나타난다 (sim/legacy.ts) */
+  legacy?: LegacyLife[];
 }
 
 /** 라이벌 밴드 — 나와 상관없이 저들의 속도로 크고 해체한다 */
+/** 지난 인생에서 이번 인생으로 넘어오는 것 (도감의 지난 인생 기록에서 만든다) */
+export interface LegacyLife {
+  id: string;
+  name: string;
+  born: number;
+  died: number;
+  country: string;
+  bandName: string | null;
+  genre: Genre | null;
+  bestSong: string | null;
+  /** 대표곡을 낸 해 */
+  songYear: number | null;
+  fans: number;
+  childName: string | null;
+  childBorn: number | null;
+}
+
 export interface Rival {
   name: string;
   genre: Genre;
@@ -413,6 +434,10 @@ export interface Rival {
   label: 'none' | 'indie' | 'major';
   /** 처음 만났을 때 고른 태도 */
   tone?: 'friend' | 'fire' | 'cool';
+  /** 리더가 지난 인생의 아이라면 그 인생의 주인공 이름 */
+  legacyOf?: string;
+  /** 기세 −0.6 ~ +0.6 — 내 행동(맞대결·멤버 빼 오기·무대 내주기)이 저들의 성장 속도를 바꾼다. 시간이 지나면 0으로 돌아온다 */
+  momentum?: number;
 }
 
 /** 시즌 목표 — 기한 안에 value 가 target 이상이면 이룬다 */
@@ -426,6 +451,9 @@ export interface Goal {
   until: number;
   /** 실력 목표: 고를 때의 주 악기 */
   inst?: Inst;
+  /** 목표를 고른 뒤 지난 시기 수, 그중 목표에 맞는 활동을 한 시기 수 — 놓쳤을 때 이유를 보여 준다 */
+  periods?: number;
+  hits?: number;
 }
 
 export interface ActionPick {

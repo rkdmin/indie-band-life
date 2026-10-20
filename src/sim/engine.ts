@@ -11,7 +11,8 @@ import { GENRES } from './types';
 import { Rng, clamp, hashStr } from './rng';
 import { Ctx, book, type EventDef } from './ctx';
 import { incomeBar } from './data/reality';
-import { settleGoal } from './goals';
+import { goalDef, settleGoal } from './goals';
+import { countActs, fansDownWhy, markYear, yearReview } from './why';
 import { tickRival } from './rival';
 import { applyMoneyOf } from './money';
 import { ACTIONS, actionById } from './actions';
@@ -413,6 +414,13 @@ export function beginPeriod(prev: GameState): GameState {
   s.lastResults = [];
   const picks: ActionPick[] = resolvePlan(s, rng);
   s.lastActions = picks;
+  countActs(s, picks.map((x) => x.id));
+  // 시즌 목표: 이번 시기 계획이 목표를 따랐나 (놓쳤을 때 이유로 보여 준다)
+  if (s.goal) {
+    const gd = goalDef(s.goal.id);
+    s.goal.periods = (s.goal.periods ?? 0) + 1;
+    if (gd && picks.some((x) => gd.plan.includes(x.id))) s.goal.hits = (s.goal.hits ?? 0) + 1;
+  }
   const c = new Ctx(s, rng);
   let energyUsed = 0;
   const cineBefore = s.cine.length;
@@ -814,8 +822,9 @@ export function endPeriod(prev: GameState): GameState {
   // 팬은 활동이 없으면 빠르게, 있어도 조금씩 떠난다 — 큰 변화는 기록에 남긴다
   const fansStart = (s.flags.fansAtPeriodStart as number) ?? fansBefore;
   const fd = p.fans - fansStart;
-  if (fansStart >= 50 && Math.abs(fd) >= Math.max(20, fansStart * 0.08)) {
-    const why = fd > 0 ? (p.fans > s.peakFans * 0.98 ? '최고 기록 경신' : '새로 생긴 팬들') : s.flags.hiatus ? '활동 중단' : fansStart > 1000 ? '새 노래가 없으면 잊힌다' : '관심이 식었다';
+  // 해가 바뀌는 시기엔 ‘한 해 돌아보기’가 같은 내용을 더 자세히 말한다 — 겹치지 않게 반년짜리만
+  if (yearsPassed === 0 && fansStart >= 50 && Math.abs(fd) >= Math.max(20, fansStart * 0.08)) {
+    const why = fd > 0 ? (p.fans > s.peakFans * 0.98 ? '최고 기록 경신' : '새로 생긴 팬들') : fansDownWhy(s, fansStart);
     pushFeed(s, { t: s.time, text: `팬 ${fd > 0 ? '+' : ''}${fd.toLocaleString()}명 — ${why}`, tone: fd > 0 ? 'good' : 'bad', kind: 'news' });
   }
   s.flags.fansAtPeriodStart = p.fans;
@@ -836,6 +845,12 @@ export function endPeriod(prev: GameState): GameState {
     if (p.money > m0) book(s, p.money - m0, '음원 정산');
     news.push(...s.lastResults.splice(before));
     closeLedger(s, Math.floor(s.time) - (yearsPassed - 1 - i) - 1, Math.floor(ya) - 1, t);
+    // 한 해 돌아보기 — 팬이 왜 늘고 줄었는지, 줄었으면 다음 한 수 (sim/why.ts)
+    if (i === yearsPassed - 1) {
+      const rv = yearReview(s, Math.floor(s.time) - 1, Math.floor(ya) - 1);
+      if (rv) pushFeed(s, { t: t + 0.002, ...rv });
+      s.yearMark = markYear(s);
+    }
     // 용돈: 일을 하기 전까지 가정 형편·나이·그 해 물가에 맞춰 [근사·가정]
     {
       const A = ALLOWANCE.data;
