@@ -7,8 +7,7 @@ import { GOALS, goalProgress, settleGoal, startGoal } from '../src/sim/goals';
 import { isFresh, remember } from '../src/sim/state';
 import { ENERGY, scoreSetlist, chosenSetlist } from '../src/sim/setlist';
 import { decodeFate, encodeFate, fateName } from '../src/sim/fatecode';
-import { localMoney, setMoneyDisplay, won } from '../src/sim/korean';
-import { applyMoneyOf, moneyAt } from '../src/sim/money';
+import { won } from '../src/sim/korean';
 import { createRival, tickRival } from '../src/sim/rival';
 import { Rng } from '../src/sim/rng';
 import { COUNTRY_LIFE_EVENTS } from '../src/sim/events/country_life';
@@ -125,20 +124,13 @@ describe('운명 코드', () => {
   });
 });
 
-describe('나라 돈', () => {
-  it('한국은 원화, 다른 나라는 그 나라 돈의 지금 가치로 보인다', () => {
-    setMoneyDisplay(null);
+describe('돈 표시', () => {
+  it('어느 나라 인생이든 돈은 원으로 보인다', () => {
     expect(won(12_000_000)).toBe('1,200만원');
-    expect(localMoney(9.73, '달러')).toBe('9.7달러');
-    expect(localMoney(18_500, '달러')).toBe('1.9만 달러');
-    expect(localMoney(1_250_000, '엔', 0)).toBe('125만 엔');
-    applyMoneyOf({ time: 2026, player: { country: 'US' } });
-    expect(won(1_380_000)).toMatch(/달러$/);
-    applyMoneyOf({ time: 2026, player: { country: 'KR' } });
-    expect(won(10_000)).toBe('1만원');
-    // 16세 시급처럼 다른 해의 금액
-    expect(moneyAt(5000, 1990, 'JP')).toMatch(/엔$/);
-    setMoneyDisplay(null);
+    let s = newGame({ name: '하늘 테스트', gender: 'f', birthYear: 1990, seed: 61, country: 'US' });
+    for (let i = 0; i < 30 && s.phase !== 'ending'; i++) s = runPeriodAuto(s);
+    const text = s.feed.map((f) => `${f.text} ${f.deltas ?? ''}`).join(' ');
+    expect(text).not.toMatch(/달러|파운드|유로|헤알|\d엔/);
   });
 });
 

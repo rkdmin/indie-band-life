@@ -1,6 +1,6 @@
 import type { GameState } from '../sim/types';
+import { won } from '../sim/korean';
 import { FateCode } from './FateCode';
-import { moneyAt } from '../sim/money';
 import { REGIONS, birthsIn, eraOf, minWage } from '../sim/data/world';
 import { Portrait } from '../art/Portrait';
 import { given, josa } from '../sim/korean';
@@ -82,7 +82,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
               <div className="country-stats">
                 <span>음악 시장 세계 <b>{ct.marketRank}위</b>{y < 2000 ? ' (2024)' : ''}</span>
                 <span>기대수명 <b>{lifeExpAt(ct, y)}세</b></span>
-                <span>{hasMinWage(ct, y + 16) ? '최저시급' : '시급(추정)'} 약 <b>{moneyAt(minWage(y + 16) * ct.wageMul, y + 16, ct.id)}</b></span>
+                <span>{hasMinWage(ct, y + 16) ? '최저시급' : '시급(추정)'} 약 <b>{won(minWage(y + 16) * ct.wageMul)}</b></span>
                 <span>생활비 <b>×{ct.costMul}</b></span>
               </div>
               <div className="country-stars">
@@ -103,7 +103,7 @@ export function BirthCert({ s, onStart, onReroll }: { s: GameState; onStart: () 
             <div className="wide"><span className="label">물려받은 외모</span><div className="v">{inherited}</div></div>
             <div><span className="label">기대수명</span><div className="v">{lifeExpAt(ct, y)}세</div></div>
             <div><span className="label">스무 살의 세상</span><div className="v">{era20.name}</div></div>
-            <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{moneyAt(minWage(y + 16) * ct.wageMul, y + 16, ct.id)}</div></div>
+            <div><span className="label">16세 알바 시급{hasMinWage(ct, y + 16) ? '' : ' (추정)'}</span><div className="v">{won(minWage(y + 16) * ct.wageMul)}</div></div>
             {sibFuture && <div><span className="label">형제</span><div className="v">{older ? `손위 형제 ${older}명` : '첫아이'}</div></div>}
             {p.birth && <div><span className="label">엄마 나이</span><div className="v">{p.birth.motherAge}세</div></div>}
           </div>

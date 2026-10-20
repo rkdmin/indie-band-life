@@ -90,7 +90,7 @@ html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-siz
    본문은 마지막 줄에 낱말 하나만 덩그러니 남지 않게(pretty), 제목·단추·이름표는 두 줄이면 길이를 비슷하게(balance).
    한국어는 낱말 중간에서 끊지 않는다(keep-all, theme.css), 너무 긴 영문·숫자만 칸 안에서 끊는다(anywhere). */
 p, li, .text, .fork-result, .hint, .lock, .dim, .cert-story, .cert-moments, .bio, .liner-notes, .stamp small, .gcard-sub, .ds-intro, .coach p { text-wrap: pretty; }
-h1, h2, h3, h4, .btn, .choice, .chip, .label, .gcard-title, .mcard-name, .rung-t b, .stamp b, .pick, .tt-ability, .fork h2, .cine-title, .sheet-head h3 { text-wrap: balance; }
+h1, h2, h3, h4, .btn, .chip, .label, .gcard-title, .mcard-name, .rung-t b, .stamp b, .pick, .tt-ability, .fork h2, .cine-title, .sheet-head h3 { text-wrap: balance; }
 
 /* 숫자·짧은 이름표는 쪼개지지 않게 */
 .tabs button, .tabs button .n, .tl-axis span, .fate-rarity b, .fate-rarity .label, .rung-n, .stat b, .chip, .cc, .pick-n, .num { white-space: nowrap; }
@@ -153,3 +153,53 @@ h1, h2, h3, h4, .btn, .choice, .chip, .label, .gcard-title, .mcard-name, .rung-t
 .fate-form .row { display: flex; gap: 8px; }
 .fate-form .text-input { flex: 1; min-width: 0; font-family: var(--pixel); letter-spacing: 0.06em; text-transform: uppercase; }
 .fate-err { font-size: 12px; color: var(--bad); }
+
+/* ── 갈림길 선택지: 태그는 윗줄, 글은 아랫줄 — 태그 때문에 글이 엉뚱한 데서 줄바꿈되지 않게 ── */
+.choice-body { display: grid; gap: 4px; min-width: 0; }
+.choice-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; line-height: 1.2; }
+.choice-tags .risk, .choice-tags .checktag { margin-right: 0; vertical-align: baseline; }
+.choice-label { display: block; text-wrap: pretty; line-height: 1.45; }
+.choice .hint, .choice .why, .choice .lock { text-wrap: pretty; }
+/* 컷신 동안 자리만 잡아 둔다 → 끝나면 부드럽게 나타난다 */
+.choices.waiting { visibility: hidden; }
+.choices.shown .choice { animation: choiceIn 0.28s ease-out both; }
+.choices.shown .choice:nth-child(2) { animation-delay: 0.04s; }
+.choices.shown .choice:nth-child(3) { animation-delay: 0.08s; }
+.choices.shown .choice:nth-child(4) { animation-delay: 0.12s; }
+.choices.shown .choice:nth-child(n + 5) { animation-delay: 0.16s; }
+@keyframes choiceIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .choices.shown .choice { animation: none; } }
+
+/* ── 갈림길 잠깐 내리기 ── */
+.fork-head { align-items: center; gap: 10px; }
+.fork-head .fork-when { flex: 1; text-align: right; white-space: nowrap; }
+.peek-btn, .fork-hide { flex: none; font: inherit; font-size: 12px; color: var(--sub); background: none; border: 1px solid var(--line); border-radius: 12px; padding: 3px 10px; cursor: pointer; white-space: nowrap; }
+@media (hover: hover) { .peek-btn:hover { color: var(--ink); border-color: var(--ink); } .peek-btn.dark:hover { color: #fff; border-color: #fff; } }
+.draft-head { position: relative; }
+.draft-head .peek-btn { position: absolute; top: 0; right: 0; }
+.peek-btn.dark { color: #d6d0e8; border-color: #ffffff40; }
+.draft-back { transition: opacity 0.2s, transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.draft-back.peek { opacity: 0; transform: translateY(40px); pointer-events: none; visibility: hidden; }
+.fork-back .fork { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s; }
+.fork-back { transition: background 0.2s; }
+.fork-back.peek { background: transparent; backdrop-filter: none; pointer-events: none; }
+.fork-back.peek .fork { transform: translateY(calc(100% + 40px)); opacity: 0; }
+.fork-peekbar { pointer-events: auto; position: fixed; left: 50%; bottom: calc(66px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 75; width: min(560px, calc(100% - 24px)); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 14px 12px; background: var(--card); color: var(--ink); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 0 4px 0 var(--pink); font: inherit; text-align: left; cursor: pointer; animation: rise 0.25s both; }
+.fork-peekbar .grip { grid-column: 1 / -1; justify-self: center; width: 36px; height: 4px; border-radius: 2px; background: var(--line); }
+.fork-peekbar .k { font-family: var(--mono); font-size: 11px; color: var(--pink); font-weight: 700; }
+.fork-peekbar b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.fork-peekbar .go { font-size: 12px; color: var(--sub); white-space: nowrap; }
+@media (min-width: 900px) { .fork-peekbar { bottom: 20px; } }
+
+/* ── 인생 기록: 더 보기 ── */
+.feed-more { display: block; width: calc(100% - 24px); margin: 8px 12px 10px; padding: 10px; font: inherit; font-size: 13px; color: var(--sub); background: transparent; border: 1px dashed var(--line); border-radius: 6px; cursor: pointer; }
+@media (hover: hover) { .feed-more:hover { color: var(--ink); border-color: var(--ink); } }
+@media (max-width: 899px) {
+  /* 휴대폰: 기록 상자 안 스크롤을 없애 화면 스크롤 하나로 */
+  .feed-list { max-height: none; overflow: visible; }
+  .goals-wrap { order: 4; }
+  .plan-wrap { order: 5; }
+  .rival-wrap { order: 6; }
+  .reality-wrap { order: 7; }
+  .idcard-wrap { order: 8; }
+}

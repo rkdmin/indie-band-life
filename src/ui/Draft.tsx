@@ -9,21 +9,24 @@ import { TRAIT_LABEL, careerLabel, npcAge } from '../sim/npc';
 import { sfx } from '../audio/player';
 import { charmWord, describe, npcAppearance } from '../sim/appearance';
 import { useArmed } from './useArmed';
-import { useScrollLock } from './useScrollLock';
+import { PeekBar, PeekButton, usePeek } from './Peek';
 
 export function MemberDraft({ s, onChoose, cut }: { s: GameState; onChoose: (i: number) => void; cut?: ReactNode }) {
   const ev = s.active!;
   const band = s.band;
   const n = Number(ev.vars?.n ?? 0);
   const cards = Array.from({ length: n }, (_, i) => ({ i, npc: s.npcs[ev.vars?.[`c${i}`] as string], ch: ev.choices[i] })).filter((x) => x.npc);
-  useScrollLock();
+  const [peek, setPeek] = usePeek(`${ev.id}:${ev.at}`);
   const passIdx = ev.choices.length - 1;
   const armed = useArmed(ev.id, 350);
   return (
-    <div className="draft-back">
+    <>
+    {peek && <PeekBar kicker={String(ev.vars?.src === 'walkin' ? 'WALK-IN' : 'MEMBER DRAFT')} title={ev.title} onBack={() => setPeek(false)} />}
+    <div className={`draft-back ${peek ? 'peek' : ''}`} aria-hidden={peek || undefined}>
       <div className="draft" role="dialog" aria-modal="true" aria-label={ev.title}>
         {cut && <div className="draft-cut">{cut}</div>}
         <div className="draft-head">
+          <PeekButton dark onPeek={() => setPeek(true)} />
           <span className="k">{ev.vars?.src === 'walkin' ? 'WALK-IN' : 'MEMBER DRAFT'}</span>
           <h2>{ev.title}</h2>
           <p>{ev.text}</p>
@@ -74,5 +77,6 @@ export function MemberDraft({ s, onChoose, cut }: { s: GameState; onChoose: (i: 
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -3,6 +3,8 @@
 // 판을 손으로 돌렸다 놓으면 그 힘으로 돌다가 멈추고, 바늘이 내려앉은 트랙 번호가 판정 값이다.
 //   20번 = 히든 트랙(대성공) · 1번 = 판이 튀었다(대실패)
 // 나오는 번호는 엔진이 시드로 미리 정해 두었다(재현 가능, 계산은 d20 과 같다) — 화면은 그것을 손맛 있게 보여 준다.
+// 바늘이 내려앉은 뒤엔 보정치마다 판이 한 칸씩 더 돌아 최종 값으로 간다 (10 + 2 → 10에서 멈췄다가 11, 12).
+// 성공 경계도 같은 만큼 함께 움직이므로, 바늘 아래 색(성공/실패)은 처음부터 끝까지 같다.
 
 import { useEffect, useRef, useState } from 'react';
 import type { PendingRoll } from '../sim/types';
@@ -18,7 +20,7 @@ interface Props {
   auto?: boolean;
 }
 
-type Stage = 'ready' | 'dragging' | 'spinning' | 'landed' | 'total' | 'verdict';
+type Stage = 'ready' | 'dragging' | 'spinning' | 'landed' | 'nudge' | 'total' | 'verdict';
 
 const N = 20;
 const SEG = 360 / N;
@@ -32,6 +34,9 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
   const [angle, setAngle] = useState(0);
   const [drop, setDrop] = useState(0); // 유리함: 몇 번째 바늘인지 (0 → 1)
   const [shown, setShown] = useState<number[]>([]);
+  // 보정으로 판을 몇 칸 더 돌렸나 (0 → o.mod) · 지금 보정 몇 번째를 더하는 중인가
+  const [applied, setApplied] = useState(0);
+  const [part, setPart] = useState(-1);
   const angleRef = useRef(0);
   const disc = useRef<HTMLDivElement>(null);
   const drag = useRef<{ a: number; t: number; v: number; moved: number } | null>(null);
@@ -46,6 +51,8 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
   const crit = pending.crit;
   const later = (ms: number, f: () => void) => timers.current.push(window.setTimeout(f, ms));
   const wins = (n: number) => n === 20 || (n !== 1 && n + o.mod >= o.dc);
+  // 보정을 더하는 동안엔 성공 경계도 같은 만큼 움직인다: 트랙 n 은 n + (남은 보정) ≥ 난이도면 성공
+  const winsNow = (n: number) => n + (o.mod - applied) >= o.dc;
   const winCount = Array.from({ length: N }, (_, i) => i + 1).filter(wins).length;
 
   useEffect(
@@ -62,6 +69,8 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
       setStage('ready');
       setDrop(0);
       setShown([]);
+      setApplied(0);
+      setPart(-1);
     }
   }, [pending.rerolled, pending.nat]);
 
@@ -124,11 +133,85 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
       return;
     }
     setStage('landed');
-    later(650, () => setStage('total'));
-    later(1300, () => {
-      setStage('verdict');
-      sfx(pending.ok ? 'good' : 'bad');
+    // 대성공·대실패(20·1)는 보정과 상관없이 정해진다 — 판을 더 돌리지 않는다
+    if (crit || o.mod === 0) {
+      later(650, () => setStage('total'));
+      later(1300, () => {
+        setStage('verdict');
+        sfx(pending.ok ? 'good' : 'bad');
+      });
+      return;
+    }
+    later(700, () => nudge());
+  };
+
+  /** 판을 to 각도까지 부드럽게 돌린다 */
+  const turnTo = (to: number, dur: number, done: () => void) => {
+    const from = angleRef.current;
+    const t0 = performance.now();
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      setA(to);
+      done();
+    };
+    const step = (now: number) => {
+      if (finished) return;
+      const k = Math.min(1, (now - t0) / dur);
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      setA(from + (to - from) * e);
+      if (k < 1) raf.current = requestAnimationFrame(step);
+      else finish();
+    };
+    raf.current = requestAnimationFrame(step);
+    later(dur + 250, finish); // 프레임이 멈춰도 끝난다
+  };
+
+  /** 보정치를 하나씩 더하며 판을 한 칸씩 돌린다 — 바늘 아래 트랙이 최종 값으로 간다 */
+  const nudge = () => {
+    setStage('nudge');
+    // 유리함으로 두 번 떨어뜨렸으면, 먼저 높은 쪽 트랙으로 돌아간다
+    const last = nats[nats.length - 1];
+    const toTrack = (n: number) => angleRef.current - (Math.max(1, Math.min(N, n)) - Math.max(1, Math.min(N, cur))) * SEG;
+    let cur = last;
+    const steps: { part: number; d: number }[] = [];
+    o.parts.forEach((p, i) => {
+      for (let k = 0; k < Math.abs(p.d); k++) steps.push({ part: i, d: Math.sign(p.d) });
     });
+    // 보정 내역 합이 o.mod 와 다르면(반올림 등) 마지막에 맞춘다
+    const sum = steps.reduce((a, x) => a + x.d, 0);
+    for (let k = 0; k < Math.abs(o.mod - sum); k++) steps.push({ part: o.parts.length - 1, d: Math.sign(o.mod - sum) });
+    const per = Math.max(140, Math.min(320, 1500 / Math.max(1, steps.length)));
+    let i = 0;
+    let acc = 0;
+    const next = () => {
+      if (i >= steps.length) {
+        setPart(o.parts.length);
+        later(450, () => setStage('total'));
+        later(1100, () => {
+          setStage('verdict');
+          sfx(pending.ok ? 'good' : 'bad');
+        });
+        return;
+      }
+      const st = steps[i++];
+      setPart(st.part);
+      acc += st.d;
+      const target = best + acc;
+      const to = toTrack(target);
+      cur = target;
+      turnTo(to, per, () => {
+        setApplied(acc);
+        sfx('tap');
+        later(i < steps.length && steps[i].part !== st.part ? 260 : 40, next);
+      });
+    };
+    if (last !== best) {
+      const to = toTrack(best);
+      cur = best;
+      turnTo(to, 420, () => later(200, next));
+    } else next();
   };
 
   // ── 손으로 판 돌리기 ──
@@ -180,7 +263,10 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
 
   const verdict = crit === 'success' ? '히든 트랙!' : crit === 'fail' ? '판이 튀었다' : pending.ok ? '성공' : '실패';
   const canReroll = stage === 'verdict' && !pending.ok && !pending.rerolled && inspiration > 0;
-  const settled = stage === 'landed' || stage === 'total' || stage === 'verdict';
+  const settled = stage === 'landed' || stage === 'nudge' || stage === 'total' || stage === 'verdict';
+  const nudging = applied !== 0 || stage === 'nudge';
+  // 바늘 아래 숫자: 보정을 더한 만큼 (20을 넘거나 1 아래로 가도 숫자는 그대로 보여 준다)
+  const reading = best + applied;
   const pct = Math.round(o.p * 100);
   const under = Math.floor(mod360(-angle) / SEG) + 1; // 지금 바늘 아래 트랙
 
@@ -216,8 +302,9 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
               const r = 46;
               const path = `M ${r * Math.cos(a0)} ${r * Math.sin(a0)} L ${R * Math.cos(a0)} ${R * Math.sin(a0)} A ${R} ${R} 0 0 1 ${R * Math.cos(a1)} ${R * Math.sin(a1)} L ${r * Math.cos(a1)} ${r * Math.sin(a1)} A ${r} ${r} 0 0 0 ${r * Math.cos(a0)} ${r * Math.sin(a0)} Z`;
               const mid = ((i + 0.5) * SEG - 90) * (Math.PI / 180);
-              const cls = n === 20 ? 'hidden' : n === 1 ? 'skip' : wins(n) ? 'win' : 'lose';
-              const hit = settled && shown.includes(n);
+              // 보정을 더하는 동안엔 20·1 도 보통 트랙처럼 — 대성공·대실패는 처음 떨어진 숫자로만 정해진다
+              const cls = !nudging ? (n === 20 ? 'hidden' : n === 1 ? 'skip' : wins(n) ? 'win' : 'lose') : winsNow(n) ? 'win' : 'lose';
+              const hit = settled && (nudging ? n === Math.max(1, Math.min(N, reading)) : shown.includes(n));
               return (
                 <g key={n} className={`tt-track ${cls} ${hit ? 'hit' : ''}`}>
                   <path d={path} />
@@ -245,6 +332,12 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
             <i />
           </div>
           {stage === 'spinning' && <div className="tt-reading">♪ {under}</div>}
+          {(stage === 'nudge' || ((stage === 'total' || stage === 'verdict') && applied !== 0)) && (
+            <div className={`tt-reading nudge ${applied > 0 ? 'up' : applied < 0 ? 'down' : ''}`} aria-live="polite">
+              ♪ {reading}
+              {applied !== 0 && <small> ({best}{applied > 0 ? '+' : '−'}{Math.abs(applied)})</small>}
+            </div>
+          )}
         </div>
         {stage === 'ready' && <div className="tt-hint">{drop === 0 ? '판을 손으로 돌렸다 놓으세요 · 탭해도 돌아가요' : '한 번 더 — 높은 트랙이 남는다'}</div>}
         {stage === 'verdict' && <div className={`tt-verdict ${pending.ok ? 'ok' : 'no'} ${crit ? `crit-${crit}` : ''}`}>{verdict}</div>}
@@ -257,10 +350,10 @@ export function TurntableScreen({ pending, inspiration, onReroll, onAccept, auto
         <span className="lg skip">1 튀는 판 = 대실패</span>
       </div>
 
-      <div className={`tt-mods ${stage === 'total' || stage === 'verdict' ? 'show' : ''}`}>
+      <div className={`tt-mods ${stage === 'nudge' || stage === 'total' || stage === 'verdict' ? 'show' : ''}`}>
         {o.parts.length === 0 && <span className="mod zero">보정 없음</span>}
         {o.parts.map((p, i) => (
-          <span key={p.label} className={`mod ${p.d >= 0 ? 'up' : 'down'}`} style={{ transitionDelay: `${i * 0.08}s` }}>
+          <span key={p.label} className={`mod ${p.d >= 0 ? 'up' : 'down'} ${stage === 'nudge' ? (i === part ? 'now' : i < part ? 'done' : 'wait') : ''}`} style={{ transitionDelay: stage === 'nudge' ? '0s' : `${i * 0.08}s` }}>
             {p.d >= 0 ? '+' : ''}
             {p.d} {p.label}
           </span>

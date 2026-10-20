@@ -14,7 +14,6 @@ import { incomeBar } from './data/reality';
 import { goalDef, settleGoal } from './goals';
 import { countActs, fansDownWhy, markYear, yearReview } from './why';
 import { tickRival } from './rival';
-import { applyMoneyOf } from './money';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
 import { actionSlots, age, ageInt, bornAge, bornAt, chron, isBorn, isFresh, livingCost, remember, stepSize } from './state';
@@ -757,7 +756,6 @@ export function endPeriod(prev: GameState): GameState {
   // 뱃속 시기는 정확히 태어나는 달에 끝난다 (0.1년 반올림을 하면 12월생이 11월에 태어난다)
   s.time = isBorn(s) ? Math.round((s.time + step) * 10) / 10 : Math.round((bornAt(s) + 0.001) * 1000) / 1000;
   s.turn++;
-  applyMoneyOf(s);
   const a = age(s);
   const yearsPassed = Math.floor(s.time) - y0;
   const t = s.time;

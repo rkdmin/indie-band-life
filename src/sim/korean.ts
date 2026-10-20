@@ -63,27 +63,8 @@ export function callName(name: string): string {
   return josa(given(name), '이/');
 }
 
-/**
- * 돈 표시 — 한국 인생은 원화 그대로, 다른 나라 인생은 그 나라 돈의 지금 가치로 (sim/money.ts 가 정해 둔다).
- * 게임 안의 계산은 언제나 원화다.
- */
-let MONEY: { unit: string; factor: number; decimals: number } | null = null;
-export function setMoneyDisplay(d: { unit: string; factor: number; decimals: number } | null) {
-  MONEY = d;
-}
 export function won(n: number): string {
-  if (MONEY) return localMoney(n * MONEY.factor, MONEY.unit, MONEY.decimals);
   return krwText(n);
-}
-/** 18,500 → ‘1.9만 달러’, 9.73 → ‘9.7달러’, 1,250,000 → ‘125만 엔’ */
-export function localMoney(v: number, unit: string, decimals = 1): string {
-  const abs = Math.abs(v);
-  const sign = v < 0 ? '-' : '';
-  const sp = ' ';
-  if (abs >= 100_000_000) return `${sign}${(abs / 100_000_000).toFixed(1).replace(/\.0$/, '')}억${sp}${unit}`;
-  if (abs >= 10_000) return `${sign}${abs >= 100_000 ? Math.round(abs / 10_000).toLocaleString('ko-KR') : (abs / 10_000).toFixed(1).replace(/\.0$/, '')}만${sp}${unit}`;
-  if (abs < 100 && decimals > 0 && Math.round(abs * 10) % 10 !== 0) return `${sign}${abs.toFixed(1)}${unit}`;
-  return `${sign}${Math.round(abs).toLocaleString('ko-KR')}${unit}`;
 }
 function krwText(n: number): string {
   const abs = Math.abs(n);

@@ -1,7 +1,6 @@
 // 데이터로 본 내 인생 — 게임이 쓰는 실제 통계·근사 데이터를, 내가 산 시간 위에 겹쳐 보여 준다.
 // 모든 숫자는 src/data/*.json 에서 온다. 그래프 위에 손을 올리면 그 해의 값이 보인다.
 
-import { moneyAt } from '../sim/money';
 import { useMemo, useState } from 'react';
 import type { GameState } from '../sim/types';
 import { GENRES } from '../sim/types';
@@ -128,7 +127,8 @@ function Timeline({ title, sub, rows, born, end, src }: { title: string; sub: st
             <span className="tl-name">{r.label}</span>
             <span className="tl-track">
               <i style={{ left: pos(r.from), width: `calc(${pos(r.to ?? x1)} - ${pos(r.from)})` }} />
-              <em style={{ left: pos(r.from) }}>{Math.floor(r.from)}</em>
+              {/* 왼쪽 끝 가까이서 시작하면 연도를 막대 안쪽에 — 이름 칸으로 삐져나가지 않게 */}
+              <em className={parseFloat(pos(r.from)) < 14 ? 'in' : ''} style={{ left: pos(r.from) }}>{Math.floor(r.from)}</em>
             </span>
           </div>
         ))}
@@ -204,7 +204,7 @@ export function DataSheet({ s }: { s: GameState }) {
 
       <LineChart
         title={hasMinWage(c, born + 16) ? '최저시급의 흐름' : '시급의 흐름'}
-        sub={`열여섯 살 ${born + 16}년의 시급 약 ${moneyAt(minWage(born + 16) * c.wageMul, born + 16, c.id)}${hasMinWage(c, born + 16) ? '' : ' (최저임금제 이전 추정)'}`}
+        sub={`열여섯 살 ${born + 16}년의 시급 약 ${won(minWage(born + 16) * c.wageMul)}${hasMinWage(c, born + 16) ? '' : ' (최저임금제 이전 추정)'}`}
         points={wage}
         fmt={(v) => (v >= 10000 ? `${(v / 10000).toFixed(1)}만` : `${Math.round(v).toLocaleString()}`)}
         marks={[{ x: born + 16, label: '16세' }]}
@@ -238,7 +238,7 @@ export function DataSheet({ s }: { s: GameState }) {
               const mine = l.music - l.cost;
               const avg = incomeBar(s.player.country, l.year).value;
               return (
-                <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${moneyAt(mine, l.year, s.player.country)} · 평균 ${moneyAt(avg, l.year, s.player.country)}`}>
+                <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${won(mine)} · 평균 ${won(avg)}`}>
                   <span className="b me" style={{ height: `${(Math.max(0, mine) / maxMoney) * 100}%` }} />
                   <span className="b avg" style={{ height: `${(avg / maxMoney) * 100}%` }} />
                   <em>{String(l.year).slice(2)}</em>

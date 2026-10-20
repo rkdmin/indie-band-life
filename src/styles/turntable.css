@@ -87,3 +87,14 @@
   .tt-deck { width: min(70vw, 340px); }
   .tt-legend { display: none; }
 }
+
+/* 보정치가 판을 한 칸씩 더 돌리는 동안 */
+.tt-reading.nudge { font-size: 18px; font-weight: 700; padding: 4px 12px; border-radius: 14px; transition: background 0.2s; }
+.tt-reading.nudge small { font-size: 11px; font-weight: 400; opacity: 0.75; }
+.tt-reading.nudge.up { background: #1f7a52e6; }
+.tt-reading.nudge.down { background: #a3342ae6; }
+.tt-mods .mod.wait { opacity: 0.35; }
+.tt-mods .mod.now { opacity: 1; transform: scale(1.12); border-color: currentColor; box-shadow: 0 0 0 2px #ffffff22; }
+.tt-mods .mod.done { opacity: 0.8; }
+.tt-mods .mod { transition: opacity 0.3s, transform 0.2s; }
+@media (prefers-reduced-motion: reduce) { .tt-mods .mod.now { transform: none; } }

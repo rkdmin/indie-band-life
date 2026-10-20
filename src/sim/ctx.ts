@@ -8,7 +8,6 @@ import { GENRE_INFO, INST_LABEL, SKILL_LABEL, priceIndex } from './data/world';
 import { countryOf } from './data/countries';
 import { callName, given, josa, won, count } from './korean';
 import { themeByKey } from './songs';
-import { applyMoneyOf } from './money';
 
 const STAT_LABEL: Record<keyof Stats, string> = { happiness: '행복', stress: '스트레스', health: '건강', energy: '컨디션' };
 
@@ -22,10 +21,7 @@ export class Ctx {
     public rng: Rng,
     public bind: Record<string, string> = {},
     public vars: Record<string, string | number> = {},
-  ) {
-    // 이 인생의 나라 돈으로 보여 준다 (한국은 원화)
-    applyMoneyOf(s);
-  }
+  ) {}
 
   get p() {
     return this.s.player;

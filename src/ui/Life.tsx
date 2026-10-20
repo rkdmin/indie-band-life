@@ -1,7 +1,7 @@
 // 실시간으로 흘러가는 인생 화면.
 // 시계는 화면에만 있고, 엔진은 시기(period) 단위로 계산한다. 시계가 사건·연출·시기 끝에 닿으면 멈추고 엔진을 부른다.
 
-import { moneyAt } from '../sim/money';
+import { PeekBar, PeekButton, usePeek } from './Peek';
 import { goalDef, goalProgress } from '../sim/goals';
 import { genreLabel } from '../sim/data/era/genres';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -42,7 +42,6 @@ import { EventCut } from './EventCut';
 import { BandNamer } from './BandNamer';
 import { SetlistBuilder } from './SetlistBuilder';
 import { Flag } from './Flag';
-import { useScrollLock } from './useScrollLock';
 
 type Speed = 0 | 1 | 2 | 4 | 8;
 type Tab = null | 'people' | 'band' | 'records' | 'chron' | 'data' | 'settings' | 'plan';
@@ -623,6 +622,9 @@ function Feed({ entries, birthYear, bornT, paused }: { entries: FeedEntry[]; bir
     }
     return out;
   }, [entries, birthYear, bornT]);
+  // 휴대폰에선 기록 상자 안에 따로 스크롤이 생기면 화면 스크롤과 엉킨다 — 최근 것만 펼쳐 두고 ‘더 보기’로 늘린다
+  const [limit, setLimit] = useState(36);
+  const shownRows = rows.slice(0, limit);
   return (
     <div className="card feed">
       <div className="feed-head">
@@ -630,7 +632,7 @@ function Feed({ entries, birthYear, bornT, paused }: { entries: FeedEntry[]; bir
         <span className="dim">{paused ? '❚❚ 멈춤' : '최근 순'}</span>
       </div>
       <div className="feed-list">
-        {rows.map((r, i) =>
+        {shownRows.map((r, i) =>
           'head' in r ? (
             <div key={`h${r.head}`} className="entry yearhead"><span data-side={(parseInt(r.head, 10) || 0) < 40 ? 'A' : 'B'}>{r.head}</span></div>
           ) : (
@@ -645,13 +647,16 @@ function Feed({ entries, birthYear, bornT, paused }: { entries: FeedEntry[]; bir
           ),
         )}
         {!rows.length && <div className="entry"><span /><span className="what flavor">이야기는 이제 막 시작됐다.</span></div>}
+        {rows.length > limit && (
+          <button className="feed-more" onClick={() => setLimit((n) => n + 60)}>지난 기록 더 보기 ({rows.length - limit}줄)</button>
+        )}
       </div>
     </div>
   );
 }
 
 // ───────────────────────── 갈림길 ─────────────────────────
-function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; dark?: boolean }) {
+function EventChoices({ s, onChoose, onNext, dark, waiting = false }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; dark?: boolean; waiting?: boolean }) {
   const ev = s.active!;
   const res = ev.result;
   const deltas = res?.lines.filter((l) => l.delta).map((l) => l.text).join(' · ');
@@ -670,7 +675,7 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   // 키보드: 숫자로 고르고, 결과가 나오면 Enter·Space 로 계속 (데스크톱)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || (e.target as HTMLElement)?.tagName === 'INPUT') return;
+      if (waiting || e.altKey || e.ctrlKey || e.metaKey || (e.target as HTMLElement)?.tagName === 'INPUT') return;
       if (!res) {
         if (!armedPick) return;
         const visible = (ev.order ?? ev.choices.map((_, i) => i)).filter((i) => !ev.choices[i].hidden);
@@ -683,7 +688,7 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [ev, res, armedPick, armedNext, onChoose, onNext]);
+  }, [ev, res, armedPick, armedNext, onChoose, onNext, waiting]);
   const resRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (res) resRef.current?.scrollIntoView({ block: 'nearest' });
@@ -697,14 +702,19 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
   }, [res]);
   if (!res)
     return (
-      <div className="choices">
+      // 컷신이 도는 동안에도 자리는 미리 잡아 둔다 — 선택지가 나타날 때 창이 작아졌다 커지지 않게
+      <div className={`choices ${waiting ? 'waiting' : 'shown'}`} aria-hidden={waiting || undefined} {...(waiting ? { inert: '' } : {})}>
         {(ev.order ?? ev.choices.map((_, i) => i)).map((i, pos) => { const ch = ev.choices[i]; return ch.hidden ? null : (
-          <button key={`${ev.id}:${i}`} className="choice" disabled={ch.disabled} onClick={(e) => { e.stopPropagation(); if (!armedPick) return; sfx('tap'); onChoose(i); }}>
+          <button key={`${ev.id}:${i}`} className="choice" disabled={ch.disabled || waiting} tabIndex={waiting ? -1 : undefined} onClick={(e) => { e.stopPropagation(); if (!armedPick || waiting) return; sfx('tap'); onChoose(i); }}>
             <span className="num">{pos + 1}</span>
-            <span>
-              <RiskTag risk={ch.risk} />
-              {ch.odds && <span className="checktag">[{ch.odds.ability} · 난이도 {ch.odds.dc}]</span>}
-              {ch.label}
+            <span className="choice-body">
+              {(ch.risk || ch.odds) && (
+                <span className="choice-tags">
+                  <RiskTag risk={ch.risk} />
+                  {ch.odds && <span className="checktag">{ch.odds.ability} · 난이도 {ch.odds.dc}</span>}
+                </span>
+              )}
+              <span className="choice-label">{ch.label}</span>
               {ch.hint && <span className="hint">{ch.hint}</span>}
               {ch.lock && <span className="lock">🔒 {ch.lock}</span>}
               {!ch.lock && ch.why && <span className="why">{ch.why}</span>}
@@ -744,7 +754,8 @@ function EventChoices({ s, onChoose, onNext, dark }: { s: GameState; onChoose: (
 
 function Fork({ s, onChoose, onNext, onAuto, onRename, onSetlist }: { s: GameState; onChoose: (i: number) => void; onNext: () => void; onAuto: () => void; onRename: (name: string) => void; onSetlist: (ids: string[]) => void }) {
   const ev = s.active!;
-  useScrollLock();
+  // 잠깐 내리기 — 갈림길을 내려 두고 뒤 화면(상태·기록)을 볼 수 있다. 시간은 멈춘 채다
+  const [peek, setPeek] = usePeek(`${ev.id}:${ev.at}`);
   useEffect(() => sfx('page'), [ev.id]);
   const a = Math.max(0, Math.floor(ev.at - s.player.birthYear));
   const m = Math.min(12, Math.floor((ev.at - Math.floor(ev.at)) * 12) + 1);
@@ -754,18 +765,20 @@ function Fork({ s, onChoose, onNext, onAuto, onRename, onSetlist }: { s: GameSta
   const key = `${ev.id}:${ev.at}`;
   const ready = cutFor === key || !!ev.result || s.autoDecide;
   return (
-    <div className="modal-back">
-      <div className="fork" role="dialog" aria-modal="true" aria-label={ev.title}>
+    <div className={`modal-back fork-back ${peek ? 'peek' : ''}`}>
+      {peek && <PeekBar kicker="갈림길" title={ev.title} onBack={() => setPeek(false)} />}
+      <div className="fork" role="dialog" aria-modal={!peek} aria-label={ev.title} aria-hidden={peek || undefined}>
         <EventCut ev={ev} scene={ev.scene} label={SCENE_LABEL[ev.scene]} people={people} night={m >= 10 || m <= 2 || ev.scene === 'club' || ev.scene === 'pub'} seed={s.seed + Math.round(ev.at * 12)} onDone={() => setCutFor(key)} />
         <div className="fork-head">
           <span className="k">갈림길</span>
-          <span>{a}세 · {Math.floor(ev.at)}년 {m}월</span>
+          <span className="fork-when">{a}세 · {Math.floor(ev.at)}년 {m}월</span>
+          <PeekButton onPeek={() => setPeek(true)} />
         </div>
         <div className="fork-body">
           <WhoBar s={s} />
           <h2>{ev.title}</h2>
           <div className="text">{ev.text}</div>
-          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} country={s.player.country} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready && ev.id === 'gig_setlist' && !ev.result ? <SetlistBuilder s={s} onConfirm={(ids) => { onSetlist(ids); onChoose(0); }} onHabit={() => onChoose(1)} /> : ready ? <EventChoices s={s} onChoose={onChoose} onNext={onNext} /> : <div className="choices-wait" aria-hidden><i /><i /><i /></div>}
+          {ready && ev.id === 'name_band' && !ev.result && s.band ? <BandNamer current={s.band.name} country={s.player.country} seed={s.seed + s.turn} onConfirm={(n) => { onRename(n); onChoose(0); }} /> : ready && ev.id === 'gig_setlist' && !ev.result ? <SetlistBuilder s={s} onConfirm={(ids) => { onSetlist(ids); onChoose(0); }} onHabit={() => onChoose(1)} /> : ev.id === 'name_band' || ev.id === 'gig_setlist' ? <div className="choices-wait" aria-hidden><i /><i /><i /></div> : <EventChoices s={s} onChoose={onChoose} onNext={onNext} waiting={!ready} />}
         </div>
         {!ev.result && !s.autoDecide && (
           <div className="fork-foot">
@@ -804,7 +817,7 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
       <div className="dim">{bar.label} {won(avg)}{kr ? ' · 2024 예술인 실태조사' : ''}</div>
       {last && (
         <div className="real-last">
-          {last.year}년: 음악 {moneyAt(last.music - last.cost, last.year, s.player.country)} · 다른 일 {moneyAt(last.other, last.year, s.player.country)}
+          {last.year}년: 음악 {won(last.music - last.cost)} · 다른 일 {won(last.other)}
           {last.other > last.music ? ' — 음악만으론 못 산다' : last.music - last.cost > 0 ? ' — 음악이 생계였다' : ''}
         </div>
       )}

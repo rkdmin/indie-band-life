@@ -23,6 +23,7 @@
 .tl-name { color: var(--ink2); line-height: 1.2; padding-right: 6px; }
 .tl-track { position: relative; height: 14px; }
 .tl-track i { position: absolute; top: 4px; height: 6px; border-radius: 3px; background: #2357e6; }
+.tl-track em.in { transform: translateX(4px); color: #fff; font-weight: 700; text-shadow: 0 1px 0 #0004; z-index: 1; }
 .tl-track em { position: absolute; top: -1px; font-style: normal; font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--sub); transform: translateX(-110%); }
 .tl-axis { display: flex; justify-content: space-between; font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--sub); margin: 4px 0 0 88px; }
 .tl-axis .me { color: #c8186e; font-family: inherit; }
