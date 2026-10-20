@@ -876,7 +876,7 @@ export function endPeriod(prev: GameState): GameState {
   // 라이벌 밴드도 저들의 속도로 산다
   for (const line of tickRival(s, rng, step)) pushFeed(s, { t: t - step * 0.3, text: `🥊 ${line}`, tone: 'neutral', kind: 'news' });
   // 시즌 목표: 이뤘거나 기한이 지났으면 정산한다
-  const goal = settleGoal(s);
+  const goal = settleGoal(s, step);
   if (goal) {
     pushFeed(s, { t, text: goal.text, tone: goal.ok ? 'big' : 'bad', deltas: goal.lines.map((l) => l.text).join(' · ') || undefined, kind: 'life' });
     if (goal.ok) chron(s, goal.text, 'life');

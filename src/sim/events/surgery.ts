@@ -133,7 +133,7 @@ export const SURGERY_EVENTS: EventDef[] = [
       {
         label: '지금 얼굴로 무대에 선다',
         risk: 'safe' as const,
-        card: () => ({ title: '이대로 간다', icon: '🎤', tag: '안정', stats: [['비용', '0원'], ['매력', '그대로']], sub: '얼굴 말고 노래로.' }),
+        card: () => ({ title: '이대로 간다', icon: '🎤', tag: '안정', stats: [['비용', '무료'], ['매력', '그대로']], sub: '얼굴 말고 노래로.' }),
         run: (c: Ctx) => { c.stat('stress', -3); c.skill('stage', 1); return c.pick(['거울 대신 악보를 봤다. 그날 합주는 유난히 잘 맞았다.', '“얼굴 말고 노래로 기억되자.” 멤버들에게 그렇게 말하고 나니 마음이 편했다.']); },
       },
     ],

@@ -1,6 +1,7 @@
 // 실시간으로 흘러가는 인생 화면.
 // 시계는 화면에만 있고, 엔진은 시기(period) 단위로 계산한다. 시계가 사건·연출·시기 끝에 닿으면 멈추고 엔진을 부른다.
 
+import { moneyAt } from '../sim/money';
 import { goalDef, goalProgress } from '../sim/goals';
 import { genreLabel } from '../sim/data/era/genres';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -800,7 +801,7 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
       <div className="dim">{bar.label} {won(avg)}{kr ? ' · 2024 예술인 실태조사' : ''}</div>
       {last && (
         <div className="real-last">
-          {last.year}년: 음악 {won(last.music - last.cost)} · 다른 일 {won(last.other)}
+          {last.year}년: 음악 {moneyAt(last.music - last.cost, last.year, s.player.country)} · 다른 일 {moneyAt(last.other, last.year, s.player.country)}
           {last.other > last.music ? ' — 음악만으론 못 산다' : last.music - last.cost > 0 ? ' — 음악이 생계였다' : ''}
         </div>
       )}

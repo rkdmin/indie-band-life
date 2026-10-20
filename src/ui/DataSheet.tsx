@@ -238,7 +238,7 @@ export function DataSheet({ s }: { s: GameState }) {
               const mine = l.music - l.cost;
               const avg = incomeBar(s.player.country, l.year).value;
               return (
-                <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${won(mine)} · 평균 ${won(avg)}`}>
+                <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${moneyAt(mine, l.year, s.player.country)} · 평균 ${moneyAt(avg, l.year, s.player.country)}`}>
                   <span className="b me" style={{ height: `${(Math.max(0, mine) / maxMoney) * 100}%` }} />
                   <span className="b avg" style={{ height: `${(avg / maxMoney) * 100}%` }} />
                   <em>{String(l.year).slice(2)}</em>

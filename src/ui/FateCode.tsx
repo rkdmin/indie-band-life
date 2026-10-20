@@ -26,7 +26,7 @@ export function FateCode({ s, compact = false }: { s: GameState; compact?: boole
     <div className={`fate-code ${compact ? 'compact' : ''}`}>
       <span className="fc-k">운명 코드</span>
       <button type="button" className="fc-v" onClick={share} aria-label={`운명 코드 ${code} 공유하기`}>{code}</button>
-      <span className="fc-d" aria-live="polite">{msg ?? '친구가 이 코드로 똑같이 태어날 수 있다'}</span>
+      <span className="fc-d" aria-live="polite">{msg ?? '친구가 이 코드로 같은 집·재능·외모로 태어날 수 있다 (직접 지은 이름은 빼고)'}</span>
     </div>
   );
 }

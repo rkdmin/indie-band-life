@@ -6,7 +6,7 @@ import { ageInt, chron, favoriteGenre, say, year } from './state';
 import { GENRE_INFO, eraOf } from './data/world';
 import { countryOf } from './data/countries';
 import { bandMembers } from './npc';
-import { count, josa } from './korean';
+import { count, josa, won } from './korean';
 import hitsJson from '../data/fate/hits.json';
 
 // 인생 사건이 곡의 주제가 된다. flags 에 theme:<key> 가 쌓이면 작곡 때 추천된다.
@@ -282,6 +282,6 @@ export function yearlyStreams(s: GameState, rng: Rng) {
   const money = Math.round(newStreams * 3 * share);
   if (money > 0) {
     s.player.money += money;
-    if (money > 100_000) say(s, `음원 정산금이 들어왔다 (+${count(Math.round(money / 10000))}만원)`, 'good');
+    if (money > 100_000) say(s, `음원 정산금이 들어왔다 (+${won(money)})`, 'good');
   }
 }

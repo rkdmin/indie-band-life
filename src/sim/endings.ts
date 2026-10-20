@@ -87,8 +87,8 @@ const firstAlbumAge = (s: GameState) => (s.albums.length ? Math.min(...s.albums.
 
 export const BADGES: BadgeDef[] = [
   { id: 'perfect_set', emoji: '🎼', title: '완벽한 셋리스트', ink: 'green', hint: '곡 순서 하나로 관객을 쥐락펴락한다', test: (s) => n(s, 'setlistGreat') >= 3, line: (s) => `85점 넘는 셋리스트로 ${n(s, 'setlistGreat')}번 무대에 섰다.` },
-  { id: 'beat_rival', emoji: '🥊', title: '라이벌을 넘었다', ink: 'red', hint: '오래 앞서가던 라이벌을 끝내 넘어선다', test: (s) => !!s.rival && s.rival.peak >= 3000 && s.peakFans >= s.rival.peak * 1.5, line: (s) => `〈${s.rival!.name}〉보다 멀리 갔다.` },
-  { id: 'second_fiddle', emoji: '🥈', title: '영원한 2인자', ink: 'black', hint: '라이벌의 그림자에서 벗어나지 못한다', test: (s) => !!s.rival && s.rival.peak >= 10_000 && s.rival.peak >= s.peakFans * 5, line: (s) => `늘 〈${s.rival!.name}〉 다음이었다.` },
+  { id: 'beat_rival', emoji: '🥊', title: '라이벌을 넘었다', ink: 'red', hint: '오래 앞서가던 라이벌을 끝내 넘어선다', test: (s) => !!s.rival?.tone && s.rival.peak >= 3000 && s.peakFans >= s.rival.peak * 1.5, line: (s) => `〈${s.rival!.name}〉보다 멀리 갔다.` },
+  { id: 'second_fiddle', emoji: '🥈', title: '영원한 2인자', ink: 'black', hint: '라이벌의 그림자에서 벗어나지 못한다', test: (s) => !!s.rival?.tone && s.rival.peak >= 10_000 && s.rival.peak >= s.peakFans * 5, line: (s) => `늘 〈${s.rival!.name}〉 다음이었다.` },
   { id: 'planner', emoji: '📋', title: '계획대로', ink: 'blue', hint: '세운 목표를 여러 번 이룬다', test: (s) => n(s, 'goalsDone') >= 6, line: (s) => `시즌 목표를 ${n(s, 'goalsDone')}번 이뤘다. 수첩 맨 뒷장이 동그라미로 가득했다.` },
   { id: 'phenomenon', emoji: '🌠', title: '세계적 현상', ink: 'gold', hint: '한 곡이 세상을 뒤덮는다', test: (s) => n(s, 'hit_phenomenon') > 0, line: () => '한 곡이 세계를 한 바퀴 돌았다.' },
   { id: 'mega', emoji: '💥', title: '메가 히트', ink: 'gold', hint: '차트를 집어삼킨 노래', test: (s) => n(s, 'hit_mega') > 0, line: () => '차트 1위를 몇 주씩 지켰다.' },

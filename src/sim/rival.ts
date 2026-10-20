@@ -103,7 +103,8 @@ export function tickRival(s: GameState, rng: Rng, years: number): string[] {
 /** 엔딩에서 둘을 나란히 */
 export function rivalVerdict(s: GameState): { line: string; win: boolean } | null {
   const r = s.rival;
-  if (!r) return null;
+  // 만난 적 없는 밴드, 아직 팬이 없는 밴드와는 견주지 않는다
+  if (!r || !r.tone || r.peak <= 0) return null;
   const me = s.peakFans;
   if (me >= r.peak * 1.2) return { line: `라이벌 〈${r.name}〉의 최고 팬 ${count(r.peak)}명 — 결국 내가 앞섰다.`, win: true };
   if (r.peak >= me * 1.2) return { line: `라이벌 〈${r.name}〉의 최고 팬 ${count(r.peak)}명 — 끝내 따라잡지 못했다.`, win: false };

@@ -148,7 +148,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'lesson', label: '음악 학원', emoji: '🎹', scene: 'musicroom', energy: 15, param: 'inst',
-    desc: (c) => `악기 하나를 정해 배운다. 학원비 월 ${Math.round(c.krw(180000) / 10000)}만원 정도.`,
+    desc: (c) => `악기 하나를 정해 배운다. 학원비 월 ${won(c.krw(180000))} 정도.`,
     when: (c) => c.age >= 7 && c.age < 13,
     locked: (c) => (c.p.income === 'low' && c.p.money < c.krw(500000) && !c.flag('scholarship') ? '형편상 학원은 어렵다' : null),
     run: (c, inst) => {
@@ -224,7 +224,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'rehearse', label: '밴드 합주', emoji: '🥁', scene: 'studio', energy: 18,
-    desc: (c) => `합주실 2시간 ${Math.round(c.krw(20000) * 2 / 10000)}만원. 실력과 팀워크가 함께 오른다.`,
+    desc: (c) => `합주실 2시간 ${won(c.krw(20000) * 2)}. 실력과 팀워크가 함께 오른다.`,
     when: (c) => c.age >= 13 && free(c),
     price: (c) => (c.band ? c.krw(40000) / (c.members.length + 1) : 0),
     run: (c) => {
@@ -323,7 +323,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'promo', label: 'SNS 홍보', emoji: '📣', scene: 'home', energy: 8,
-    desc: (c) => `광고비 ${Math.round(c.krw(300000) / 10000)}만원. 다음 발매의 초반 화력을 키운다.`,
+    desc: (c) => `광고비 ${won(c.krw(300000))}. 다음 발매의 초반 화력을 키운다.`,
     when: (c) => c.age >= 17 && free(c) && c.s.time >= 2010,
     price: (c) => c.krw(300000),
     run: (c) => {
@@ -336,7 +336,7 @@ export const ACTIONS: ActionDef[] = [
   {
     // SNS 이전 시대의 홍보: 전봇대·클럽 게시판·레코드 가게 유리문
     id: 'flyer', label: '포스터 붙이기', emoji: '🧷', scene: 'street', energy: 10,
-    desc: (c) => `인쇄비 ${Math.round(c.krw(60000) / 10000) || 1}만원. 전봇대와 레코드 가게 유리문에 공연 포스터를.`,
+    desc: (c) => `인쇄비 ${won(c.krw(60000))}. 전봇대와 레코드 가게 유리문에 공연 포스터를.`,
     when: (c) => c.age >= 16 && free(c) && c.s.time < 2010 && !!c.band,
     price: (c) => c.krw(60000),
     run: (c) => {
@@ -395,7 +395,7 @@ export const ACTIONS: ActionDef[] = [
   },
   {
     id: 'teach', label: '레슨하기', emoji: '🧑‍🏫', scene: 'musicroom', energy: 15,
-    desc: (c) => `실력 60 이상. 시간당 ${Math.round(c.krw(50000) / 10000)}만원.`,
+    desc: (c) => `실력 60 이상. 시간당 ${won(c.krw(50000))}.`,
     when: (c) => c.age >= 20 && free(c),
     locked: (c) => (c.mainSkill < 60 ? '주 악기 실력 60 이상 필요' : null),
     run: (c) => {

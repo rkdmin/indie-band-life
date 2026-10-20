@@ -156,3 +156,32 @@ describe('나라별 생활 사건', () => {
     expect(jp).toBeGreaterThan(0);
   });
 });
+
+describe('리뷰에서 나온 경계 사례', () => {
+  it('돈이 바닥나면 시즌 목표가 있어도 알바가 계획에 들어간다', async () => {
+    const { recommendedPlan } = await import('../src/sim/plan');
+    const s = adult();
+    s.player.money = -5_000_000;
+    s.player.job = 'none';
+    s.goal = startGoal(s, GOALS.find((g) => g.id === 'songs')!);
+    const ids = recommendedPlan(s).map((p) => p.id);
+    expect(ids.some((id) => id === 'parttime' || id === 'teach')).toBe(true);
+  });
+  it('군 복무 중엔 목표 기한이 멈춘다', () => {
+    const s = adult();
+    s.goal = startGoal(s, GOALS.find((g) => g.id === 'songs')!);
+    const until = s.goal.until;
+    s.player.military = 'serving';
+    s.time = until + 0.2;
+    expect(settleGoal(s, 0.5)).toBeNull();
+    expect(s.goal!.until).toBeGreaterThan(until);
+  });
+  it('만난 적 없는 라이벌과는 엔딩에서 견주지 않는다', async () => {
+    const { rivalVerdict } = await import('../src/sim/rival');
+    const s = adult();
+    s.rival = { name: '모르는 밴드', genre: 'punk', leaderId: 'x', formed: 2010, fans: 100, peak: 5000, potential: 1000, status: 'active', albums: 0, hits: 0, label: 'none' };
+    expect(rivalVerdict(s)).toBeNull();
+    s.rival.tone = 'fire';
+    expect(rivalVerdict(s)).not.toBeNull();
+  });
+});

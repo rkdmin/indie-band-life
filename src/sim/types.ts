@@ -424,6 +424,8 @@ export interface Goal {
   base: number;
   from: number;
   until: number;
+  /** 실력 목표: 고를 때의 주 악기 */
+  inst?: Inst;
 }
 
 export interface ActionPick {

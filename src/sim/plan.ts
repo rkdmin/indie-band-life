@@ -32,11 +32,11 @@ export function recommendedPlan(s: GameState): ActionPick[] {
   else if (a < 19) ids = s.band ? pick('rehearse', 'practice') : pick('practice', a >= 17 ? 'study' : 'hangout', 'listen');
   else if (a >= 65) ids = s.flags.lifelong ? pick('gig', 'rest') : pick('rest', 'hangout');
   else {
-    // 시즌 목표가 있으면 그 목표에 맞는 활동을 먼저 넣는다
-    if (s.goal) ids.push(...(goalDef(s.goal.id)?.plan ?? []).slice(0, 2));
     const broke = p.money < 0 && p.job !== 'office' && p.job !== 'teacher' && p.job !== 'producer';
     if (p.stats.energy < 30 || p.stats.stress > 80) ids.push('rest');
     if (broke) ids.push(...pick(p.skills[p.mainInst ?? 'guitar'] >= 60 ? 'teach' : 'parttime', 'parttime'));
+    // 급한 일(휴식·생계) 다음으로, 시즌 목표에 맞는 활동을 넣는다
+    if (s.goal) ids.push(...(goalDef(s.goal.id)?.plan ?? []).slice(0, 2));
     if (!s.band) ids.push(...pick('form_band', 'practice', 'busking'));
     else {
       if (s.band.memberIds.length < 2) ids.push(...pick('recruit'));

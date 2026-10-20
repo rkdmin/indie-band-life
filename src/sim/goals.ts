@@ -4,6 +4,7 @@
 import type { GameState, Goal, ResultLine } from './types';
 import { age, livingCost } from './state';
 import { priceIndex } from './data/world';
+import { countryOf } from './data/countries';
 import { unreleased } from './songs';
 
 export type { Goal };
@@ -28,7 +29,7 @@ interface GoalDef {
 }
 
 const inst = (s: GameState) => s.player.mainInst ?? 'guitar';
-const living = (s: GameState) => livingCost(s, priceIndex(s.time));
+const living = (s: GameState) => livingCost(s, priceIndex(s.time) * countryOf(s.player.country).costMul);
 const r = (text: string, tone: ResultLine['tone'] = 'good'): ResultLine => ({ text, tone, delta: true });
 
 export const GOALS: GoalDef[] = [
@@ -86,7 +87,7 @@ export const GOALS: GoalDef[] = [
     id: 'skill', icon: '🎯', tag: '실력', unit: '', years: 2,
     fits: (s) => s.player.skills[inst(s)] < 85 && age(s) < 60,
     title: (t) => `주 악기 실력 ${t}까지`,
-    value: (s) => Math.floor(s.player.skills[inst(s)]),
+    value: (s) => Math.floor(s.player.skills[(s.goal?.id === 'skill' && s.goal.inst) || inst(s)]),
     target: (s) => Math.min(95, Math.floor(s.player.skills[inst(s)]) + 4),
     plan: ['practice', 'lesson', 'busking'],
     reward: '무대 +4 · 자신감(스트레스 −8)',
@@ -158,7 +159,7 @@ export function goalChoices(s: GameState, pick: <T>(xs: T[]) => T): GoalDef[] {
 
 export function startGoal(s: GameState, def: GoalDef): Goal {
   const target = def.target(s);
-  return { id: def.id, title: def.title(target, s), target, base: def.value(s), from: s.time, until: Math.round((s.time + def.years) * 10) / 10 };
+  return { id: def.id, title: def.title(target, s), target, base: def.value(s), from: s.time, until: Math.round((s.time + def.years) * 10) / 10, ...(def.id === 'skill' ? { inst: inst(s) } : {}) };
 }
 
 /** 0~1 진행도 */
@@ -171,9 +172,19 @@ export function goalProgress(s: GameState, g: Goal): number {
 }
 
 /** 시기가 끝날 때: 이뤘으면 보상, 기한이 지났으면 아쉬움. 결과 문장과 이야기 줄을 돌려준다 */
-export function settleGoal(s: GameState): { done: boolean; ok: boolean; text: string; lines: ResultLine[] } | null {
+export function settleGoal(s: GameState, step = 0.5): { done: boolean; ok: boolean; text: string; lines: ResultLine[] } | null {
   const g = s.goal;
   if (!g) return null;
+  // 군 복무 중엔 시계가 멈춘다 — 입대 전에 고른 목표가 복무 중에 저절로 실패하지 않게
+  if (s.player.military === 'serving') {
+    g.until = Math.round((g.until + step) * 10) / 10;
+    return null;
+  }
+  if (s.player.retired) {
+    s.goal = undefined;
+    s.flags.goalEnd = s.time;
+    return null;
+  }
   const def = goalDef(g.id);
   if (!def) {
     s.goal = undefined;

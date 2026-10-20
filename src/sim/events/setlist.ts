@@ -46,8 +46,8 @@ export const SETLIST_EVENTS: EventDef[] = [
         label: '늘 하던 순서로 한다',
         risk: 'safe',
         run: (c) => {
-          const set = habitSetlist(c.s);
-          c.s.flags.setlist = set.map((x) => x.id).join(',');
+          // 늘 하던 순서 — 셋리스트 점수를 매기지 않는다 (보정 없음)
+          delete c.s.flags.setlist;
           playGig(c, venue(c)!);
           return '익숙한 순서. 손은 편했지만 관객도 다음 곡을 알고 있었다.';
         },

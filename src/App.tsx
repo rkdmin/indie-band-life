@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { fateName } from './sim/fatecode';
+import type { CountryId } from './sim/data/countries';
 import { applyMoneyOf } from './sim/money';
 import { setMoneyDisplay } from './sim/korean';
 import type { GameState } from './sim/types';
@@ -81,8 +83,12 @@ export function App() {
         onStart={() => setScreen('life')}
         onReroll={() => {
           if (!lastOpts) return setScreen('title');
-          // 같은 설정으로 다른 운명
-          born({ ...lastOpts.o, seed: undefined, name: lastOpts.o.name }, lastOpts.pace);
+          // 같은 설정으로 다른 운명 — 새 시드를 정하고, 직접 지은 이름이 아니면 이름도 새 운명에서 (운명 코드와 맞게)
+          const o = lastOpts.o;
+          const seed = ((Date.now() ^ (Math.random() * 1e9)) >>> 0) % 0x7fffffff || 1;
+          const fate = (sd: number) => ({ country: (o.country ?? 'KR') as CountryId, birthYear: o.birthYear, gender: o.gender, seed: sd });
+          const auto = o.seed !== undefined && o.name === fateName(fate(o.seed));
+          born({ ...o, seed, name: auto ? fateName(fate(seed)) : o.name }, lastOpts.pace);
         }}
       />
     );

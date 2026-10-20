@@ -81,12 +81,12 @@ export const RIVAL_EVENTS: EventDef[] = [
   {
     // 해체 소식이 나면 한 번만 (sim/rival.ts 가 큐에 넣는다)
     id: 'rival_split', scene: 'pub', title: '라이벌의 해체', priority: 106, chance: 0,
-    when: (c) => !!c.s.rival && R(c).status === 'split' && !c.s.flags[`rivalSplit:${R(c).splitYear}`] && free(c),
-    bind: bindLeader,
-    text: (c) => `${nj(c, '이/가')} 해체했다는 소식. ${c.nj('rl', '이/가')} 짧은 글을 남겼다. “여기까지였습니다. 고마웠습니다.”\n${met(c) ? '한때 저들을 이기고 싶었는데, 막상 끝나니 이상하게 허전하다.' : '이름만 알던 밴드였는데도 이상하게 허전하다.'}`,
+    when: (c) => !!c.s.rival && R(c).status === 'split' && !c.s.flags[`rivalSplit:${R(c).splitYear}`],
+    bind: (c) => (bindLeader(c), true),
+    text: (c) => `${nj(c, '이/가')} 해체했다는 소식. ${c.bind.rl ? `${c.nj('rl', '이/가')} 짧은 글을 남겼다.` : '마지막 공지가 올라왔다.'} “여기까지였습니다. 고마웠습니다.”\n${met(c) ? '한때 저들을 이기고 싶었는데, 막상 끝나니 이상하게 허전하다.' : '이름만 알던 밴드였는데도 이상하게 허전하다.'}`,
     choices: [
-      { label: '술 한잔하자고 연락한다', run: (c) => { c.set(`rivalSplit:${R(c).splitYear}`); c.rel('rl', 15, '해체한 밤의 술자리'); c.stat('happiness', 3); c.theme('loss'); return '“너희는 오래 해라.” 그 말이 오래 남았다.'; } },
-      { label: '다음 공연에서 저들 곡을 커버한다', run: (c) => { c.set(`rivalSplit:${R(c).splitYear}`); c.rep(3); c.fans(Math.round(R(c).fans * 0.03)); c.rel('rl', 6); return '첫 소절에 객석 몇 명이 울었다. 저들의 팬이었다.'; } },
+      { label: '술 한잔하자고 연락한다', run: (c) => { c.set(`rivalSplit:${R(c).splitYear}`); if (c.bind.rl) c.rel('rl', 15, '해체한 밤의 술자리'); c.stat('happiness', 3); c.theme('loss'); return '“너희는 오래 해라.” 그 말이 오래 남았다.'; } },
+      { label: '다음 공연에서 저들 곡을 커버한다', run: (c) => { c.set(`rivalSplit:${R(c).splitYear}`); c.rep(3); c.fans(Math.round(R(c).fans * 0.03)); if (c.bind.rl) c.rel('rl', 6); return '첫 소절에 객석 몇 명이 울었다. 저들의 팬이었다.'; } },
       { label: '조용히 연습실로 간다', run: (c) => { c.set(`rivalSplit:${R(c).splitYear}`); c.skill(c.p.mainInst ?? 'guitar', 2); c.stat('stress', -2); return '경쟁자가 사라진 게 아니라, 버티는 사람이 하나 줄었을 뿐이다.'; } },
     ],
   },
