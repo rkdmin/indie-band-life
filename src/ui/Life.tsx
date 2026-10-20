@@ -7,7 +7,7 @@ import type { FeedEntry, GameState, SceneId } from '../sim/types';
 import { autoChoose, beginPeriod, canRetire, choose, renameBand, endPeriod, fastForward, openEvent, popCine, proceed, reroll, resolveRoll, retire, setAutoDecide, setPlan } from '../sim/engine';
 import { STAGE_LABEL, actionSlots, age, favoriteGenre, stageOf } from '../sim/state';
 import { INST_LABEL, minWage } from '../sim/data/world';
-import { ARTIST_SURVEY, facts } from '../sim/data/reality';
+import { ARTIST_SURVEY, facts, incomeBar } from '../sim/data/reality';
 import { countryOf, hasMinWage } from '../sim/data/countries';
 import { count, won } from '../sim/korean';
 import { actionById } from '../sim/actions';
@@ -735,9 +735,11 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
   const [open, setOpen] = useState(false);
   const L = s.ledger ?? { music: 0, cost: 0, other: 0 };
   const net = L.music - L.cost;
-  const avg = ARTIST_SURVEY.avgArtIncomeMusic;
-  const last = s.ledgers?.[s.ledgers.length - 1];
   const yr = Math.floor(clock);
+  const bar = incomeBar(s.player.country, yr);
+  const avg = bar.value;
+  const kr = (s.player.country ?? 'KR') === 'KR';
+  const last = s.ledgers?.[s.ledgers.length - 1];
   return (
     <div className="card reality">
       <div className="section-title">
@@ -751,17 +753,17 @@ function RealityCard({ s, clock }: { s: GameState; clock: number }) {
       <div className="bar" style={{ margin: '4px 0 2px' }}>
         <i style={{ width: `${Math.max(0, Math.min(100, (net / avg) * 100))}%`, background: 'var(--red)' }} />
       </div>
-      <div className="dim">음악인 평균 예술활동 수입 {won(avg)} · 2024 예술인 실태조사</div>
+      <div className="dim">{bar.label} {won(avg)}{kr ? ' · 2024 예술인 실태조사' : ''}</div>
       {last && (
         <div className="real-last">
           {last.year}년: 음악 {won(last.music - last.cost)} · 다른 일 {won(last.other)}
           {last.other > last.music ? ' — 음악만으론 못 산다' : last.music - last.cost > 0 ? ' — 음악이 생계였다' : ''}
         </div>
       )}
-      <div className="dim" style={{ marginTop: 4 }}>예술인 {Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. {hasMinWage(countryOf(s.player.country), yr) ? '최저시급' : '알바 시급(추정)'} {Math.round(minWage(yr) * countryOf(s.player.country).wageMul).toLocaleString()}원.</div>
+      <div className="dim" style={{ marginTop: 4 }}>{kr ? `예술인 ${Math.round(ARTIST_SURVEY.sideJobRate * 1000) / 10}%가 다른 일을 겸한다. ` : ''}{hasMinWage(countryOf(s.player.country), yr) ? '최저시급' : '알바 시급(추정)'} {Math.round(minWage(yr) * countryOf(s.player.country).wageMul).toLocaleString()}원.</div>
       {open && (
         <ul className="facts">
-          {facts(yr, minWage(yr)).map((f) => (
+          {(kr ? facts(yr, minWage(yr)) : [{ id: 'bar', label: bar.label, value: won(avg), src: bar.src, kind: bar.kind }]).map((f) => (
             <li key={f.id}>
               <span className={`src src-${f.kind}`}>{f.kind}</span> {f.label}: <b>{f.value}</b>
               <div className="dim">{f.src}</div>

@@ -10,7 +10,7 @@ import type { ActionPick, ActiveEvent, FeedEntry, Jackpot, Odds, PendingRoll, Ga
 import { GENRES } from './types';
 import { Rng, clamp, hashStr } from './rng';
 import { Ctx, book, type EventDef } from './ctx';
-import { ARTIST_SURVEY } from './data/reality';
+import { incomeBar } from './data/reality';
 import { ACTIONS, actionById } from './actions';
 import { EVENTS, eventById } from './events';
 import { actionSlots, age, ageInt, chron, livingCost, stepSize } from './state';
@@ -939,17 +939,18 @@ function closeLedger(s: GameState, yr: number, ag: number, t: number) {
     s.ledgers.push({ year: yr, age: ag, ...L });
     if (s.ledgers.length > 120) s.ledgers.shift();
     const net = L.music - L.cost;
-    const avg = ARTIST_SURVEY.avgArtIncomeMusic;
+    const bar = incomeBar(s.player.country, yr);
+    const avg = bar.value;
     const tone: FeedEntry['tone'] = net >= avg ? 'good' : 'neutral';
     pushFeed(s, {
       t,
       text: `${yr}년 결산 — 음악으로 ${won(L.music)} 벌고 ${won(L.cost)} 썼다.${L.other ? ` 다른 일로 ${won(L.other)}.` : ''}`,
       tone,
-      deltas: `음악인 평균 예술활동 수입 ${won(avg)} · 2024 예술인 실태조사`,
+      deltas: `${bar.label} ${won(avg)}${bar.kind === '통계' ? ' · 2024 예술인 실태조사' : ''}`,
       kind: 'news',
     });
     // ‘먹고산다’의 기준: 최저임금으로 1년 일한 만큼(주 40시간, 209시간×12개월)의 80% [가정]
-    const livingBar = minWage(yr) * 209 * 12 * 0.8;
+    const livingBar = minWage(yr) * countryOf(s.player.country).wageMul * 209 * 12 * 0.8;
     if (!s.flags.livingByMusic && ag >= 19 && net >= livingBar) {
       s.flags.livingByMusic = yr;
       chron(s, '처음으로 음악으로 번 돈만으로 한 해를 살았다', 'big');

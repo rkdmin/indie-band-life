@@ -1,4 +1,6 @@
 import realityJson from '../../data/fate/reality.json';
+import { countryOf, hasMinWage } from './countries';
+import { minWage, priceIndex } from './world';
 // 게임 안에서 플레이어에게 그대로 보여 주는 ‘현실의 숫자’. 출처와 기준 시점을 함께 적는다.
 // 값이 바뀌면 docs/probability-sources.md 도 같이 고친다.
 
@@ -29,4 +31,24 @@ export function facts(year: number, minWage: number): Fact[] {
     { id: 'abroad', label: '해외 페스티벌 참가지원', value: '팀당 최대 1,000만원 · 5팀 내외', src: OVERSEAS_SUPPORT.src, kind: '통계' },
     { id: 'gig', label: '클럽 합동공연 수익', value: '티켓 매출 나눠 받기, 대개 팀당 수만~수십만원', src: '공개 자료 부족 — 게임 가정', kind: '가정' },
   ];
+}
+
+/**
+ * 음악 수입을 견줄 기준 — 나라마다 다르다.
+ *  - 한국: 「2024 예술인 실태조사」 음악인 평균 예술활동 수입 (그 해 물가로 환산) [통계]
+ *  - 다른 나라: 같은 조사 자료를 확인하지 못해, 그 나라 최저시급으로 1년(주 40시간 × 52주) 일한 돈 [근사]
+ */
+export function incomeBar(country: string | undefined, year: number): { value: number; label: string; short: string; src: string; kind: Fact['kind'] } {
+  const ct = countryOf(country);
+  if (ct.id === 'KR') {
+    return { value: Math.round(ARTIST_SURVEY.avgArtIncomeMusic * priceIndex(year)), label: '음악인 평균 예술활동 수입', short: '음악인 평균', src: ARTIST_SURVEY.src, kind: '통계' };
+  }
+  const wage = hasMinWage(ct, year) ? '최저시급' : '시급(추정)';
+  return {
+    value: Math.round(minWage(year) * ct.wageMul * 40 * 52),
+    label: `${ct.name} ${wage}으로 1년 일한 돈`,
+    short: `${wage} 1년치`,
+    src: `${ct.name} ${wage} × 주 40시간 × 52주 [근사] — 그 나라 음악인 수입 조사 자료는 아직 넣지 못했다`,
+    kind: '근사',
+  };
 }

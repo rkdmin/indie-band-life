@@ -6,6 +6,9 @@ import { leaveBand, playGig, addWalkIn } from '../actions';
 import { josa, won } from '../korean';
 import { clamp } from '../rng';
 import { npcAge } from '../npc';
+import titleCopy from '../../data/world/title_copy.json';
+/** 나라별 밴드 동네 (타이틀 화면과 같은 데이터) */
+const HUB: Record<string, string> = Object.fromEntries(Object.entries(titleCopy.data).map(([k, v]) => [k, (v as { hub: string }).hub]));
 
 // 밴드·음악 산업·건강 랜덤 사건
 // 실존 인물·밴드·곡·방송·페스티벌·공연장·레이블·브랜드 이름은 쓰지 않는다. 전부 가상의 이름이다.
@@ -785,7 +788,7 @@ export const CAREER: EventDef[] = [
       c.meet('sr', { metAt: '은퇴한 1세대 밴드 선배', career: 'cafe', role: 'mentor', birthYear: c.p.birthYear - c.rng.int(18, 28), affinity: 20, skill: c.rng.int(55, 80) });
       return true;
     },
-    text: (c) => `홍대 뒷골목 작은 바. 사장님이 알고 보니 왕년의 밴드 기타리스트란다.\n${c.nj('sr', '이/가')} 잔을 채우며 물었다.\n“너는 왜 아직 하냐, 이거.”`,
+    text: (c) => `${HUB[c.p.country ?? 'KR'] ?? '홍대'} 뒷골목 작은 바. 사장님이 알고 보니 왕년의 밴드 기타리스트란다.\n${c.nj('sr', '이/가')} 잔을 채우며 물었다.\n“너는 왜 아직 하냐, 이거.”`,
     choices: [
       { label: '“아직 좋은 곡을 못 썼거든요.”', run: (c) => { c.rel('sr', 10, '왜 하냐고 물은 밤'); c.skill('compose', 3); c.theme('age'); return '“그럼 평생 하겠네.” 선배는 웃으며 자기 옛 데모 테이프를 하나 건넸다.'; } },
       { label: '“솔직히 그만둘까 고민 중이에요.”', run: (c) => { c.rel('sr', 8, '그만둘까 털어놓은 밤'); c.stat('stress', -8); return '“그만둬도 돼. 근데 그만둬도 음악은 안 떠나더라.” 가게 벽에 걸린 기타가 그 증거였다.'; } },

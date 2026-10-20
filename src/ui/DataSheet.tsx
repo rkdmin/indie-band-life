@@ -4,12 +4,12 @@
 import { useMemo, useState } from 'react';
 import type { GameState } from '../sim/types';
 import { GENRES } from '../sim/types';
-import { birthsIn, minWage, priceIndex } from '../sim/data/world';
+import { birthsIn, minWage } from '../sim/data/world';
 import { countryOf, hasMinWage, lifeExpAt, type CountryId } from '../sim/data/countries';
 import { MEDIA } from '../sim/data/era/media';
 import { GENRE_ERAS, genreNamedIn } from '../sim/data/era/genres';
 import { bandsAt, styleOf } from '../sim/data/era/bands';
-import { ARTIST_SURVEY } from '../sim/data/reality';
+import { incomeBar } from '../sim/data/reality';
 import { won } from '../sim/korean';
 import { meanHeight, playerAppearance } from '../sim/appearance';
 
@@ -165,7 +165,8 @@ export function DataSheet({ s }: { s: GameState }) {
     return [...seen.entries()].slice(0, 14);
   }, [born, ct]);
   const ledgers = s.ledgers.slice(-12);
-  const maxMoney = Math.max(1, ...ledgers.map((l) => Math.max(l.music - l.cost, ARTIST_SURVEY.avgArtIncomeMusic * priceIndex(l.year))));
+  const bar0 = incomeBar(s.player.country, s.time);
+  const maxMoney = Math.max(1, ...ledgers.map((l) => Math.max(l.music - l.cost, incomeBar(s.player.country, l.year).value)));
 
   return (
     <div className="datasheet">
@@ -227,14 +228,14 @@ export function DataSheet({ s }: { s: GameState }) {
 
       <figure className="dchart">
         <figcaption>
-          <b>음악으로 번 돈 vs 음악인 평균</b>
-          <span>해마다 음악 순수입(수입−지출)과 「예술인 실태조사」 음악인 평균 예술활동 수입(그 해 물가 환산)</span>
+          <b>음악으로 번 돈 vs {bar0.short}</b>
+          <span>해마다 음악 순수입(수입−지출)과 {bar0.label}{bar0.kind === '통계' ? '(「예술인 실태조사」, 그 해 물가 환산)' : '(그 해 기준)'}</span>
         </figcaption>
         {ledgers.length ? (
           <div className="ds-bars">
             {ledgers.map((l) => {
               const mine = l.music - l.cost;
-              const avg = ARTIST_SURVEY.avgArtIncomeMusic * priceIndex(l.year);
+              const avg = incomeBar(s.player.country, l.year).value;
               return (
                 <div key={l.year} className="ds-bar" title={`${l.year}년: 나 ${won(mine)} · 평균 ${won(avg)}`}>
                   <span className="b me" style={{ height: `${(Math.max(0, mine) / maxMoney) * 100}%` }} />
@@ -249,9 +250,9 @@ export function DataSheet({ s }: { s: GameState }) {
         )}
         <div className="ds-legend">
           <span><i className="me" /> 나의 음악 순수입</span>
-          <span><i className="avg" /> 음악인 평균 {won(ARTIST_SURVEY.avgArtIncomeMusic)} (2023)</span>
+          <span><i className="avg" /> {bar0.short} {won(bar0.value)}</span>
         </div>
-        <div className="dc-src">📊 {ARTIST_SURVEY.src}</div>
+        <div className="dc-src">📊 {bar0.src}</div>
       </figure>
 
       <div className="ds-tile">

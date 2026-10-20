@@ -11,14 +11,23 @@ import { ENDINGS } from '../sim/endings';
 import { count } from '../sim/korean';
 import type { Meta } from './save';
 import { Flag } from './Flag';
+import titleCopy from '../data/world/title_copy.json';
 
 const ERAS = [
-  { id: 'old', label: '옛 시절', from: 1950, to: 1984, help: '1950~1984년생. 미8군 무대와 통기타, 대학가요제를 지나 홍대 인디가 태어나는 순간을 산다.' },
-  { id: 'past', label: '지난 세상', from: 1985, to: 1999, help: '1985~1999년생. 홍대 클럽데이와 CD의 마지막 시절에 청춘을 보낸다.' },
-  { id: 'now', label: '지금 세상', from: 2000, to: 2012, help: '2000~2012년생. 숏폼과 밴드 붐 한가운데서 스무 살이 된다.' },
-  { id: 'next', label: '다가올 세상', from: 2013, to: 2026, help: '2013~2026년생. AI 음악이 넘쳐나는 세상에서 사람의 라이브를 한다.' },
-  { id: 'any', label: '아무 때나', from: 1950, to: 2026, help: '태어날 해도 운명에 맡긴다.' },
+  { id: 'old', label: '옛 시절', from: 1950, to: 1984 },
+  { id: 'past', label: '지난 세상', from: 1985, to: 1999 },
+  { id: 'now', label: '지금 세상', from: 2000, to: 2012 },
+  { id: 'next', label: '다가올 세상', from: 2013, to: 2026 },
+  { id: 'any', label: '아무 때나', from: 1950, to: 2026 },
 ] as const;
+
+// 나라·시대에 맞는 문구 (data/world/title_copy.json) — 브라질을 골랐는데 ‘대한민국에서 태어난 아기’, ‘홍대’가 나오지 않게
+type Copy = { name: string; hub: string; eras: Record<string, string> };
+const COPY = titleCopy.data as unknown as Record<CountryId | 'random', Copy>;
+const eraHelp = (country: CountryId | 'random', era: string) => (era === 'any' ? '태어날 해도 운명에 맡긴다.' : COPY[country].eras[era]);
+/** 하루 출생아 수 — 한국은 연도별 통계, 다른 나라는 연간 출생아 수 [근사], 운명에 맡기면 여섯 나라 합 */
+const perDayOf = (country: CountryId | 'random') =>
+  Math.round((country === 'KR' ? birthsIn(2024) : country === 'random' ? COUNTRY_IDS.reduce((a, c) => a + (c === 'KR' ? birthsIn(2024) : COUNTRIES[c].births), 0) : COUNTRIES[country].births) / 365);
 
 const PACES = [
   { v: 0.5, label: '약 30분' },
@@ -26,11 +35,11 @@ const PACES = [
   { v: 1.5, label: '약 1시간 30분' },
 ];
 
-const TICKS = [
-  '지금 이 순간에도 홍대 어딘가에서 누군가 첫 합주를 한다.',
-  '세 살 어린이집 단짝이 서른에 드러머가 되어 돌아왔다.',
-  '밴드부 친구랑 만든 첫 곡이 20년 뒤 역주행했다.',
-  '군악대 오디션에 떨어지고 쓴 노래가 첫 싱글이 됐다.',
+const ticksFor = (country: CountryId | 'random') => [
+  `지금 이 순간에도 ${COPY[country].hub} 어딘가에서 누군가 첫 합주를 한다.`,
+  '세 살 때 단짝이 서른에 드러머가 되어 돌아왔다.',
+  '학교 친구랑 만든 첫 곡이 20년 뒤 역주행했다.',
+  country === 'KR' ? '군악대 오디션에 떨어지고 쓴 노래가 첫 싱글이 됐다.' : '오디션에 떨어지고 쓴 노래가 첫 싱글이 됐다.',
   '우리 밴드는 유명해졌는데, 보컬이 먼저 떠났다.',
   '나는 록스타가 되지 못했지만, 마지막 앨범을 남겼다.',
 ];
@@ -55,10 +64,12 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
   const [tick, setTick] = useState(0);
   const [since, setSince] = useState(0);
   const t0 = useMemo(() => Date.now(), []);
-  const perDay = Math.round(birthsIn(2024) / 365);
+  const perDay = perDayOf(country);
+  const TICKS = ticksFor(country);
+  const where = COPY[country].name;
 
   useEffect(() => {
-    const a = window.setInterval(() => setTick((x) => (x + 1) % TICKS.length), 4200);
+    const a = window.setInterval(() => setTick((x) => (x + 1) % 6), 4200);
     const b = window.setInterval(() => setSince(Math.floor(((Date.now() - t0) / 86_400_000) * perDay * 1000) / 1000), 500);
     const startMusic = () => playBgm('title', 'indierock', 'wistful', 20261018);
     window.addEventListener('pointerdown', startMusic, { once: true });
@@ -100,7 +111,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
             인디밴드<br />키우기<em>.</em>
           </h1>
           <p className="lede">
-            오늘 대한민국에서 약 {perDay.toLocaleString()}명의 아기가 태어납니다. 그중 한 명이 되어 첫 기타부터 마지막 무대까지 살아 봅니다.
+            오늘 {where}에서 약 {perDay.toLocaleString()}명의 아기가 태어납니다. 그중 한 명이 되어 첫 기타부터 마지막 무대까지 살아 봅니다.
             어디서, 어떤 집에서 태어날지는 고를 수 없습니다. 당신이 그랬던 것처럼.
           </p>
           <div className="hero-frame mobile-only" style={{ margin: '4px 0 18px' }}>
@@ -109,7 +120,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
           <div className="counters">
             <div className="counter">
               <b>{since.toFixed(2)}</b>
-              <span>이 페이지를 연 뒤 대한민국에서 태어난 아기</span>
+              <span>이 페이지를 연 뒤 {where}에서 태어난 아기</span>
             </div>
             <div className="counter">
               <b>{meta.lives.length}</b>
@@ -147,7 +158,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
                 </button>
               ))}
             </div>
-            <div className="seg-help">{ERAS.find((e) => e.id === era)!.help}</div>
+            <div className="seg-help">{eraHelp(country, era)}</div>
           </div>
           <div className="opt-group">
             <span className="label">한 번의 인생 길이</span>
@@ -202,7 +213,7 @@ export function Title({ meta, canContinue, continueLabel, onContinue, onBorn, on
         </div>
       </div>
       <p className="dim" style={{ marginTop: 30 }}>
-        출생아 수·기대수명·최저임금·지역 인구 분포는 통계청 자료를 반올림해 썼고, 그 밖의 확률은 게임용 가정입니다. 현실의 통계가 한 사람의 미래를 결정하지 않습니다.
+        {country === 'KR' ? '출생아 수·기대수명·최저임금·지역 인구 분포는 통계청 자료를' : '한국은 통계청, 다른 나라는 각국 통계·국제기구 자료를'} 반올림해 썼고, 그 밖의 확률은 게임용 가정입니다. 현실의 통계가 한 사람의 미래를 결정하지 않습니다.
         모든 곡은 플레이 중 즉석에서 작곡되며, 실존 인물·밴드와 무관합니다.
       </p>
     </div>
